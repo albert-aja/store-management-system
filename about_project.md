@@ -1,8 +1,8 @@
 # Store Management System (SMS) — Integrated Retail Ecosystem Architecture & Master Project Documentation
 
-> **Version**: 3.2 (Integrated 4-Application Ecosystem Architecture, Omnichannel E-commerce, Unified Backend, Multi-Fulfillment & Cross-App Event Propagation)  
+> **Version**: 3.4 (Finalized Multi-Channel Sales Logic, Configurable Payment Rules, Deposit-First Procurement Authorization & Dual-Axis Fulfillment Architecture)  
 > **Last Updated**: 2026-10-30  
-> **Architecture**: Modular Monolith (Spring Boot 4.1 + PostgreSQL 16 + Redis) • Integrated 4-Application Ecosystem: Management Web SPA (React 19) • E-commerce Web • E-commerce Mobile App • Worker Mobile App (Flutter 3.44)
+> **Architecture**: Modular Monolith (Spring Boot 4.1 + PostgreSQL 16 / PostGIS + Redis + WebSocket) • Integrated 4-Application Ecosystem: Management Web SPA (React 19) • E-commerce Web • E-commerce Mobile App • Worker Mobile App (Flutter 3.44)
 
 ---
 
@@ -50,23 +50,60 @@ The **Store Management System (SMS)** is an integrated enterprise retail operati
 The SMS platform operates as an **integrated ecosystem consisting of four applications**, all communicating through defined APIs with a single shared backend:
 
 1. **Management System (Web)**:
-   - Primary desktop/tablet web application for business administration, inventory control, pricing matrices, procurement, logistics dispatch, and operational governance.
-   - Comprehensive administrative coverage across catalog, SKUs, inventory, pricing, customers, sales, purchasing, payments, delivery, surveys, inspections, employee access, finance, and reporting.
+   - Primary desktop/tablet web application for business administration, inventory control, pricing matrices, procurement, logistics dispatch, fleet and vehicle management, real-time GPS monitoring dashboard, and operational governance.
+   - Also functions as the point of sale for **employee-assisted walk-in purchases** in showroom branches.
 2. **E-commerce Website**:
-   - Customer-facing online shopping platform.
+   - Customer-facing online shopping platform accessible via desktop and mobile web browsers.
    - Responsibilities: Product browsing and faceted search; categories, brands, and filters; detailed specifications, images, and variants; shopping cart and checkout; customer self-service registration and authentication; address management; online payments; order history and tracking; promotions and vouchers; fulfillment selection (own-driver delivery or customer pickup); and fulfillment grouping preferences.
 3. **E-commerce Mobile Application**:
    - Customer-facing native mobile shopping experience providing essentially the same business capabilities as the e-commerce website.
    - The website and mobile app are two interfaces to the same unified e-commerce platform, not independent commerce systems.
 4. **Worker Mobile Application**:
    - Employee-facing mobile application for field and operational activities.
-   - Responsibilities: Customer credit surveys; multi-drop delivery operations (*Surat Jalan* execution); product inspections; store pickup verification and handover; delivery destination location marking; task management; and employee location tracking strictly during active tasks according to agreed tracking rules.
+   - Responsibilities: Customer credit surveys; multi-drop delivery operations (*Surat Jalan* execution); product inspections; store pickup verification and handover; delivery destination location marking; task management; and shared task-based GPS location tracking for Drivers, Surveyors, and Collectors strictly during active authorized operational tasks (with Salespersons explicitly excluded), featuring automated pause during scheduled breaks, background tracking resilience, and local offline coordinate buffering.
+
+### 1.1 Core Omnichannel Principles & Multi-Channel Sales Rules
+
+The retail ecosystem operates under fundamental business and architectural principles:
+
+1. **Unified Sales Logic Across All Channels**:
+   - The system supports sales through:
+     - Management System / employee-assisted walk-in showroom purchases.
+     - Customer-facing e-commerce website.
+     - Customer-facing e-commerce mobile app.
+   - **These are different sales channels, not separate business systems.**
+   - All purchases must follow the **exact same underlying business logic** regardless of originating channel: sales order creation/validation, product pricing, discount approvals, payment/deposits, procurement authorization, fulfillment/delivery, customer pickup, order cancellations, and refunds.
+   - The originating channel is recorded for reporting, auditing, and operational analysis, but does not alter business logic unless an explicitly approved rule requires it.
+2. **Configurable Payment Methods**:
+   - The intended system scope supports 9 distinct payment methods:
+     1. Bank transfer / Virtual Account
+     2. QRIS
+     3. E-wallet
+     4. Credit and debit cards
+     5. Cash at store
+     6. Bank transfer directly to the store
+     7. Cash on delivery (COD), collected by our own delivery driver
+     8. In-house customer credit
+     9. Third-party installment financing
+   - Administrators can enable or disable supported payment methods through the Management System without code changes.
+   - Payment methods have specific eligibility conditions and workflows; credit is **never automatically granted** upon customer registration and requires formal approval and credit limit management.
+3. **Decoupled Payment & Sales Order Relationship**:
+   - Payment is maintained as a separate business module associated with the overall sales order.
+   - A sales order supports multiple payments, initial deposits, balance payments, split payment methods, and item/fulfillment-level refunds without order fragmentation.
+4. **Deposit-First Procurement Authorization**:
+   - A supplier purchase order for customer-demanded products **cannot proceed until the required customer deposit has been received and verified**.
+   - The system supports configurable deposit rules (full payment, deposit percentage or amount, or other arrangements).
+5. **Dual-Axis Fulfillment Decision Orthogonality**:
+   - The system formally distinguishes between two independent decisions:
+     - **Decision A — Fulfillment Completeness**: Complete fulfillment (deliver together when all ready) vs. Partial fulfillment (dispatch available items first). *Decided by the customer.*
+     - **Decision B — Fulfillment Method**: Home delivery (own-driver) vs. Customer store pickup.
+   - Orders can combine delivery and pickup across fulfillment groups. Employees may propose operational adjustments, but must never silently override the customer's approved arrangement; customer approval and audit history must be retained.
 
 The retailer operates on an end-to-end operational lifecycle:
-1. **Procurement & Inbound Logistics**: Sourcing branded products and spare parts from national distributors, managing purchase orders, inspection receiving, demand consolidation, and auto-ingesting serialized inventory.
-2. **Showroom & Omnichannel Sales**: Selling via showroom floor, e-commerce website, or e-commerce mobile app through direct cash, digital payment gateways, cash-on-delivery (COD), or in-house installment credit financing (3, 6, 10, 12, 15 months) with store-specific terms.
+1. **Procurement & Inbound Logistics**: Sourcing branded products and spare parts from national distributors, managing purchase orders, inspection receiving, demand consolidation, deposit-first procurement authorization, and auto-ingesting serialized inventory.
+2. **Showroom & Omnichannel Sales**: Selling via showroom floor (walk-in), e-commerce website, or e-commerce mobile app through direct cash, digital payment gateways, cash-on-delivery (COD), or in-house installment credit financing (3, 6, 10, 12, 15 months) with store-specific terms.
 3. **Credit Verification & Field Appraisal**: Conducting in-person field surveys evaluating customer creditworthiness, dwelling stability, proof photos, delivery access logistics, and income verifications.
-4. **Fulfillment, Multi-Group Logistics & Surat Jalan**: Managing flexible customer fulfillments (own-driver multi-drop delivery trips with formal Delivery Notes / *Surat Jalan*, or customer store pickup), pre-dispatch picking/packing checks, recipient digital signatures, and photo proof.
+4. **Fulfillment, Multi-Group Logistics, Fleet & Surat Jalan**: Managing flexible customer fulfillments (own-driver multi-drop delivery trips with formal Delivery Notes / *Surat Jalan*, or customer store pickup), vehicle assignments, shared task-bounded GPS tracking, pre-dispatch picking/packing checks, recipient digital signatures, and photo proof.
 5. **Debt Servicing, Field Collections & Cash Custody**: Monthly field installment collections, customer promise-to-pay tracking, two-stage cash custody handover, and cashier drawer reconciliation.
 6. **After-Sales, Repossessions, Warranty & Repairs**: Managing customer warranty claims, internal/external repair work orders, or executing asset recovery on defaulted credit accounts for grading, showroom re-sale, or scrap write-off.
 7. **Workforce, Attendance & Non-Calendar Payroll**: Managing employee attendance with Haversine GPS geofencing, leave rosters, and non-calendar sales/collection cutoff cycles (e.g., 26th–25th) calculating attendance-prorated salaries, sales commissions, and collection bonuses.
@@ -80,9 +117,10 @@ The retailer operates on an end-to-end operational lifecycle:
 │  Purchase PO     │  Showroom / Web / App    │  Fulfillment Groups      │  Installment Debt │  Default Event      │
 │  Receiving       │  Price Approval          │  Surat Jalan / Pickup    │  Collector Visit  │  Repossession       │
 │  Serial Unit     │  Credit Survey           │  Driver / Store Handover │  Cash Custody     │  Grading & Triage   │
-│  Stock Movement  │  Down Payment / Gateway  │  Recipient Sign / Proof  │  Cashier Reconcil │  Resell or Scrap    │
-│  Landed Cost*    │  CRM 360 History*        │  Failed Resched*         │  Promise-to-Pay*  │  Warranty Repair    │
-│  (Backlog I.1)   │  (Backlog J.1, P.1-P.8)  │  (Backlog M.3, P.4-P.5)  │  (Backlog J.3)    │  (Backlog K.1)      │
+│  Stock Movement  │  Down Payment / Gateway  │  Fleet GPS Tracking*     │  Cashier Reconcil │  Resell or Scrap    │
+│  Landed Cost*    │  CRM 360 History*        │  Recipient Sign / Proof  │  Promise-to-Pay*  │  Warranty Repair    │
+│  (Backlog I.1)   │  (Backlog J.1, P.1-P.8)  │  Failed Resched*         │  (Backlog J.3)    │  (Backlog K.1)      │
+│                  │                          │  (Backlog M.3, P.4, Q.1) │                   │                     │
 └──────────────────┴──────────────────────────┴──────────────────────────┴───────────────────┴─────────────────────┘
 (* Indicates Proposed Enhancements cross-referenced to Canonical Backlog IDs)
 ```
@@ -98,20 +136,22 @@ STORE MANAGEMENT SYSTEM — INTEGRATED APPLICATION ECOSYSTEM
 ├── sms-backend/ (Java 21 • Spring Boot 4.1.x) [CENTRAL AUTHORITATIVE BACKEND]
 │   ├── Architecture: Modular Monolith with strictly bounded domain contexts
 │   ├── Persistence: Spring Data JPA + Hibernate 6.x
-│   ├── Database: PostgreSQL 16 (Flyway migrations V1–V20+)
+│   ├── Database: PostgreSQL 16 (Flyway migrations V1–V20+) + PostGIS Spatial Engine
 │   ├── Security: Spring Security + Supabase OAuth2 JWT validation (RBAC / PBAC)
-│   ├── High-Concurrency: Redis (Atomic sequence numbering & short-lived cache)
+│   ├── High-Concurrency: Redis (Atomic sequence numbering, short-lived cache & latest GPS positions)
+│   ├── Real-Time Feed: Spring WebSocket (STOMP) + Redis Pub/Sub for live location broadcasting
 │   ├── Document Vault: Supabase Storage S3-compatible Buckets
 │   ├── Event Engine: Transactional Outbox Pattern (`outbox_events`) + Internal Spring Application Events
 │   ├── API Spec: Springdoc OpenAPI 3.0 (Contract generation for Web & Mobile)
 │   └── Testing: JUnit 5, Mockito, Testcontainers
 │
 ├── sms-web/ (React 19 • TypeScript • Vite) [APPLICATION A: MANAGEMENT SYSTEM WEB]
-│   ├── Purpose: Business administration, operations, pricing, procurement, delivery trips, HR & finance
+│   ├── Purpose: Business administration, operations, pricing, procurement, delivery trips, fleet & HR
 │   ├── Framework: React 19 SPA with route-level code splitting (React.lazy)
 │   ├── UI Framework: Material UI v9 (Deep Navy & Emerald Light/Dark themes)
 │   ├── Data Grid: MUI X DataGrid with virtualized scrolling
 │   ├── Workflow Engine: React Flow (@xyflow/react v12) visual DAG builder
+│   ├── Fleet Monitoring: Real-time GPS Fleet Dashboard (Live Map, Employee Sidebar, Route Playback)
 │   ├── Data Fetching: TanStack Query v5 with optimistic mutations
 │   └── Testing: Vitest + React Testing Library (33/33 tests passing)
 │
@@ -133,8 +173,9 @@ STORE MANAGEMENT SYSTEM — INTEGRATED APPLICATION ECOSYSTEM
     ├── Networking: Dio client with JWT interceptors & live/mock fallback
     ├── Hardware Hooks: Camera viewfinder barcode/QR scanner, touch signature pad
     ├── Anti-Fraud: Pure-Dart Haversine 200m GPS geofencing & photo watermarking
-    ├── Task Tracking: Active task-bounded GPS tracking (strictly during deliveries/surveys)
-    └── Offline Engine: Persistent action queue & auto-sync replay (SQLite/Drift target)
+    ├── Task Tracking: Shared task-bounded GPS tracking (Driver, Surveyor, Collector; Sales excluded)
+    ├── Break Engine: Automated tracking cessation on scheduled breaks & OS background handling
+    └── Offline Engine: Persistent action queue & encrypted local GPS buffering (SQLite/Drift target)
 ```
 
 ---
@@ -154,6 +195,9 @@ The SMS ecosystem is composed of four front-end applications serving distinct us
      - Supplier management, purchase orders, receiving, and demand consolidation.
      - Payment management, cash custody verification, and installment schedules.
      - Multi-drop delivery trip planning, vehicle routing, and Surat Jalan generation.
+     - Vehicle master registry, employee vehicle assignments, and fleet maintenance records.
+     - Real-time GPS Fleet Monitoring Dashboard: live map tracking, employee category markers, active task status, and historical route playback.
+     - Break schedule management, manual tracking pause auditing, and location access governance.
      - Credit survey task management and field inspection reviews.
      - Employee master, 10-role RBAC, and data-scope access control.
      - Non-calendar payroll, attendance geofence logs, and executive analytics.
@@ -184,7 +228,8 @@ The SMS ecosystem is composed of four front-end applications serving distinct us
      - Product triage and technical inspections (warranty evaluations, repossessed unit grading).
      - Delivery destination location profiling: marking exact GPS coordinates, narrow street constraints, stair widths, and gate access notes.
      - Operational task management and daily field assignments.
-     - Employee location tracking strictly during active operational tasks (active delivery trips and active surveys), adhering to agreed privacy and power-management rules.
+     - Shared task-based GPS location tracking for Drivers (1 delivery trip = 1 tracking session spanning multi-drop DOs), Surveyors (survey task tracking and property coordinate capture), and Collectors (collection task tracking), with Salespersons explicitly excluded.
+     - Strict automated pause during scheduled breaks, background tracking execution handling, local offline coordinate buffering, and transparent UI tracking state communication.
 
 ---
 
@@ -213,6 +258,7 @@ All four applications operate as client interfaces to a **single authoritative b
 | **Purchase Orders & Procurement** | Purchasing Management | Supplier directory, purchase orders, demand consolidation, and inbound receipt tracking. |
 | **Payments & Cash Custody** | Payment Management | Digital payment gateway transactions, installment schedules, cash custody handovers, and reconciliation. |
 | **Delivery & Fulfillment** | Delivery Management | Fulfillment group orchestration, delivery trip planning, vehicle routing, and customer pickup tracking. |
+| **Fleet, Vehicles & GPS Tracking** | Logistics & Fleet Management | Vehicle master registry, driver/vehicle assignments, tracking sessions, GPS coordinates ingestion, PostGIS spatial trajectories, break schedules, manual pause audit trail, and tracking interruption detection. |
 | **Employee Records & Permissions** | Identity & Access Management | Employee profiles, store assignments, role definitions (RBAC), and data-scope permissions. |
 | **Surveys & Credit Appraisals** | Survey Management | Credit survey scheduling, surveyor dispatch, field appraisal dossiers, and decisive credit determinations. |
 | **Inspections & Warranty** | Inspection Management | Product return triage, cosmetic/functional grading, warranty claim tracking, and repair work orders. |
@@ -224,24 +270,32 @@ All four applications operate as client interfaces to a **single authoritative b
 
 ---
 
-### 2.3 Centralized Business Logic & Rule Enforcement
+### 2.3 Centralized Business Logic & Unified Multi-Channel Sales Rules
 
-Business logic must never be duplicated or implemented independently across frontend clients. The backend acts as the sole gatekeeper of operational rules, ensuring that business integrity is guaranteed even if a client application contains bugs or malicious requests.
+A fundamental architectural and business rule governs the Store Management System: **All purchases must follow the same underlying business logic, regardless of their originating channel.**
 
-For example, when a sales order is submitted through:
-- The E-commerce Website,
-- The E-commerce Mobile Application, or
-- The Management System (by a showroom salesperson),
+The system supports sales through three distinct channels:
+1. **Management System / Employee-Assisted Walk-in Purchases** (Showroom floor).
+2. **Customer-Facing E-commerce Website**.
+3. **Customer-Facing E-commerce Mobile Application**.
 
-**The exact same sales order creation and validation rules are executed by the backend**:
-- **Price Validation**: The backend verifies current store pricing, promotional voucher validity, and active discount rules. Frontend-submitted prices are never trusted blindly.
-- **Inventory Availability Check**: Real-time evaluation of physical stock vs. commercial procurement rules.
-- **Stock Reservation**: Backend atomically acquires concurrency locks to logically reserve available units or flags procurement requirements.
-- **Procurement Gating**: Validation that non-stocked items are eligible for supplier procurement and lead-time estimation.
-- **Order Validation**: Completeness of customer delivery address Snapshot, contact details, and line item configurations.
-- **Payment Status & Method Validation**: Verification of gateway payment confirmation or installment credit eligibility.
-- **Fulfillment Feasibility**: Validation that selected fulfillment method (delivery vs pickup) is viable for the destination and store.
-- **Order Cancellation Rules**: Enforcing order cancellation eligibility based on fulfillment state (e.g., cannot cancel after driver dispatch).
+**These are different sales channels, not separate business systems.**
+
+The exact same business rules, validation logic, state transitions, and operational workflows apply across all channels to:
+- **Sales Order Creation and Validation**: Structural validity, line item specifications, customer address snapshots, contact validation.
+- **Product Pricing and Discounts**: Channel-consistent store price matrices, promotional voucher qualification, supervisor price override workflow policies.
+- **Payment, Deposits & Split Tenders**: Supported payment methods, initial deposit requirements, balance settlements, and payment record association.
+- **Procurement Authorization**: Enforcing deposit-first procurement gating before supplier PO generation.
+- **Fulfillment and Delivery Execution**: Multi-fulfillment grouping, stock reservation vs. procurement demand, route planning.
+- **Customer Pickup**: Store branch readiness staging, QR code generation, and physical handover verification.
+- **Order Cancellation**: Lifecycle-based cancellation eligibility (e.g. unfulfilled vs in-transit).
+- **Refunds and Financial Adjustments**: Item-level or fulfillment-level non-destructive refund vouchers and credit notes.
+- **Other Relevant Sales Operations**: Quotation expiry, return merchandise authorizations, warranty activations.
+
+The system **must not implement separate business logic for online purchases and walk-in purchases**.
+
+**Channel Attribution & Operational Analysis**:
+The system records the originating sales channel on each sales order (`order_source`: `ONLINE_WEB`, `ONLINE_APP`, `EMPLOYEE`) for auditing, commission attribution, and operational analysis. However, **the channel must not cause the same business operation to behave differently** unless an explicitly approved, documented business rule requires it (e.g., immediate physical cashier cash drawer custody for walk-ins vs. automated payment gateway webhooks for online purchases).
 
 Frontend applications are responsible strictly for user experience, data entry ergonomics, responsive rendering, and client-side form validation. Authoritative business decisions belong exclusively to the backend.
 
@@ -340,24 +394,51 @@ The system strictly distinguishes three distinct operational concepts:
 > [!CAUTION]
 > **No Artificial Order Splitting**: The system must **NEVER create separate sales orders merely because an order contains multiple fulfillment groups or staggered shipments**. Doing so corrupts commercial invoices, breaks payment tracking, duplicates customer contracts, and prevents accurate financial reporting. One customer checkout produces exactly one Sales Order containing one or more Fulfillment Groups.
 
-#### 4. Customer Fulfillment Preferences:
-Customers configure their preferred fulfillment arrangement during online checkout:
-- **Option A: Complete Fulfillment**: Hold shipment until all items are ready, delivering the entire order in a single consolidated delivery trip.
-- **Option B: Partial Fulfillment**: Fulfill and dispatch immediately available items first; fulfill and deliver remaining items in subsequent trips as they become available.
-- **Option C: Customer Choice**: Provide dynamic checkout controls allowing the customer to assign delivery vs. pickup preferences per line item, subject to operational feasibility.
+#### 4. Dual-Axis Fulfillment Decisions Clarification (Completeness vs. Method):
+The system strictly distinguishes between two independent, orthogonal fulfillment decisions:
 
-#### 5. Cross-Cutting Implications of Multi-Fulfillment:
-- **Inventory Reservation**: Immediate reservations are applied to in-stock line items, while procurement requirements are assigned to back-ordered lines under the same sales order.
-- **Payment Allocation**: Digital payments and installment agreements cover the total sales order value; revenue recognition and accounting entries map to individual fulfillment dispatches.
-- **Delivery Charges**: Delivery fee algorithms calculate multi-drop logistics costs based on whether the customer requested consolidated or split deliveries.
-- **Cancellations & Refunds**: Individual unfulfilled groups can be cancelled and refunded without invalidating delivered portions of the sales order.
-- **Reporting & Margin**: Cost of goods sold (COGS) and freight expenses are attributed accurately per fulfillment group.
+- **Decision A — Fulfillment Completeness (Staging & Timing)**:
+  - **Complete Fulfillment**: The customer elects to have the entire order fulfilled together once all required products are ready and available.
+  - **Partial Fulfillment**: The customer elects to allow immediately available products to be fulfilled while other backordered or procurement-required products are still pending.
+  - **Decision Authority**: **The customer decides whether complete or partial fulfillment is acceptable** during checkout (or sales consultation for walk-in purchases).
+
+- **Decision B — Fulfillment Method (Handover Channel)**:
+  - **Home Delivery**: Physical transport to the customer's dwelling or business address (initial scope: own-driver delivery fleet).
+  - **Customer Pickup**: Direct collection by the customer at an eligible store branch.
+
+- **Orthogonality & Combined Arrangements**:
+  - Decision A and Decision B are completely independent. A single sales order may contain multiple fulfillment groups combining both methods. For example:
+    - *Fulfillment Group 1*: In-stock microwave picked up by the customer at Store Branch A today.
+    - *Fulfillment Group 2*: Large refrigerator requiring supplier procurement, delivered to the customer's residence via own-driver fleet next week.
+- **Employee Operational Adjustment Governance**:
+  - Store staff and logistics dispatchers may propose operational adjustments to fulfillment arrangements (e.g., suggesting customer pickup for an urgent item, or re-routing delivery stops).
+  - However, **employees must never silently override the customer's approved fulfillment arrangement**.
+  - Any modification requires explicit customer consent, and the system must retain a complete change history and audit trail of who requested the change, when it was approved, and the operational rationale.
+- **Initial Delivery Scope**:
+  - The agreed initial delivery scope covers **Own-driver delivery** and **Customer store pickup**.
+  - Third-party courier integration (e.g., JNE, SiCepat, Lalamove) is a possible future extension, not an initial requirement.
+
+#### 5. Payment and Sales Order Relationship:
+Payment is modeled as a **dedicated, separate business module** rather than being embedded directly into the sales order implementation:
+- **Order-Level Association**: Payments are associated with the overall sales order, establishing a clear commercial ledger.
+- **Multi-Transaction Support**: A sales order reliably supports:
+  - Multiple payment transactions across its lifecycle.
+  - An initial deposit (down payment or prepayment).
+  - Subsequent balance payments.
+  - Payments made through different supported methods, where permitted (split tenders: e.g., partial cash + partial bank transfer).
+  - Item-level or fulfillment-level refunds and payment adjustments.
+- **Reliable Financial Status**: The payment module maintains complete transaction history, allowing the financial status of an order (`UNPAID`, `PARTIALLY_PAID`, `DEPOSIT_RECEIVED`, `FULLY_PAID`, `REFUNDED`) to be determined reliably without mutating finalized order records.
+- **Financial Handling for Split Fulfillment**:
+  - The sales order remains the overall commercial and legal transaction.
+  - Individual fulfillment groups may have their own operational and financial requirements (e.g., dispatch gating based on paid balance or installment approval).
+  - Order cancellations and refunds are handled at the appropriate line-item or fulfillment group level when necessary, generating balanced compensating credit vouchers without invalidating delivered portions of the parent order.
+  - **Invariant**: The system must **never create separate sales orders merely because an order has multiple payments or fulfillment groups**.
 
 ---
 
-### 2.7 E-commerce Product Availability and Procurement Integration
+### 2.7 Product Availability, Procurement Integration & Deposit-First Authorization
 
-Products that are not physically present in store or warehouse inventory may still be made purchasable online if the business permits on-demand supplier procurement.
+Products that are not physically present in store or warehouse inventory may still be made purchasable across all channels if the business permits on-demand supplier procurement.
 
 #### Physical Stock vs. Commercial Sales Availability:
 The system formally decouples physical inventory counts from commercial sales availability:
@@ -372,38 +453,76 @@ The system formally decouples physical inventory counts from commercial sales av
 
 #### Procurement-Required Operational Protocol:
 - **Customer Transparency**:
-  - The E-commerce Website and Mobile App explicitly badge products as "Available (Procurement Required)" with estimated dispatch lead times (e.g., "Ships within 5–7 business days").
-  - Shopping cart and checkout summaries reiterate procurement lead times before payment commitment.
+  - The E-commerce Website, Mobile App, and showroom sales dialogs explicitly badge products as "Available (Procurement Required)" with estimated dispatch lead times (e.g., "Ships within 5–7 business days").
+  - Shopping cart, checkout, and sales draft summaries reiterate procurement lead times before payment commitment.
 - **Procurement Requirement Recording**:
   - When an order containing procurement-required items is confirmed, the backend automatically logs an outstanding `ProcurementRequirement` linked to the sales order item.
 - **Demand Consolidation (No 1:1 Auto-PO)**:
-  - The system **does NOT automatically generate a separate supplier Purchase Order for every online customer order**. Automatic 1:1 PO generation creates unmanageable supplier logistics and prohibitive freight overheads.
+  - The system **does NOT automatically generate a separate supplier Purchase Order for every customer order**. Automatic 1:1 PO generation creates unmanageable supplier logistics and prohibitive freight overheads.
   - Instead, the Management System provides purchasing staff with a **Demand Consolidation Work Center**, allowing procurement officers to aggregate requirements from dozens of online and showroom orders into optimized bulk Purchase Orders to distributors.
 - **Inbound Receiving Linkage**:
   - When goods are physically received and serialized by warehouse staff (Group 7), the inventory module matches ingested serials to pending procurement requirements, transitioning the associated fulfillment group to ready-for-dispatch.
 
+#### Deposit-First Procurement Authorization:
+> [!IMPORTANT]
+> **Procurement Payment Gating Rule**: A supplier purchase order for products required by customer sales orders **cannot proceed until the required customer deposit has been received and verified**.
+
+- **Configurable Deposit Requirements**:
+  The system supports configurable deposit rules managed by store administrators, including:
+  1. *Full Payment Before Procurement*: 100% payment required prior to supplier PO creation (standard for custom non-standard orders or cash customers).
+  2. *Required Deposit Percentage or Fixed Amount*: A mandatory upfront deposit (e.g., 20%, 30%, 50%, or a fixed Rupiah amount) required to lock the order and authorize procurement.
+  3. *Other Configurable Deposit Arrangements*: Tiered deposit rules based on customer loyalty tiers, institutional purchasing contracts, or promotional campaign rules.
+- **Policy Refinement & Operational Invariant**:
+  - While specific deposit configuration percentages and detailed payment policies can be refined later by management, **the fundamental architectural invariant is that the procurement engine must strictly respect the payment authorization requirement**.
+  - The Demand Consolidation Work Center will not allow procurement staff to release or commit a supplier PO line linked to a customer sales order unless the required deposit has been confirmed in the payment ledger.
+
 ---
 
-### 2.8 Fulfillment Methods (Own-Driver & Customer Pickup)
+### 2.8 Configurable Payment Methods & Fulfillment Architecture
 
-The integrated ecosystem supports two primary fulfillment methods from launch, modeled flexibly to accommodate future logistics expansions:
+The SMS platform establishes a comprehensive, configurable payment infrastructure alongside flexible physical fulfillment methods:
 
-#### Method A: Own-Driver Delivery
-- **Customer Experience**: Customer selects home delivery, inputs or selects destination address, and specifies delivery access notes (e.g., narrow street, second floor, vehicle height limits).
-- **Logistics Integration**: Delivery fee calculated dynamically based on store-to-destination distance. Order items assign to an own-driver fulfillment group.
-- **Trip Scheduling**: Management System logistics dispatchers group orders into multi-drop `DeliveryTrip` routes and assign company vehicles, drivers, and helpers.
-- **Mobile Execution**: Assigned drivers receive delivery stops in the Worker Mobile App, review manifests, execute loading verification, navigate to destination, capture recipient touch signatures, take photo proof, and collect COD payments if applicable.
-- **Status Synchronization**: Delivery confirmation updates the sales order, notifies the customer via push/SMS, and closes the delivery trip stop.
+#### 2.8.1 Configurable Payment Methods (Scope & Administration)
 
-#### Method B: Customer Store Pickup
-- **Customer Experience**: Customer chooses "Store Pickup" at checkout and selects an eligible store branch from the branch directory.
-- **Staging & Readiness**: Store warehouse staff receive a pickup staging task in the Management System, pull reserved items, verify serial numbers, and mark the order as `READY_FOR_PICKUP`.
-- **Customer Notification**: The backend triggers an automated pickup notification (Push Notification, Email, and WhatsApp) containing a unique Pickup Verification Code and QR barcode.
-- **Handover Verification**: When the customer arrives at the store, floor staff verify the customer's identity and scan the QR code via the Worker Mobile App or Management System web portal.
-- **Completion**: Staff and customer execute digital handover sign-off, transitioning the fulfillment group to `PICKED_UP` and updating the sales order status.
+The system supports the following **9 distinct payment methods**:
+1. **Bank Transfer / Virtual Account**: Automated virtual accounts (BCA, Mandiri, BRI, BNI) with real-time payment reconciliation.
+2. **QRIS**: Static showroom QR codes or dynamic e-commerce checkout QR codes compatible with all Indonesian banks and e-wallets.
+3. **E-Wallet**: Direct digital wallet checkout (GoPay, OVO, ShopeePay, DANA).
+4. **Credit and Debit Cards**: Visa/Mastercard processing via certified online payment gateways or physical showroom EDC terminals.
+5. **Cash at Store**: Over-the-counter physical cash tender at showroom checkout, strictly bound to cashier cash drawer custody handovers.
+6. **Bank Transfer Directly to the Store**: Direct manual transfer to company bank accounts, verified by finance staff.
+7. **Cash on Delivery (COD)**: Cash collected physically by our own delivery drivers at the customer's delivery destination.
+8. **In-House Customer Credit**: Store credit financing over 3, 6, 10, 12, or 15 months governed by field survey credit appraisal and manager approval.
+9. **Third-Party Installment Financing**: External consumer financing platforms (e.g., Kredivo, Akulaku, Home Credit), subject to provider API integration.
 
-#### Architectural Extensibility for Third-Party Couriers:
-Third-party courier integration (e.g., JNE, J&T, SiCepat, Lalamove) is not in the initial release scope. However, the fulfillment engine models fulfillment providers via a polymorphic interface (`FulfillmentProvider`), preventing courier-specific logic from being hardcoded into core sales order entities and ensuring straightforward API integration in future phases.
+> [!NOTE]
+> **Intended Scope & Administrative Configuration**:
+> - **All these 9 payment methods are part of the intended system scope.**
+> - Payment methods must be **configurable through the Management System**. Authorized administrators must be able to enable or disable supported payment methods per store branch or sales channel without requiring application code changes or server redeployments.
+
+**Core Payment & Credit Rules**:
+1. **No Automatic Credit on Registration**: Customer credit is **never automatically granted** merely because a customer has registered an account.
+2. **Formal In-House Credit Management**: In-house credit requires an appropriate approval process, credit assessment (including mobile surveyor field verification where applicable), and active credit facility management. Credit facilities must strictly account for customer credit limits, outstanding balances, and repayment track records.
+3. **Third-Party Financing Integration**: Third-party installment financing is supported as an independent payment method, subject to external provider integration and callback reconciliation.
+4. **Eligibility Gating & Operational Workflows**: Payment methods carry specific eligibility conditions (e.g., COD may be restricted by geographic radius or maximum transaction amount; in-house credit requires approved credit limits; cash at store is restricted to walk-in showroom purchases or store pickups). The system must never assume every payment method is available to every customer or transaction.
+
+#### 2.8.2 Fulfillment Execution Methods (Decision B Scope)
+
+The initial supported fulfillment methods are:
+
+- **Method A: Own-Driver Delivery (Home Delivery)**:
+  - Customer provides delivery destination address and access constraints.
+  - Delivery fees calculated dynamically based on store-to-destination distance.
+  - Logistics dispatchers group fulfillment groups into multi-drop `DeliveryTrip` routes in the Management System.
+  - Assigned drivers execute tasks via the Worker Mobile App: manifest picking check, vehicle loading, GPS tracking, recipient touch signature, photo proof, and Surat Jalan generation.
+- **Method B: Customer Store Pickup**:
+  - Customer selects an eligible branch store from the store directory.
+  - Store warehouse staff stage reserved items and mark the fulfillment group as `READY_FOR_PICKUP`.
+  - Customer receives automated notification with a unique Pickup Verification Code and QR barcode.
+  - Store staff verify customer ID and scan QR code via Worker Mobile App or Management System web portal, executing digital handover sign-off.
+
+**Extensibility for Third-Party Couriers**:
+Third-party courier integration (e.g., JNE, SiCepat, Lalamove) is a recognized possible future extension, not an initial requirement. The fulfillment engine models fulfillment providers through a polymorphic interface (`FulfillmentProvider`), preventing courier-specific logic from being hardcoded into sales order entities.
 
 ---
 
@@ -427,6 +546,7 @@ To maximize development velocity, maintain ACID data guarantees, and avoid the o
   11. `inspection`: Warranty repair tickets, repossessed unit grading, triage, and scrap write-offs.
   12. `notification`: Outbox dispatch, mobile push notifications, and customer messaging.
   13. `reporting`: KPI dashboards, period comparisons, receivables aging, and Excel multi-sheet exports.
+  14. `fleet`: Vehicle registry, driver-vehicle assignments, tracking sessions, GPS point ingestion, break schedules, route playback, and tracking anomaly detection.
 - **Reuse and Extension**: New capabilities leverage and extend existing mature modules rather than creating duplicative parallel codebases.
 
 ---
@@ -578,6 +698,15 @@ Integration must be designed into every feature from inception, not patched on a
 - Mobile GPS geofencing via Haversine formula is subject to physical limitations: indoor signal attenuation, urban canyon reflections, and operating system mock-location injection.
 - GPS verification serves as **operational decision support and anomaly detection**, not infallible physical proof. It must be combined with network cell-tower checks, camera timestamp verification, and supervisory review.
 
+#### I. Logistics, PostGIS Spatial Engine & Task-Bounded Location Tracking Standards (Backlog `[Q.1–Q.11]`)
+- **Shared GPS Infrastructure Across Field Roles**: A single shared GPS tracking engine services Drivers, Surveyors, and Collectors, eliminating role-siloed tracking code. Salespersons are explicitly excluded from GPS tracking.
+- **Task-Bounded Lifecycle Principle**: GPS tracking is activated strictly upon manual task/trip initiation in the Flutter mobile application and ceases immediately upon task/trip completion. All-day continuous employee tracking is strictly prohibited.
+- **Strict Break Enforcement & Zero-Coordinate Capture**: Configured break schedules (e.g., lunch breaks) trigger an automated tracking pause. No GPS coordinates may be collected, transmitted, or stored during scheduled breaks. Tracking resumes automatically when the break ends if the operational session remains active.
+- **PostGIS Spatial Storage & Indexing**: PostgreSQL with the PostGIS extension stores GPS trajectory points using `GEOMETRY(Point, 4326)` with spatial GiST indexes, enabling sub-millisecond proximity queries, spatial distance computations, and historical route polyline reconstruction via `ST_MakeLine`.
+- **Redis Caching & Real-Time WebSocket Streaming**: The latest known position of each actively tracked employee is maintained in high-speed Redis key-value structures (`fleet:employee:{id}`) and broadcast to the Management Web SPA via Spring WebSocket (STOMP), eliminating polling overhead.
+- **Mobile Background Execution & Resilient Offline Buffering**: The mobile app runs a persistent foreground service with a visible ongoing notification. When connectivity is interrupted, GPS records are buffered locally with hardware timestamps and synchronized upon network restoration.
+- **Indonesian UU PDP Data Governance**: Location history is classified as sensitive personal data under UU No. 27/2022 (UU PDP). Granular permissions restrict access, every managerial view generates an immutable audit record, and historical tracking tables are partitioned monthly with a defined retention and archival lifecycle.
+
 ---
 
 ## 3. Core Business Invariants & Guiding Principles
@@ -630,6 +759,13 @@ Integration must be designed into every feature from inception, not patched on a
    - Fulfillment execution details must never be hardcoded into core sales order accounting or receivable entities.
 14. **System-Wide 4-Application Feature Evaluation Standard**:
    - Every architectural proposal, feature design, and implementation must evaluate its lifecycle and impact across all four applications and the shared backend using the 7-Question Integration Standard.
+15. **Task-Bounded GPS Tracking, Strict Break Pauses & Employee Privacy Invariant**:
+   - GPS tracking occurs **strictly and exclusively while an employee is actively executing an authorized operational task or delivery trip**. Continuous all-day employee surveillance is prohibited by architectural design.
+   - **Salespersons are explicitly excluded from GPS tracking.**
+   - Tracking sessions are bound to operations: 1 delivery trip = 1 tracking session (covering multi-drop delivery orders); 1 survey = 1 tracking session; 1 collection visit = 1 tracking session.
+   - GPS tracking **automatically ceases during configured scheduled break windows**. No location coordinates may be collected or stored during breaks; tracking auto-resumes when the break concludes if the operational task remains active.
+   - Intentional manual pauses, scheduled breaks, GPS hardware loss, network disconnection, and task completion are strictly distinct lifecycle events and must never be conflated.
+   - Primary tracking relies on the employee's mobile phone GPS; independent in-vehicle hardware tracking is deferred to future fleet telematics phases.
 
 ---
 
@@ -812,9 +948,10 @@ Status Legend:
 - **Status**: `[DONE]` (Core Lifecycle & In-Store SO) / `[PROPOSED]` (Omnichannel Source Tagging & Multi-Fulfillment Groups: `[P.1]`, `[P.4]`)
 - **What Is Done**: State machine (`DRAFT → PENDING_APPROVAL → RELEASED → CONFIRMED → CANCELLED`), logical inventory reservation, discount calculation.
 - **Integrated Omnichannel Enhancements**:
-  - `order_source` tracking: Differentiating orders originated via `ONLINE_WEB`, `ONLINE_APP`, or `EMPLOYEE` (`[P.1]`).
+  - `order_source` tracking: Differentiating orders originated via `ONLINE_WEB`, `ONLINE_APP`, or `EMPLOYEE` (`[P.1]`) while guaranteeing identical business rules across all channels.
   - Multi-Fulfillment Grouping: Modeling one Sales Order containing multiple `FulfillmentGroup` instances (e.g. partial warehouse dispatch + supplier procurement) without artificial order splitting (`[P.1]`).
-  - Customer Fulfillment Preferences: Supporting complete delivery (consolidated), partial delivery (staggered), or customer choice (`[P.4]`).
+  - Dual-Axis Fulfillment Decisions: Supporting Decision A (Fulfillment completeness: Complete vs. Partial, decided by customer) orthogonal to Decision B (Fulfillment method: Home Delivery vs. Store Pickup) (`[P.4]`).
+  - Multi-Payment Association: Supporting multiple payment transactions, initial deposits, subsequent balance payments, split payment methods, and line-item/fulfillment-level refunds (`[P.8]`, `[P.11]`).
 - **Proposed Enhancements**: Quotation management with validity expiration dates (e.g., 7 days) and one-click quotation-to-order conversion (`[O.1]`); audit history tracking line-item changes and quantity edits on drafts (`[O.7]`).
 
 #### Feature 4.2: Automated Price Negotiation & Discount Approval
@@ -825,13 +962,17 @@ Status Legend:
 - **What Is Done**: Automatic workflow trigger, discount amount calculation, multi-level SPV/Manager review.
 - **Proposed Enhancements**: Margin threshold warning indicator showing gross profit impact to approvers; salesperson monthly quota target and tiered commission tracking.
 
-#### Feature 4.3: Down Payment (DP) Cash Custody & Online Gateway Payment Recording
-- **Purpose**: Require upfront payment confirmation (Down Payment for credit orders or full payment for cash orders) before order confirmation, automatically reconciling transactions in Finance.
+#### Feature 4.3: Configurable Multi-Channel Payments, Deposit Recording & Split Tenders
+- **Purpose**: Require upfront payment confirmation (Down Payment for credit orders, deposit for procurement-required orders, or full payment for cash orders) before order confirmation, automatically reconciling transactions in Finance.
 - **Backend**: `ConfirmSalesOrderRequest.java`, `SalesOrderService.confirm(...)` auto-creating `CustomerPayment` and `PaymentCustody`.
 - **Web UI**: Down payment confirmation modal in `SalesOrderDetailPage.tsx`.
-- **Status**: `[DONE]` (Cash Custody Confirmation) / `[PROPOSED]` (Online Payment Gateway Webhook Reconciliation: `[P.8]`)
+- **Status**: `[DONE]` (Cash Custody Confirmation) / `[PROPOSED]` (Configurable Payment Methods & Webhooks: `[P.8]`, `[P.11]`)
 - **What Is Done**: Direct integration between in-store Sales Order confirmation and Finance cash custody ledger (`HELD_BY_CASHIER`).
-- **Omnichannel Payment Integration**: For online e-commerce orders, payments are processed via digital payment gateways (QRIS dynamic barcodes, Virtual Accounts, Credit Cards) with asynchronous webhook callback verification, automatically creating confirmed `CustomerPayment` records and bypassing physical cash custody (`[P.8]`).
+- **Omnichannel Payment Integration & Configurable Scope**:
+  - Supports 9 configurable payment methods: Bank Transfer/VA, QRIS, E-wallet, Credit/Debit cards, Cash at store, Direct store bank transfer, Driver COD, In-house customer credit, and Third-party installment financing (`[P.11]`).
+  - Configurable through the Management System without code changes.
+  - Supports split payment tenders (e.g., partial cash + partial bank transfer) associated with a single sales order.
+  - Enforces deposit-first procurement gating before linked supplier POs can proceed.
 - **Proposed Enhancements**: Split DP payment methods (e.g., partial cash + partial bank transfer); digital payment gateway / QRIS dynamic barcode generation.
 
 #### Feature 4.4: Official Credit Agreement Document Generator
@@ -1265,13 +1406,15 @@ Status Legend:
 - **What Is Done**: Structured entity fields and database schema for `destination_latitude`, `destination_longitude`, `alley_width_meters`, `stair_clearance_meters`, and `gate_access_notes`; mobile surveyor UI captures GPS geocoordinates and physical dimension constraints, dispatching structured payloads during credit survey assessment updates.
 - **Proposed Enhancements**: Turn-by-turn navigation launch to Google Maps / Waze using survey-captured coordinates (`[M.7]`).
 
-#### Feature 14.12: Active Task-Bounded Mobile Worker Location Tracking `[PROPOSED]` (Backlog `[P.10]`)
-- **Purpose**: Track field staff location strictly during active delivery trips or field surveys for ETA calculation and driver safety.
+#### Feature 14.12: Shared Task-Bounded Mobile Worker Location Tracking `[PROPOSED]` (Backlog `[Q.1]`, `[Q.2]`, `[Q.3]`, `[Q.9]`)
+- **Purpose**: Mobile client implementation of the Logistics & Fleet Management System (Group 18), tracking field staff location strictly during active delivery trips, credit surveys, or collection tasks.
 - **Scope**:
-  - Tracking is strictly bounded to the lifecycle of active tasks (`TRIP_IN_PROGRESS` or `SURVEY_ACTIVE`).
-  - No background location tracking occurs when off-duty or outside active tasks, preserving employee privacy and battery life.
-  - Periodic location breadcrumbs uploaded to backend via MQTT/REST or cached locally when offline.
-  - Visual breadcrumb route map rendered in Management System logistics center.
+  - Tracking is strictly bounded to the lifecycle of active tasks manually initiated by workers in the Flutter app (Drivers: `TRIP_ACTIVE`; Surveyors: `SURVEY_ACTIVE`; Collectors: `COLLECTION_ACTIVE`). Salespersons are explicitly excluded.
+  - Zero background location tracking occurs outside active operational tasks, protecting employee privacy and device battery life.
+  - Automated pause during scheduled break windows (e.g., lunch), ceasing all GPS collection with no deferral allowed; auto-resumption when break concludes.
+  - Local SQLite/Drift coordinate buffering with original hardware timestamps during network outages, synchronized upon reconnection.
+  - Transparent mobile status banners communicating active, paused, interrupted, or completed states.
+  - Cross-Reference: Fully detailed functional and architectural specifications documented in Group 18.
 
 #### Feature 14.13: Actionable Notification Center (`[DONE]`, Backlog `[M.6]`)
 - **Purpose**: Unified mobile notification center with direct document deep-links and one-tap supervisory approvals/rejections.
@@ -1422,6 +1565,313 @@ Status Legend:
 
 ---
 
+### Group 18: Logistics & Fleet Management System `[PROPOSED]` (Backlog `[Q.1–Q.12]`)
+
+> **Architectural Status**: Major operational domain managing field workforce operations, vehicle assignments, delivery trip execution, and GPS location tracking. Employs a unified, shared GPS tracking infrastructure across Drivers, Surveyors, and Collectors, while explicitly excluding Salespersons. The system strictly adheres to task-bounded GPS tracking, automatic break pauses, and Indonesian Personal Data Protection (UU PDP No. 27/2022) principles.
+
+#### Feature 18.1: Shared Task-Based GPS Tracking Infrastructure & Mobile Task Workflow `[PROPOSED]` (Backlog `[Q.1]`)
+- **Purpose**: Unified GPS tracking infrastructure shared across Driver, Surveyor, and Collector roles, replacing fragmented tracking code with a single robust lifecycle engine.
+- **Exclusion Invariant**: **Salespersons are explicitly excluded from GPS tracking** across all web and mobile platforms.
+- **Fundamental Business Principle**:
+  - **GPS tracking only happens while an employee is actively performing an assigned operational task.**
+  - The system must **never continuously track employees throughout their working day**.
+  - Off-duty, standby, or untasked staff are never subject to background geolocation tracking.
+- **Manual Task Initiation & Execution Lifecycle (Flutter Mobile App)**:
+  1. Employee logs into the Worker Mobile Application (`sms-mobile`).
+  2. Employee navigates to their role-specific work center and opens an assigned task or delivery trip.
+  3. Employee reviews destination, items, customer notes, and operational instructions.
+  4. Employee manually presses **Start Task** (or **Start Trip** for drivers).
+  5. The application validates GPS availability, location services status, and runtime permissions (`ACCESS_FINE_LOCATION`, `ACCESS_BACKGROUND_LOCATION` on Android; `locationAlways` on iOS).
+  6. GPS tracking officially begins, starting a foreground service with a persistent ongoing notification.
+  7. The application periodically collects GPS coordinates and transmits them in batches to the backend REST/WebSocket ingestion endpoint.
+  8. Employee performs their field work (driving, surveying dwelling, collecting payment).
+  9. Employee completes the task or completes the entire delivery trip.
+  10. GPS tracking stops immediately, foreground service terminates, and the operational tracking session is formally closed.
+- **Scope & Boundaries**: Tracking is strictly authorized and bound to the operational session. No silent or covert location tracking is permitted under any circumstances.
+
+#### Feature 18.2: Role-Specific Tracking Scope & Operational Workflows `[PROPOSED]` (Backlog `[Q.2]`)
+- **Purpose**: Model operational tracking lifecycles tailored to each supported employee category while sharing underlying GPS collection plumbing:
+  1. **Driver — Delivery Trip Tracking**:
+     - **Decisive Invariant**: **One Delivery Trip = One Tracking Session.**
+     - A delivery trip regularly contains multiple delivery orders (e.g., Delivery Trip `DT-000001` containing `DO-000001`, `DO-000002`, `DO-000003`).
+     - *Workflow*:
+       - Driver opens assigned `DeliveryTrip` in `sms-mobile`.
+       - Driver taps "Start Trip" at the store warehouse. Tracking session opens (`ACTIVE`).
+       - Driver performs sequential customer deliveries.
+       - **Completing an individual Delivery Order (capturing recipient signature, photo proof, or COD payment) does NOT stop GPS tracking.**
+       - Tracking continues seamlessly while the driver travels from stop 1 to stop 2, and onward.
+       - Only when all deliveries in the trip are concluded (or remaining stops marked failed/rescheduled) does the driver explicitly tap "End Trip".
+       - GPS tracking ceases, foreground service shuts down, and the tracking session transitions to `COMPLETED`.
+     - *Session Associations*: Driver employee ID, `delivery_trip_id`, and assigned vehicle ID (`vehicle_id`, if applicable).
+     - *Anti-Pattern Prohibited*: The system strictly forbids opening and closing independent GPS tracking sessions per individual delivery order stop within the same trip.
+  2. **Surveyor — Credit Survey Tracking**:
+     - *Workflow*:
+       - Surveyor opens an assigned credit survey task.
+       - Surveyor manually taps "Start Survey" upon departure or arrival at customer property.
+       - GPS tracking activates and records the journey/on-site assessment.
+       - Surveyor appraises property dwelling, uploads watermarked photos, and submits appraisal determination (`POST /api/surveys/{id}/decide`).
+       - GPS tracking ends immediately upon survey task submission, closing the tracking session.
+     - *Session Associations*: Surveyor employee ID, `survey_id`, and customer account / property address ID.
+     - *Cross-Module Integration*: Geocoordinates captured during the survey (`destination_latitude`, `destination_longitude`) and access constraints (alley width, stair clearance, gate access notes) are stored in `survey` and automatically shared with `Delivery Management` (`delivery_order`) for turn-by-turn driver navigation on future deliveries (`[M.1]`, `[M.7]`).
+  3. **Collector — Delinquent Installment Collection Tracking**:
+     - *Workflow*:
+       - Collector opens assigned field collection task for a delinquent credit customer.
+       - Collector taps "Start Collection Visit".
+       - GPS tracking activates for the duration of the visit.
+       - Collector records visit outcome (`PAID`, `PROMISED_TO_PAY`, `REFUSED`, `UNREACHABLE`), receives cash custody, or logs promise-to-pay (`POST /api/finance/collections`).
+       - Collector taps "End Visit"; GPS tracking halts and tracking session completes.
+     - *Session Associations*: Collector employee ID, `collection_task_id`, and customer receivable account ID.
+     - *Cross-Module Integration*: Synchronizes visit destination coordinates with Customer 360 CRM interaction timeline (`[J.6]`, `[J.10]`).
+
+#### Feature 18.3: Strict Configurable Break Management & Tracking Pause `[PROPOSED]` (Backlog `[Q.3]`)
+- **Purpose**: Enforce non-negotiable pause of GPS location collection during employee break windows, upholding employee personal privacy and statutory labor compliance.
+- **Strict Scheduled Break Policy**:
+  - GPS tracking **must automatically stop during scheduled break periods**, regardless of whether an operational task is in progress.
+  - *Illustrative Daily Timeline*:
+    | Time Window | Operational Event | GPS Tracking State | Mobile UI Status |
+    |---|---|---|---|
+    | **08:00** | Employee manually starts Delivery Trip / Task | `ACTIVE` | Green Banner: "Tracking Active" |
+    | **12:00** | Configured Lunch Break begins | `PAUSED_BREAK` | Amber Banner: "Break Time — GPS Paused" |
+    | **13:00** | Configured Lunch Break ends | `ACTIVE` (Auto-Resumed) | Green Banner: "Tracking Resumed" |
+    | **14:00** | Employee taps "Complete Task / End Trip" | `COMPLETED` | Gray Banner: "Tracking Closed" |
+- **Ten Fundamental Business Rules for Break Management**:
+  1. Break schedules are dynamic and configurable in the database, never hardcoded in application logic.
+  2. The system supports multiple scheduled break windows per day (e.g., morning tea 10:00–10:15, lunch 12:00–13:00, afternoon prayer/break 15:30–15:45).
+  3. When a scheduled break begins, GPS tracking automatically pauses immediately.
+  4. Employees cannot override, dismiss, or defer scheduled breaks to continue location tracking.
+  5. **Zero Coordinate Capture**: Absolutely no GPS coordinates, speed, or heading metadata may be collected, buffered, or transmitted during break windows.
+  6. When a scheduled break window ends, GPS tracking automatically resumes if and only if the associated operational tracking session is still active (`status == PAUSED`).
+  7. If the employee completed the task during the break window, tracking remains permanently stopped.
+  8. Break pause and resumption events are logged as distinct immutable entries in `tracking_session_event`.
+  9. The mobile application delivers local audible/visual push notifications 5 minutes prior to break start and upon break conclusion.
+  10. Break schedules support hierarchical configuration: corporate default, store branch override, or employee category override.
+- **Mobile Background Execution & OS Restriction Handling**:
+  - Modern Android (Doze mode, background location limits) and iOS (suspended background execution) enforce stringent background restrictions.
+  - The mobile app runs a persistent Foreground Service with a sticky Notification Bar item while tracking is active.
+  - If the mobile operating system suppresses automatic background resumption when a break ends (e.g., process killed by OS memory manager), the app triggers an immediate high-priority local push notification instructing the employee: *"Break time ended. Tap here to verify task resumption"*.
+  - **Truthful Status Invariant**: The mobile application and management dashboard must **never falsely indicate that GPS tracking is active** when location collection has not physically resumed.
+- **Manual Pause Capability (Exceptional Circumstances)**:
+  - In addition to scheduled breaks, workers may trigger a manual pause for unforeseen emergencies (vehicle breakdown, flat tire, sudden medical issue, severe road hazard).
+  - *Governance*: Configurable via RBAC permissions (`FLEET_MANUAL_PAUSE`).
+  - *Audit Trail*: Mandatory selection of a pause reason from a predefined enum (`VEHICLE_BREAKDOWN`, `TRAFFIC_ACCIDENT`, `POLICE_CHECK`, `PERSONAL_EMERGENCY`, `OTHER`), mandatory text explanation, pause timestamp, and resume timestamp recorded in `tracking_session_event`.
+  - *Policy Guardrail*: Manual pause cannot be abused to circumvent or replace the strict scheduled break policy.
+
+#### Feature 18.4: Tracking Session State Machine & Event Reconstruction `[PROPOSED]` (Backlog `[Q.4]`)
+- **Purpose**: Complete lifecycle modeling of tracking sessions and granular event auditing to accurately reconstruct operational timelines.
+- **Tracking Session Entity Schema (`tracking_session`)**:
+  - `id`: UUID primary key.
+  - `employee_id`: References `employee.id` (Driver, Surveyor, Collector).
+  - `task_type`: Enum (`DELIVERY_TRIP`, `SURVEY_TASK`, `COLLECTION_TASK`).
+  - `task_id`: Logical reference ID (maps to `delivery_trip.id`, `survey.id`, or collection task ID).
+  - `vehicle_id`: Optional reference to `vehicle.id` (if vehicle was assigned).
+  - `status`: Enum (`NOT_STARTED`, `ACTIVE`, `PAUSED`, `INTERRUPTED`, `COMPLETED`).
+  - `start_time`: Timestamp of manual task start.
+  - `end_time`: Timestamp of task completion / trip closure.
+  - `total_distance_meters`: PostGIS-aggregated spatial distance.
+  - `active_duration_seconds`: Total active moving/working duration excluding pauses.
+  - `paused_duration_seconds`: Total duration spent in scheduled breaks and manual pauses.
+- **Session Event Ledger Schema (`tracking_session_event`)**:
+  - `id`: Bigint / UUID primary key.
+  - `tracking_session_id`: References `tracking_session.id`.
+  - `event_type`: Enum (`SESSION_STARTED`, `SCHEDULED_BREAK_PAUSE`, `SCHEDULED_BREAK_RESUME`, `MANUAL_PAUSE`, `MANUAL_RESUME`, `GPS_LOST`, `GPS_RESTORED`, `NETWORK_OFFLINE`, `NETWORK_RESTORED`, `OS_TERMINATION_DETECTED`, `SESSION_COMPLETED`).
+  - `event_timestamp`: UTC timestamp of event occurrence.
+  - `reason_code`: Optional reason string (e.g. `LUNCH_BREAK`, `PUNCTURED_TIRE`).
+  - `notes`: Optional textual notes or error payload.
+  - `location_latitude` / `location_longitude`: Optional GPS coordinate snapshot at the instant of event transition.
+- **Strict Distinction Principle**:
+  - An intentional manual pause, a scheduled break, a GPS hardware loss, and a cellular network disconnection are **fundamentally different operational events**.
+  - They must **never be treated as interchangeable statuses or collapsed into a single generic 'paused' flag**.
+  - Preserving distinct event codes guarantees that dispatchers and auditors can reconstruct the exact, indisputable timeline of field operations.
+
+#### Feature 18.5: GPS Location Collection, Ingestion & PostGIS History Engine `[PROPOSED]` (Backlog `[Q.5]`)
+- **Purpose**: High-throughput ingestion, spatial persistence, and trajectory querying of field GPS coordinates.
+- **Location Record Schema (`tracking_location`)**:
+  - `id`: Bigserial / UUID primary key.
+  - `tracking_session_id`: Foreign key to `tracking_session.id` (indexed).
+  - `employee_id`: Foreign key to `employee.id` (indexed).
+  - `coordinate`: PostGIS geometry point `GEOMETRY(Point, 4326)` with spatial GiST index (`gist_tracking_location_coord`).
+  - `latitude`: High-precision numeric decimal (WGS 84).
+  - `longitude`: High-precision numeric decimal (WGS 84).
+  - `accuracy_meters`: Float representing GPS horizontal accuracy radius (e.g., 5.2m).
+  - `speed_mps`: Float representing instantaneous velocity in meters per second (if provided by device).
+  - `heading_degrees`: Float representing compass bearing 0–360° (if provided by device).
+  - `altitude_meters`: Float representing altitude above sea level (if provided by device).
+  - `battery_level_pct`: Smallint representing phone battery percentage (0–100) for telematics diagnostics.
+  - `is_mock_provider`: Boolean anti-fraud flag detecting mock GPS injection apps.
+  - `recorded_at`: Hardware device timestamp when coordinate was sampled.
+  - `ingested_at`: Server timestamp when record was persisted into PostgreSQL.
+- **Sampling & Battery Optimization Strategy**:
+  - Dynamic sampling interval:
+    - *In Motion* (speed > 5 km/h): Sample every 10–15 seconds; upload batch every 30 seconds.
+    - *Stationary / Traffic Delay* (speed <= 5 km/h): Relax sampling to 30–60 seconds to conserve battery.
+    - *Scheduled Break*: Exactly 0 samples (hardware GPS listener completely deactivated).
+  - Target battery consumption: < 3.5% battery drain per hour of active tracking on modern Android/iOS hardware.
+- **Backend Ingestion Architecture**:
+  - High-performance REST batch endpoint (`POST /api/v1/fleet/tracking-sessions/{id}/locations`) accepting JSON arrays of up to 50 buffered coordinates.
+  - Asynchronous Redis Pipeline: Upon ingestion, write current position to Redis Hash (`fleet:employee:{id}`) with 5-minute TTL, compute Haversine delta against previous point, and publish payload to Redis Pub/Sub topic `fleet:live-updates`.
+  - Spring WebSocket STOMP broker dispatches live coordinates to subscribed management dashboard clients (`/topic/fleet/live`).
+- **Database Partitioning & PostGIS Queries**:
+  - PostgreSQL table `tracking_location` is partitioned monthly by `recorded_at` (`tracking_location_y2026m10`, `m11`, etc.) to prevent table bloat and index degradation over multi-million row trajectories.
+  - Route reconstruction query leverages PostGIS `ST_MakeLine(coordinate ORDER BY recorded_at ASC)` to generate compressed GeoJSON LineStrings for web map rendering.
+
+#### Feature 18.6: Web Management System — Real-Time GPS Fleet Monitoring Dashboard `[PROPOSED]` (Backlog `[Q.6]`)
+- **Purpose**: Centralized operational map interface enabling authorized dispatchers, branch managers, and logistics coordinators to monitor active field personnel in real time.
+- **Web SPA Component Architecture (`sms-web`)**:
+  - `FleetMonitoringDashboardPage.tsx`: Dedicated management view accessible via sidebar under Logistics & Fleet.
+  - Subscribed to WebSocket STOMP endpoint (`/topic/fleet/live`) using TanStack Query and reactive state.
+- **Core Dashboard Capabilities**:
+  1. **Interactive Live Map Canvas**:
+     - Leaflet / Mapbox GL interactive map container with smooth vector pan and zoom.
+     - Real-time animated markers representing actively moving employees.
+     - Role-specific color-coded avatar markers:
+       - 🚚 **Driver** (Emerald Green marker with truck glyph).
+       - 📋 **Surveyor** (Sapphire Blue marker with clipboard glyph).
+       - 💼 **Collector** (Deep Navy / Amber marker with wallet glyph).
+     - Pulsing accuracy halo illustrating GPS horizontal accuracy radius (`accuracy_meters`).
+     - Marker popup displaying: Employee Name, Role, Current Speed, Last Update Timestamp, Assigned Task/Trip Code, and Assigned Vehicle License Plate.
+  2. **Live Employee Roster Sidebar**:
+     - Collapsible drawer listing all currently on-duty or active field employees.
+     - Search bar and quick category tabs: `ALL`, `DRIVERS`, `SURVEYORS`, `COLLECTORS`.
+     - Employee card showing:
+       - Status badge (`ACTIVE`, `PAUSED_BREAK`, `PAUSED_MANUAL`, `INTERRUPTED`).
+       - Current assigned task (e.g. `Delivery Trip DT-000001` or `Survey SV-000042`).
+       - Heartbeat freshness timer (e.g. "Updated 12s ago" with green dot, or "No signal 4m" with amber warning).
+       - Assigned vehicle registration number.
+       - One-click "Locate on Map" action centering map viewport on employee position.
+  3. **Multi-Dimensional Dashboard Filters**:
+     - Filter by Employee Category (Driver, Surveyor, Collector).
+     - Filter by Store Branch (assigned branch territory).
+     - Filter by Tracking Status (`ACTIVE`, `PAUSED`, `INTERRUPTED`).
+     - Filter by Specific Individual (typeahead search).
+  4. **Connection Health Indicator**:
+     - Visual badge showing WebSocket connection status (Connected, Reconnecting, Offline) with auto-fallback to HTTP long-polling every 15s if WebSocket disconnects.
+
+#### Feature 18.7: Historical Route Reconstruction, Playback & Session Auditing `[PROPOSED]` (Backlog `[Q.7]`)
+- **Purpose**: Review completed or past tracking sessions, verify delivery routes, investigate customer delivery disputes, and audit employee travel timelines.
+- **Historical Route Playback Interface (`RoutePlaybackDrawer.tsx`)**:
+  - Date and Employee search filters with calendar range picker.
+  - Search results display completed tracking sessions with start time, end time, total distance traveled (km), and stop count.
+  - Selecting a session renders the complete historical route polyline on the map.
+  - **Interactive Playback Controls**:
+    - Play / Pause / Rewind buttons.
+    - Adjustable playback speed slider (1x, 2x, 5x, 10x).
+    - Timeline scrubber bar scrubbing through the entire session duration.
+    - Animated vehicle/avatar icon traveling along the recorded polyline as time advances.
+  - **Chronological Event Timeline Panel**:
+    - Displays paired event pins along the route map:
+      - 🟢 `SESSION_STARTED` at warehouse or branch.
+      - 📦 `DELIVERY_COMPLETED` stops with DO number and timestamp.
+      - ☕ `SCHEDULED_BREAK_PAUSE` and `SCHEDULED_BREAK_RESUME` pins showing exact stationary break location.
+      - ⚠️ `MANUAL_PAUSE` pins showing mandatory recorded reason.
+      - 🔴 `GPS_LOST` / `GPS_RESTORED` segments highlighted in dashed red lines.
+      - 🏁 `SESSION_COMPLETED` final destination pin.
+    - Clicking any event pin jumps the playback scrubber directly to that exact moment in time.
+
+#### Feature 18.8: Vehicle Master Registry & Employee Assignment Engine `[PROPOSED]` (Backlog `[Q.8]`)
+- **Purpose**: Maintain comprehensive fleet asset records and link vehicles to delivery operations.
+- **Vehicle Master Schema (`vehicle`)**:
+  - `id`: UUID primary key.
+  - `store_id`: Assigned branch store branch ID (foreign key to `store`).
+  - `registration_number`: Indonesian vehicle license plate (e.g., `B 1234 ABC`), unique index.
+  - `vehicle_type`: Enum (`MOTORCYCLE`, `BLIND_VAN`, `PICKUP_TRUCK`, `LIGHT_TRUCK_4W`, `MEDIUM_TRUCK_6W`).
+  - `brand_model`: String (e.g., "Daihatsu Gran Max 1.5", "Isuzu Traga", "Honda Beat").
+  - `chassis_number` / `engine_number`: Vehicle identification numbers.
+  - `status`: Enum (`AVAILABLE`, `IN_USE`, `MAINTENANCE`, `DECOMMISSIONED`).
+  - `max_payload_kg`: Maximum carrying capacity in kilograms.
+  - `max_volume_cbm`: Cargo box capacity in cubic meters.
+  - `fuel_type`: Enum (`GASOLINE_RON90`, `GASOLINE_RON92`, `DIESEL_CN48`, `ELECTRIC`).
+  - `odometer_km`: Current recorded odometer reading.
+  - `stnk_expiry_date` / `kir_expiry_date`: Statutory registration and roadworthiness inspection expiration dates with automated renewal alert notifications (`[O.1]`).
+- **Employee-to-Vehicle Assignment Mechanism**:
+  - Logistics dispatchers assign a specific vehicle to a `DeliveryTrip` during trip planning in `sms-web`.
+  - When the driver starts the trip in `sms-mobile`, the active tracking session automatically inherits `vehicle_id`.
+  - The vehicle's status atomically transitions to `IN_USE` and reverts to `AVAILABLE` upon trip completion.
+- **Primary Location Source Invariant**:
+  - **The primary GPS location source for fleet tracking is the employee's mobile smartphone.**
+  - Dedicated hardware GPS trackers permanently installed inside company vehicles are **NOT required for the initial implementation phase**.
+  - *Distinction*: Mobile GPS tracks the employee's phone during authorized tasks; it does not track the vehicle independently when parked or when employees are off-duty.
+  - *Future Transition*: Dedicated telematics hardware (OBD-II / hardwired GPS beacons) can be evaluated in subsequent fleet phases for independent vehicle tracking, fuel monitoring, and engine telemetry (`[Q.12]`).
+
+#### Feature 18.9: Tracking Interruption Detection & Resilient Offline Buffering `[PROPOSED]` (Backlog `[Q.9]`)
+- **Purpose**: Detect unexpected tracking anomalies, distinguish hardware/network failures from intentional breaks, and guarantee zero data loss during cellular dropouts.
+- **Interruption Classification Matrix**:
+  | Failure Condition | Detection Mechanism | System Reaction | Session Event Logged |
+  |---|---|---|---|
+  | **GPS Hardware Disabled** | Android LocationManager / iOS CLLocationManager error callback | Mobile UI displays high-priority warning dialog: "GPS is turned off. Please re-enable location to continue task" | `GPS_LOST` |
+  | **Location Permission Revoked** | Permission check callback (`denied` / `deniedForever`) | Mobile UI locks task execution screen; prompts worker to grant permissions in device Settings | `PERMISSION_REVOKED` |
+  | **Mobile App Force-Closed / Crashed** | Process lifecycle death / unhandled exception hook | Next app launch checks for unclosed active session in local SQLite; prompts worker to resume | `OS_TERMINATION_DETECTED` |
+  | **Phone Battery Depletion / Power Off** | Backend heartbeat watchdog (no pings received within 5 minutes outside break window) | Web dashboard marks worker status as `INTERRUPTED`; alert flagged in exception center | `HEARTBEAT_TIMEOUT` |
+  | **Cellular Network Disconnected** | ConnectivityManager listener (`none`) | Background GPS collection continues uninterrupted; records buffered locally on disk | `NETWORK_OFFLINE` |
+  | **OS Background Execution Restraint** | Battery optimization killing background service | Foreground service with persistent sticky notification bar prevents standard Android OS kills | `BACKGROUND_RESTRICTED` |
+- **Resilient Offline Coordinate Buffering**:
+  - When field staff traverse cellular dead zones (rural villages, underground parking basements, heavy rain attenuation), coordinates are buffered locally in encrypted SQLite/Drift tables on the mobile device.
+  - Each buffered record retains its original hardware GPS sampling timestamp (`recorded_at`), accuracy, and velocity.
+  - When network connectivity returns, the background sync engine transmits buffered arrays in FIFO sequence using the batch ingestion API.
+  - The backend commits ingested points with original timestamps, preserving chronological route fidelity.
+- **No False Claims Standard**: The mobile app and management dashboard must **never silently pretend tracking is active** when location collection has halted. If tracking fails, the UI must explicitly reflect the interrupted state.
+
+#### Feature 18.10: Granular Permission-Based Access Control, Auditing & UU PDP Privacy Framework `[PROPOSED]` (Backlog `[Q.10]`)
+- **Purpose**: Enforce rigorous data access security and strict compliance with the Indonesian Personal Data Protection Act (Undang-Undang No. 27 Tahun 2022 / UU PDP).
+- **Granular RBAC / PBAC Permissions**:
+  - Location visibility is **never hardcoded to static roles** (such as Manager or Owner). It is strictly governed by granular permission nodes integrated into the project's Spring Security architecture:
+    - `FLEET_LIVE_VIEW`: Permission to view real-time live map locations of field employees.
+    - `FLEET_HISTORY_VIEW`: Permission to search historical tracking sessions and replay recorded routes.
+    - `FLEET_INDIVIDUAL_VIEW`: Permission to inspect granular breadcrumb timestamps and device telemetry of specific employees.
+    - `FLEET_REPORT_VIEW`: Permission to view aggregated fleet mileage, transit times, and productivity reports.
+    - `FLEET_CONFIG_MANAGE`: Permission to configure GPS collection intervals, distance thresholds, and accuracy tolerances.
+    - `FLEET_BREAK_SCHEDULE_MANAGE`: Permission to configure, edit, or adjust company break schedules.
+    - `VEHICLE_MANAGE`: Full CRUD permissions over vehicle registry, license plates, and maintenance records.
+- **Sensitive Location Access Audit Trail (`location_access_audit_log`)**:
+  - Employee real-time and historical geolocation constitutes sensitive personal data.
+  - Every time an administrative user queries live employee locations, opens a historical route playback, or exports trajectory reports, an immutable record is posted to `location_access_audit_log`:
+    - `id`: Bigserial.
+    - `actor_employee_id`: The manager or supervisor executing the query.
+    - `target_employee_id`: The field worker whose location data was accessed (or `NULL` if multi-employee map).
+    - `query_type`: Enum (`LIVE_MONITOR_VIEW`, `HISTORICAL_ROUTE_PLAYBACK`, `REPORT_EXPORT`, `RAW_COORDINATE_INSPECT`).
+    - `timestamp`: UTC audit timestamp.
+    - `ip_address` / `user_agent`: Client session network provenance.
+- **Ten Fundamental Privacy & Data Protection Principles (UU PDP Standards)**:
+  1. **Strictly Purpose-Bound**: Tracking is authorized solely for operational logistics coordination, delivery verification, and field personnel safety.
+  2. **No Continuous All-Day Surveillance**: Tracking is mechanically locked to active task execution and strictly prohibited off-duty.
+  3. **Mandatory Break Cease**: Zero coordinates may be collected during scheduled break windows.
+  4. **Worker Transparency**: Workers are always alerted via clear UI indicators and ongoing notifications when tracking is active.
+  5. **Role-Restricted Visibility**: Only personnel with explicit PBAC permissions can access location feeds.
+  6. **Defined Data Retention**: Active location points are retained for 90 days in primary storage, compressed into daily route polyline summaries, and purged after statutory limits.
+  7. **Comprehensive Auditability**: All administrative views of location records are permanently audited.
+  8. **Cryptographic Integrity**: Location payloads transmitted over TLS 1.3 with cryptographic JWT authentication and anti-spoofing checks.
+  9. **Automatic Termination**: Immediate deactivation upon task completion.
+  10. **Statutory Alignment**: System architecture designed to align with Indonesian UU PDP requirements, pending final legal counsel certification (ADR-13).
+
+#### Feature 18.11: Fleet Logistics Operational Analytics & Productivity Reporting `[PROPOSED]` (Backlog `[Q.11]`)
+- **Purpose**: Deliver operational intelligence regarding delivery efficiency, field route coverage, visit timeliness, and vehicle utilization.
+- **Operational Metrics & Reports**:
+  - **Total Distance Traveled**: Aggregated kilometers per driver, vehicle, and branch store across custom date ranges.
+  - **Task Completion Volume**: Number of deliveries successfully completed per trip; number of credit surveys completed per surveyor; number of collection visits logged per collector.
+  - **Average Customer Visit Duration**: Time elapsed between arriving within customer geofence and task completion (identifying survey bottlenecks or customer waiting delays).
+  - **Delivery Trip Transit Duration**: Departure-to-return duration, transit time between stops, and traffic delay analysis.
+  - **Vehicle Utilization Rate**: Hours in active transit vs idle hours per vehicle asset, aiding fleet sizing and maintenance planning.
+  - **Tracking Interruption Frequency**: Audit report detailing frequency of GPS signal drops, phone battery depletions, and manual pauses by employee.
+  - **Route Adherence & Coverage**: Comparison of planned delivery stops against actual executed sequence.
+- **Ethical Decision Support Standard**:
+  > [!CAUTION]
+  > **Ethical Operational Governance**: GPS-derived metrics must **never be used as sole or definitive proof of employee underperformance or grounds for punitive action without considering operational context**. Real-world factors such as severe weather, Jakarta/provincial traffic gridlock, customer unresponsiveness, physical multi-flight furniture stair climbs, cellular blind spots, and GPS signal degradation must always be evaluated by supervisors alongside automated telemetry.
+
+#### Feature 18.12: Integration Matrix With Existing Modules `[PROPOSED]` (Backlog `[Q.1]`, `[Q.8]`)
+- **Cross-Module Integration & Data Flow Architecture**:
+  The Logistics & Fleet Management System is designed to integrate cleanly with existing SMS business modules without duplicating master data or workflows:
+
+  | Existing SMS Module | Integration Mechanism & Shared Data Boundaries |
+  |---|---|
+  | **Employee Management** (`identity`) | Consumes employee master ID, assigned branch store, active status, and employee category (`DRIVER`, `SURVEYOR`, `COLLECTOR`). Enforces strict exclusion of `SALESPERSON` from tracking. |
+  | **Customer Management** (`customer`) | Consumes customer delivery address snapshots, geocodes, and visit destinations for route planning and proximity calculation. |
+  | **Survey Management** (`survey`) | Binds survey tracking session to `survey.id`. Coordinates and access profiles (`destination_latitude`, `destination_longitude`, `alley_width_meters`, `stair_clearance_meters`, `gate_access_notes`) collected during credit surveys are stored in `survey` and reused by Delivery Management for turn-by-turn navigation. |
+  | **Sales Order Management** (`sales`) | Orders requiring delivery provide destination addresses, item quantities, and customer fulfillment grouping preferences (`COMPLETE` vs `PARTIAL`). |
+  | **Delivery Management** (`delivery`) | Delivery dispatchers group fulfillment orders into multi-drop `DeliveryTrip` routes. A delivery trip links 1:1 to a `TrackingSession` and references assigned `vehicle_id`. Individual DO deliveries do not split tracking. |
+  | **Collection Management** (`finance`) | Field collection tasks link to collection tracking sessions. Visit destinations are verified against customer billing address. Cash custody handover triggers follow standard two-stage custody protocol (`HELD_BY_COLLECTOR` → `VERIFIED_BY_CASHIER`). |
+  | **Inventory Management** (`inventory`) | Product dimensions, weight, and serialized `StockUnit` allocations determine vehicle payload capacity constraints (`max_payload_kg`, `max_volume_cbm`). |
+
+---
+
 ---
 
 ## 5. Master Implementation Review Table (Comprehensive)
@@ -1476,7 +1926,18 @@ Status Legend:
 | **44** | *Customer Store Pickup & Handover* | `PickupService` | Handover Dialog | `PickupVerification` | *Under Architectural Review*| **0% (Proposed)** | `[P.5]` |
 | **45** | *Digital Payment Gateway & Webhooks* | `PaymentWebhookController`| *N/A* | Checkout Flow | *Under Architectural Review*| **0% (Proposed)** | `[P.8]` |
 | **46** | *Cross-Application Outbox Sync* | `OutboxEventDispatcher` | Push Events | Push Receiver | *Under Architectural Review*| **0% (Proposed)** | `[N.1]`, `[P.9]` |
-| **47** | *Worker Active-Task GPS Tracking* | `GeoLocationService` | Route Map Live | Active Task Daemon | *Under Architectural Review*| **0% (Proposed)** | `[P.10]` |
+| **47** | *Worker Active-Task GPS Tracking* | `GeoLocationService` | Route Map Live | Active Task Daemon | *Under Architectural Review*| **0% (Proposed)** | `[P.10]`, `[Q.1]` |
+| **48** | *Shared Task-Based GPS Infrastructure* | `FleetTrackingController` | Fleet Dashboard | Dynamic Task Tracking | *Under Architectural Review*| **0% (Proposed)** | `[Q.1]`, `[Q.2]` |
+| **49** | *Strict Break Management & Pauses* | `BreakScheduleService` | Break Config Panel | Auto Pause / Resume | *Under Architectural Review*| **0% (Proposed)** | `[Q.3]` |
+| **50** | *Tracking Session State Machine* | `TrackingSessionService` | Session Inspector | Session Life Cycle | *Under Architectural Review*| **0% (Proposed)** | `[Q.4]` |
+| **51** | *GPS Ingestion & PostGIS Engine* | `FleetIngestionController` | Route Rendering | Batch Ingestion Client | *Under Architectural Review*| **0% (Proposed)** | `[Q.5]` |
+| **52** | *Web Live GPS Monitoring Dashboard*| WebSocket STOMP / Redis | `FleetMonitoringDashboard`| Live Heartbeat Feed | *Under Architectural Review*| **0% (Proposed)** | `[Q.6]` |
+| **53** | *Historical Route Playback & Events* | `RoutePlaybackService` | `RoutePlaybackDrawer` | N/A | *Under Architectural Review*| **0% (Proposed)** | `[Q.7]` |
+| **54** | *Vehicle Master & Assignments* | `VehicleController` | `VehicleListPage` | Assigned Vehicle Tag | *Under Architectural Review*| **0% (Proposed)** | `[Q.8]` |
+| **55** | *Interruption Detection & Buffering*| Heartbeat Watchdog | Interruption Alerts | SQLite Offline Buffer | *Under Architectural Review*| **0% (Proposed)** | `[Q.9]` |
+| **56** | *Fleet PBAC & UU PDP Privacy* | Security Audit Service | PBAC Permission Matrix| Transparent Status Bar| *Under Architectural Review*| **0% (Proposed)** | `[Q.10]` |
+| **57** | *Fleet Analytics & Reports* | `FleetReportingService` | Fleet Analytics Panel | N/A | *Under Architectural Review*| **0% (Proposed)** | `[Q.11]` |
+| **58** | *Future Telematics Roadmap* | *Proposed* | *Proposed* | *Proposed* | *Under Architectural Review*| **0% (Proposed)** | `[Q.12]` |
 
 ---
 
@@ -1512,6 +1973,14 @@ While the full operational feature code across backend, web, and mobile is writt
 - Build customer pickup scheduling, preparation staging, and mobile/web verification handover workflow.
 - Integrate online digital payment gateway webhooks (QRIS, VA, Cards) with idempotent financial reconciliation.
 - Implement active task-bounded mobile worker location tracking.
+
+### 6. Logistics & Fleet Management System (Backlog `[Q.1–Q.12]`)
+- Flyway database migrations establishing schemas for `vehicle`, `tracking_session`, `tracking_session_event`, `break_schedule`, and PostGIS-enabled `tracking_location` with monthly table partitioning.
+- High-throughput Spring Boot batch GPS ingestion endpoint with asynchronous Redis Hash caching and WebSocket STOMP live coordinate broadcasting.
+- Automated break schedule evaluator engine pausing location collection during configured windows, recording distinct pause/resumption events, and notifying workers.
+- Flutter mobile app foreground service (`sms-mobile`) managing task-bounded tracking lifecycles for Drivers, Surveyors, and Collectors, with zero-tracking break enforcement, offline SQLite/Drift buffering, and transparent status notifications.
+- React 19 Management Web SPA (`sms-web`) Fleet Monitoring Dashboard featuring Leaflet/Mapbox live map, employee sidebar, filtering by branch/category, historical route reconstruction, and timeline playback.
+- Granular PBAC permission nodes and immutable `location_access_audit_log` fulfilling Indonesian UU PDP statutory privacy compliance.
 
 ---
 
@@ -1678,11 +2147,35 @@ While the full operational feature code across backend, web, and mobile is writt
 - [ ] **P.9**: Cross-application event propagation test suite and transactional outbox dispatcher validating at-least-once message delivery and state machine coherence across all 4 applications.
 - [ ] **P.10**: Worker Mobile App field logistics extensions: delivery destination access profiling (gang senggol, stairs, vehicle limits) and active task-bounded GPS tracking.
 
+### Q. Logistics & Fleet Management System (Proposed)
+- [ ] **Q.1**: Shared Task-Based GPS Tracking Infrastructure & Mobile Task Workflow (Driver, Surveyor, Collector; Salespersons excluded; Flutter manual start/stop).
+- [ ] **Q.2**: Role-Specific Tracking Lifecycles: Driver 1 Trip = 1 Session multi-drop; Surveyor task with reusable property coordinates for delivery navigation; Collector customer visit tracking.
+- [ ] **Q.3**: Strict Configurable Break Management: backend break schedule entity, automated pause/resumption engine, no deferral rule, OS background notification handling, manual pause audit logging.
+- [ ] **Q.4**: Tracking Session & Timeline State Machine: Flyway schema for `tracking_session` and `tracking_session_event`, distinguishing intentional pause, scheduled break, GPS drop, network drop, and completion.
+- [ ] **Q.5**: GPS Ingestion API, PostGIS Spatial Engine & Redis Cache: batch coordinate ingestion (`POST /api/v1/fleet/locations`), PostGIS `GEOMETRY(Point, 4326)` with spatial GiST indexing, Redis latest location caching, and monthly partition retention.
+- [ ] **Q.6**: Web SPA Real-Time GPS Fleet Monitoring Dashboard: Leaflet/Mapbox Live Map with role icons (Driver, Surveyor, Collector), employee sidebar, filtering by branch/category/status, and WebSocket STOMP live coordinate feed.
+- [ ] **Q.7**: Historical Route Reconstruction & Playback Center: Interactive timeline playback slider, route lines, session event markers (stops, breaks, interruptions).
+- [ ] **Q.8**: Vehicle Master Registry & Employee Assignment Engine: Vehicle CRUD, branch assignment, driver trip binding, and employee phone GPS primary source invariant.
+- [ ] **Q.9**: Tracking Interruption Detection & Mobile Offline Buffering: Heartbeat interruption detection, Flutter background foreground service, encrypted local coordinate buffering, auto-sync replay.
+- [ ] **Q.10**: Granular Permission-Based Access Control & Location Access Audit Log: Granular PBAC permissions, immutable location query audit logging (`location_access_audit_log`), and UU PDP compliance framework.
+- [ ] **Q.11**: Fleet Operational Analytics & Productivity Reporting: Distance traveled, visit durations, trip transit times, vehicle utilization, and ethical decision support standard.
+- [ ] **Q.12**: Future Fleet Roadmap: Dedicated in-vehicle telematics hardware, automated customer arrival notifications (ETA), dynamic geofencing, route optimization algorithms, and predictive fleet maintenance.
+
 ---
 
 ## 8. Chronological Task Execution History
 
 - **2026-10-30**:
+  - **Logistics & Fleet Management System Architectural Specification (Version 3.3)**:
+    - Formalized the comprehensive architecture and requirements for the **Logistics & Fleet Management System** as a major platform module (Group 18, Backlog `[Q.1–Q.12]`).
+    - Specified the fundamental invariant of **Task-Based GPS Tracking**: GPS tracking is strictly bound to explicitly initiated operational tasks/trips, never tracking employees continuously throughout the working day.
+    - Defined role-specific tracking lifecycles across Driver (1 Delivery Trip = 1 Tracking Session spanning multi-drop DOs), Surveyor (survey task tracking with property coordinates reused for future delivery navigation), and Collector (collection task tracking). Salespersons are explicitly excluded from GPS tracking.
+    - Engineered **Strict Scheduled Break Governance**: automated tracking cessation during configurable break windows, zero coordinates recorded, no deferral permitted, automatic resumption, and background execution handling across Android/iOS.
+    - Modeled Tracking Session state machine distinguishing intentional pauses, scheduled breaks, GPS loss, network loss, and completion.
+    - Specified Vehicle Master registry with employee mobile phone GPS as the primary location source (no dedicated in-vehicle GPS hardware required initially).
+    - Designed Web Management System GPS Fleet Monitoring Dashboard (Live Map, Employee Sidebar, Route Playback, Filters, WebSocket feed).
+    - Established Granular Permission-Based Access Control, Location Access Audit Logging, and 10 non-negotiable Privacy & Data Protection Principles aligned with Indonesian UU PDP (UU No. 27/2022).
+    - Updated module ownership matrix, backend architecture, invariants, comprehensive review table, gap analysis, canonical backlog, and recorded ADR-13.
   - **Full Architectural Audit**: Cross-repository audit across all database schemas, backend services, web components, and mobile interfaces.
   - **Mobile REST API Wiring (Section B)**:
     - Wired `ApiClient` with Dio bearer token interceptors and mock/live fallback.
@@ -1837,6 +2330,16 @@ While the full operational feature code across backend, web, and mobile is writt
 - **Customer Pickup & Logistics Execution (`[P.5]`, `[P.10]`)**: Store pickup verification, destination access constraints profiling, and active task-bounded worker tracking.
 - **Online Payment Automation (`[P.8]`)**: Payment gateway webhooks (QRIS, VA, Cards) with automated financial ledger reconciliation.
 
+#### J. Logistics & Fleet Management System (`[Q.1–Q.12]`)
+- **Shared Task-Based GPS Tracking Infrastructure (`[Q.1]`, `[Q.2]`)**: Unified location tracking across Drivers, Surveyors, and Collectors, while explicitly excluding Salespersons. One delivery trip = one tracking session spanning multi-drop DOs. Survey property coordinates stored in `survey` and reused by Delivery Management for future navigation.
+- **Strict Configurable Break Management & Tracking Pauses (`[Q.3]`)**: Dynamic break windows with automatic GPS cessation, no deferral permitted, zero coordinates collected, automatic resumption, and background execution handling across mobile OS.
+- **Tracking Session Lifecycle & Event Distinction (`[Q.4]`)**: Granular timeline states (`NOT_STARTED`, `ACTIVE`, `PAUSED`, `INTERRUPTED`, `COMPLETED`), strictly distinguishing intentional manual pauses, scheduled breaks, GPS loss, network drops, and session closure.
+- **PostGIS Spatial Engine & Real-Time Fleet Feed (`[Q.5]`, `[Q.6]`)**: High-throughput batch ingestion (`/api/v1/fleet/locations`), PostGIS spatial geometry indexing, Redis latest position caching, and Spring WebSocket STOMP broadcasting.
+- **Web Real-Time Fleet Monitoring & Historical Playback (`[Q.6]`, `[Q.7]`)**: Interactive live map with role-based markers, searchable employee sidebar, status filters, and historical route playback with event pins.
+- **Vehicle Master & Employee Phone GPS Invariant (`[Q.8]`)**: Vehicle asset management, vehicle-to-trip assignments, and phone GPS as primary location source (independent vehicle GPS hardware deferred).
+- **Tracking Interruption Watchdog & Resilient Offline Buffering (`[Q.9]`)**: Heartbeat anomaly detection, no false tracking claims, and encrypted local SQLite buffering with original hardware timestamps.
+- **Granular PBAC & UU PDP Privacy Framework (`[Q.10]`, `[Q.11]`, `[Q.12]`)**: Granular permissions, sensitive location access audit logs, 10 statutory privacy principles under UU PDP (No. 27/2022), operational fleet analytics, and ethical decision support standards.
+
 ---
 
 ### 9.2 Architectural Decisions to Revisit
@@ -1857,6 +2360,7 @@ Before any implementation begins on the proposed enhancements, the technical lea
 | **ADR-10** | **Multi-Fulfillment Grouping, Partial Delivery & Financial Treatment** | How should sales orders with multiple fulfillment groups be billed, invoiced, and accounted for when dispatches are staggered? | **Policy**: A single Sales Order must never be split into multiple sales orders. The order maintains overall commercial agreement totals.<br>*Decision Needed*: Are partial delivery notes (*Surat Jalan*) treated as interim shipments with pro-rata invoicing, or is a single final commercial invoice generated upon complete delivery? How are partial delivery cancellation refunds disbursed when part of the order has already been physically delivered? |
 | **ADR-11** | **Customer Identity, Self-Registration vs Gated Creation, and Guest Checkout** | How should customer identity be reconciled between back-office staff creation (strictly context-gated to SO drafts) and online e-commerce self-registration? | **Policy**: Back-office staff creation remains context-gated. E-commerce platforms permit self-service customer registration with email/phone OTP verification.<br>*Decision Needed*: Should guest checkout be supported without registration? If a guest later registers or an online buyer visits a physical showroom, how should NIK and phone number deduplication link the accounts without violating UU PDP data protection consent? |
 | **ADR-12** | **E-commerce Storefront Technology Stack & API Gateway Pattern** | Which front-end frameworks and communication patterns should power the E-commerce Website (App B) and E-commerce Mobile App (App C)? | **Recommendation**: E-commerce Website built on Next.js 15 (React 19) for Search Engine Optimization (SEO), Server-Side Rendering (SSR), and incremental static regeneration. E-commerce Mobile App built on Flutter or React Native to leverage shared design tokens.<br>*Architecture*: Both frontends communicate with `sms-backend` via dedicated `/api/v1/storefront/*` endpoints, isolated from internal administrative APIs via Spring Security route guards or an API gateway. |
+| **ADR-13** | **GPS Location Tracking Architecture, PostGIS Spatial Persistence & Employee Privacy (UU PDP)** | How should field employee location data be collected, stored, and governed without violating Indonesian personal data protection regulations (UU No. 27 Tahun 2022 / UU PDP) or draining mobile device batteries? | **Policy**: GPS collection is strictly task-bounded and automatically ceases during scheduled break periods. Salespersons are explicitly excluded. Mobile smartphone GPS is the primary location source; in-vehicle telematics hardware is deferred to future phases.<br>*Database Architecture*: Use PostgreSQL with PostGIS extension (`GEOMETRY(Point, 4326)`) with monthly table partitioning. Cache latest known positions in Redis with WebSocket STOMP broadcasting to Web Admin.<br>*Legal & Privacy*: Enforce granular PBAC permissions; log all administrative location views in an immutable `location_access_audit_log`; establish a 90-day active retention policy with cold archival; and obtain formal Indonesian legal counsel certification. |
 
 ---
 
@@ -1888,13 +2392,19 @@ To ensure complete transparency and prevent arbitrary decisions, the following f
   - Instead, the system must support 1-to-N relationships between `SalesOrder` and `DeliveryOrder` / `SuratJalan`. Each delivery note receives a distinct sequence number referencing the parent SO and fulfillment group (e.g., `SJ/{STORE}/10/2026/0042-01` for Fulfillment 1, and `-02` for Fulfillment 2).
   - *Open Question for Discussion*: For statutory Indonesian tax invoicing (*Faktur Pajak*), should tax invoices be generated upon full sales order payment or incrementally upon each Surat Jalan physical dispatch? Tax counsel alignment is required.
 
-#### 4. Active Task-Bounded Worker Location Tracking vs. Employee Privacy
+#### 4. Active Task-Bounded Worker Location Tracking vs. Employee Privacy & Statutory UU PDP Governance
 - **Existing Documented Decision**: Group 12 and Feature 14.1 restrict GPS verification to attendance clock-in geofences (Haversine 200m) and field photo watermarks to protect employee privacy and battery life.
-- **New Ecosystem Requirement**: Section 1.D specifies employee location tracking during active operational tasks.
-- **Architectural Reconciliation**:
-  - The system will enforce **strict lifecycle bounding**: GPS tracking is activated *only* when a driver starts a delivery trip (`TRIP_IN_PROGRESS`) or a surveyor starts an on-site survey (`SURVEY_ACTIVE`).
-  - Tracking immediately halts when the trip or survey is marked complete or paused. Background tracking when off-duty or on break is strictly prohibited.
-  - *Open Question for Discussion*: What breadcrumb frequency should be enforced (e.g., 60 seconds vs 180 seconds) to balance battery consumption and road safety visibility across typical 8-hour delivery routes?
+- **New Module Requirement (Logistics & Fleet Management)**: Live GPS tracking of Drivers, Surveyors, and Collectors during field operations.
+- **Finalized Architectural Reconciliation**:
+  - The system enforces **strict task lifecycle bounding**: GPS tracking is activated strictly upon manual task/trip initiation in the Flutter mobile application (`TRIP_ACTIVE`, `SURVEY_ACTIVE`, `COLLECTION_ACTIVE`) and terminates immediately upon task/trip completion. All-day continuous tracking is strictly prohibited.
+  - **Salespersons are explicitly excluded from GPS tracking.**
+  - **Strict Scheduled Breaks**: Tracking automatically ceases during configured break windows (e.g., lunch 12:00–13:00); no coordinates are collected or stored; employees cannot defer breaks. Auto-resumes when the break concludes if the task remains active.
+  - **Mobile Phone GPS Primary Source**: Employee smartphone GPS serves as the primary location source; in-vehicle telematics hardware is deferred to future fleet phases.
+  - **Granular PBAC & Auditability**: Access to location data is protected by granular permissions (`FLEET_LIVE_VIEW`, `FLEET_HISTORY_VIEW`) and every administrative view logs an immutable audit entry in `location_access_audit_log`.
+  - *TBD / Open Questions for Technical Validation*:
+    - Dynamic GPS sampling interval (10–30s in motion, 30–60s stationary): requires real-world road testing across low-end Android devices to evaluate battery impact.
+    - Statutory Employee Consent Forms under Indonesian UU PDP (UU No. 27/2022) must be vetted and signed off by qualified legal counsel prior to rollout.
+    - Mobile OS background execution resilience: testing auto-resumption reliability across custom Android OEM ROMs (MIUI, ColorOS, OneUI) after long scheduled break intervals.
 
 #### 5. Enterprise Money Management Platform Scope vs. Payment Gateway Escrow
 - **Existing Documented Decision**: Invariant 1 and Section 1 clarify that SMS is an enterprise money management platform, not a bank. Finance modules track cash custody, cashier handovers, and installment debt.
