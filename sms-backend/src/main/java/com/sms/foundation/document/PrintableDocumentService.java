@@ -110,7 +110,9 @@ public class PrintableDocumentService {
             String sn = "SN-PENDING";
             if (item.getSoItemStockUnit() != null) {
                 if (item.getSoItemStockUnit().getStockUnit() != null) {
-                    sn = item.getSoItemStockUnit().getStockUnit().getSerialNumber();
+                    sn = item.getSoItemStockUnit().getStockUnit().getManufacturerSerial() != null
+                            ? item.getSoItemStockUnit().getStockUnit().getManufacturerSerial()
+                            : "SN-PENDING";
                 }
                 if (item.getSoItemStockUnit().getSalesOrderItem() != null &&
                         item.getSoItemStockUnit().getSalesOrderItem().getProductVariant() != null) {
@@ -134,7 +136,7 @@ public class PrintableDocumentService {
                 "  <div class=\"doc-title\">\n" +
                 "    <div class=\"doc-name\">SURAT JALAN</div>\n" +
                 "    <div class=\"doc-number\">" + order.getDeliveryOrderNumber() + "</div>\n" +
-                "    <div class=\"store-info\">Ref SO: " + so.getSalesOrderNumber() + " • Stop #" + order.getStopSequence() + "</div>\n" +
+                "    <div class=\"store-info\">Ref SO: " + so.getNumber() + " • Stop #" + order.getStopSequence() + "</div>\n" +
                 "  </div>\n" +
                 "</div>\n" +
 
@@ -231,7 +233,7 @@ public class PrintableDocumentService {
                 "  </div>\n" +
                 "  <div class=\"doc-title\">\n" +
                 "    <div class=\"doc-name\">AKTA PERJANJIAN KREDIT</div>\n" +
-                "    <div class=\"doc-number\">NO: " + (so.getSalesOrderNumber() != null ? so.getSalesOrderNumber() : "DRAFT-SO") + "</div>\n" +
+                "    <div class=\"doc-number\">NO: " + (so.getNumber() != null ? so.getNumber() : "DRAFT-SO") + "</div>\n" +
                 "    <div class=\"store-info\">Tanggal: " + dateStr + "</div>\n" +
                 "  </div>\n" +
                 "</div>\n" +
@@ -239,7 +241,7 @@ public class PrintableDocumentService {
                 "<p style=\"font-size: 12px; margin-bottom: 12px;\">Pada hari ini, tanggal <strong>" + dateStr + "</strong>, telah dibuat dan disepakati perjanjian kredit konsumen antara:</p>\n" +
                 "<div style=\"padding-left: 14px; font-size: 12px; margin-bottom: 14px;\">\n" +
                 "  1. <strong>" + storeName + "</strong>, berkedudukan sebagai <strong>PIHAK PERTAMA (KREDITUR/PENJUAL)</strong>.<br/>\n" +
-                "  2. <strong>" + (c != null ? c.getName() : "Customer") + "</strong>, NIK: <strong>" + (c != null ? c.getNik() : "-") + "</strong>, Alamat: <strong>" + (so.getDeliveryAddressSnapshot() != null ? so.getDeliveryAddressSnapshot() : "-") + "</strong>, selanjutnya disebut sebagai <strong>PIHAK KEDUA (DEBITUR/KONSUMEN)</strong>.\n" +
+                "  2. <strong>" + (c != null ? c.getFullName() : "Customer") + "</strong>, NIK: <strong>" + (c != null ? c.getNik() : "-") + "</strong>, Alamat: <strong>" + (so.getDeliveryAddressSnapshot() != null ? so.getDeliveryAddressSnapshot() : "-") + "</strong>, selanjutnya disebut sebagai <strong>PIHAK KEDUA (DEBITUR/KONSUMEN)</strong>.\n" +
                 "</div>\n" +
 
                 "<div class=\"section\">\n" +
@@ -290,11 +292,11 @@ public class PrintableDocumentService {
                 "  </div>\n" +
                 "  <div class=\"sig-box\">\n" +
                 "    <div>PIHAK KEDUA (Debitur/Konsumen)</div>\n" +
-                "    <div class=\"sig-line\">( " + (c != null ? c.getName() : "Customer") + " )</div>\n" +
+                "    <div class=\"sig-line\">( " + (c != null ? c.getFullName() : "Customer") + " )</div>\n" +
                 "  </div>\n" +
                 "</div>";
 
-        return baseHtml("Perjanjian Kredit " + so.getSalesOrderNumber(), content);
+        return baseHtml("Perjanjian Kredit " + so.getNumber(), content);
     }
 
     /** 3. Official Customer Payment Receipt (Kuitansi Pembayaran) */
@@ -313,9 +315,9 @@ public class PrintableDocumentService {
         for (PaymentAllocation a : payment.getAllocations()) {
             allocRows.append("<tr>")
                     .append("<td class=\"text-center\">").append(idx++).append("</td>")
-                    .append("<td>Angsuran Ke-").append(a.getInstallment().getInstallmentNumber()).append("</td>")
-                    .append("<td>").append(a.getInstallment().getReceivable().getReceivableNumber()).append("</td>")
-                    .append("<td class=\"text-right\"><strong>").append(formatRp(a.getAllocatedAmount())).append("</strong></td>")
+                    .append("<td>Angsuran Ke-").append(a.getReceivableInstallment().getInstallmentNumber()).append("</td>")
+                    .append("<td>").append(a.getReceivableInstallment().getReceivable().getReceivableNumber()).append("</td>")
+                    .append("<td class=\"text-right\"><strong>").append(formatRp(a.getAmount())).append("</strong></td>")
                     .append("</tr>");
         }
 
@@ -332,7 +334,7 @@ public class PrintableDocumentService {
                 "</div>\n" +
 
                 "<table style=\"width: 100%; font-size: 13px; line-height: 2; margin-bottom: 16px;\">\n" +
-                "  <tr><td style=\"width: 160px;\">Telah Diterima Dari:</td><td><strong>" + payment.getCustomer().getName() + "</strong> (NIK: " + (payment.getCustomer().getNik() != null ? payment.getCustomer().getNik() : "-") + ")</td></tr>\n" +
+                "  <tr><td style=\"width: 160px;\">Telah Diterima Dari:</td><td><strong>" + payment.getCustomer().getFullName() + "</strong> (NIK: " + (payment.getCustomer().getNik() != null ? payment.getCustomer().getNik() : "-") + ")</td></tr>\n" +
                 "  <tr><td>Uang Sejumlah:</td><td style=\"background:#f8fafc; padding: 4px 8px; border-radius: 4px; font-style: italic; font-weight: 700; color: #1e3a8a;\">\" " + terbilang + " \"</td></tr>\n" +
                 "  <tr><td>Untuk Pembayaran:</td><td>" + payment.getPaymentType() + " (" + payment.getPaymentMethod() + ") • Ref: " + (payment.getReferenceNumber() != null ? payment.getReferenceNumber() : "-") + "</td></tr>\n" +
                 "</table>\n" +
@@ -382,7 +384,7 @@ public class PrintableDocumentService {
                 "  </div>\n" +
                 "  <div class=\"doc-title\">\n" +
                 "    <div class=\"doc-number\">" + slip.getSlipNumber() + "</div>\n" +
-                "    <div class=\"store-info\" style=\"color:#059669;font-weight:700;\">STATUS: " + slip.getStatus() + "</div>\n" +
+                "    <div class=\"store-info\" style=\"color:#059669;font-weight:700;\">STATUS: " + slip.getPaymentStatus() + "</div>\n" +
                 "  </div>\n" +
                 "</div>\n" +
 
@@ -433,7 +435,9 @@ public class PrintableDocumentService {
         StockReturn sr = stockReturnRepository.findById(returnId)
                 .orElseThrow(() -> new NotFoundException("Return/Repossession record not found: " + returnId));
         String storeName = sr.getStore() != null ? sr.getStore().getName() : "Pusat Jaya Store";
-        String dateStr = sr.getReturnDate() != null ? DATE_FMT.format(sr.getReturnDate()) : DATE_FMT.format(java.time.LocalDate.now());
+        String dateStr = sr.getScheduledDate() != null
+                ? DATE_FMT.format(sr.getScheduledDate())
+                : DATE_FMT.format(java.time.LocalDate.now());
 
         String content = "<div class=\"header\">\n" +
                 "  <div>\n" +
@@ -449,9 +453,9 @@ public class PrintableDocumentService {
 
                 "<p style=\"font-size:12px;\">Telah dilakukan penarikan kembali (repossession) atas unit barang titipan sehubungan dengan wanprestasi keterlambatan angsuran konsumen:</p>\n" +
                 "<div style=\"padding-left:14px; font-size:12px; margin-bottom:14px; line-height:1.8;\">\n" +
-                "  Nama Debitur: <strong>" + sr.getCustomer().getName() + "</strong> (NIK: " + (sr.getCustomer().getNik() != null ? sr.getCustomer().getNik() : "-") + ")<br/>\n" +
+                "  Nama Debitur: <strong>" + sr.getCustomer().getFullName() + "</strong> (NIK: " + (sr.getCustomer().getNik() != null ? sr.getCustomer().getNik() : "-") + ")<br/>\n" +
                 "  Alasan Penarikan: <strong>" + sr.getReason() + " (" + sr.getReturnType() + ")</strong><br/>\n" +
-                "  Catatan Kondisi Fisik: <i>" + (sr.getConditionNotes() != null ? sr.getConditionNotes() : "Diterima untuk inspeksi teknis") + "</i>\n" +
+                "  Catatan Kondisi Fisik: <i>" + (sr.getNotes() != null ? sr.getNotes() : (sr.getReason() != null ? sr.getReason() : "Diterima untuk inspeksi teknis")) + "</i>\n" +
                 "</div>\n" +
 
                 "<div class=\"section\">\n" +
@@ -468,7 +472,7 @@ public class PrintableDocumentService {
                 "    <tbody>\n" +
                 "      <tr>\n" +
                 "        <td>" + (sr.getStockUnit() != null && sr.getStockUnit().getProductVariant() != null ? sr.getStockUnit().getProductVariant().getVariantName() : "Unit Elektronik / Furnitur") + "</td>\n" +
-                "        <td><strong>" + (sr.getStockUnit() != null ? sr.getStockUnit().getSerialNumber() : "-") + "</strong></td>\n" +
+                "        <td><strong>" + (sr.getStockUnit() != null && sr.getStockUnit().getManufacturerSerial() != null ? sr.getStockUnit().getManufacturerSerial() : "-") + "</strong></td>\n" +
                 "        <td>Area Reparasi / Showroom</td>\n" +
                 "        <td><strong style=\"color:#059669;\">SETTLED (Lunas via Reposisi)</strong></td>\n" +
                 "      </tr>\n" +
@@ -487,7 +491,7 @@ public class PrintableDocumentService {
                 "  </div>\n" +
                 "  <div class=\"sig-box\">\n" +
                 "    <div>Saksi / Pihak Debitur</div>\n" +
-                "    <div class=\"sig-line\">( " + sr.getCustomer().getName() + " )</div>\n" +
+                "    <div class=\"sig-line\">( " + sr.getCustomer().getFullName() + " )</div>\n" +
                 "  </div>\n" +
                 "  <div class=\"sig-box\">\n" +
                 "    <div>Penerima Gudang Toko</div>\n" +

@@ -14,6 +14,18 @@ public interface DeliveryOrderRepository extends JpaRepository<DeliveryOrder, UU
 
     @Query("""
         select o from DeliveryOrder o
+        where o.salesOrder.store.id = :storeId
+          and o.status = :status
+          and o.preInspectionPassed = false
+        order by o.createdAt asc, o.stopSequence asc
+    """)
+    List<DeliveryOrder> findPendingForPicking(
+            @Param("storeId") UUID storeId,
+            @Param("status") DeliveryOrderStatus status
+    );
+
+    @Query("""
+        select o from DeliveryOrder o
         where (:salesOrderId is null or o.salesOrder.id = :salesOrderId)
           and (:tripId is null or o.deliveryTrip.id = :tripId)
           and (:status is null or o.status = :status)

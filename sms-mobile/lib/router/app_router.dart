@@ -8,9 +8,17 @@ import '../features/attendance/screens/attendance_screen.dart';
 import '../features/tasks/screens/my_work_screen.dart';
 import '../features/surveys/screens/surveyor_task_screen.dart';
 import '../features/delivery/screens/driver_trip_screen.dart';
+import '../features/delivery/screens/delivery_order_detail_screen.dart';
 import '../features/collection/screens/collector_visit_screen.dart';
 import '../features/payroll/screens/my_payroll_screen.dart';
 import '../features/bulletin/screens/bulletin_screen.dart';
+import '../features/sales/screens/sales_work_center_screen.dart';
+import '../features/sales/screens/sales_order_detail_screen.dart';
+import '../features/inventory/screens/stocktake_screen.dart';
+import '../features/inventory/screens/warehouse_picking_screen.dart';
+import '../features/inventory/screens/stocktake_review_screen.dart';
+import '../features/notifications/screens/notification_center_screen.dart';
+import '../features/customer_crm/screens/customer_360_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
@@ -65,6 +73,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
+        path: '/delivery-order/:id',
+        name: 'delivery-order-detail',
+        builder: (context, state) => DeliveryOrderDetailScreen(
+          deliveryOrderId: state.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
         path: '/collection/:id',
         name: 'collection-detail',
         builder: (context, state) {
@@ -81,6 +96,45 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/bulletin',
         name: 'bulletin',
         builder: (context, state) => const BulletinScreen(),
+      ),
+      GoRoute(
+        path: '/sales-work-center',
+        name: 'sales-work-center',
+        builder: (context, state) => const SalesWorkCenterScreen(),
+      ),
+      GoRoute(
+        path: '/sales-order/:id',
+        name: 'sales-order-detail',
+        builder: (context, state) =>
+            SalesOrderDetailScreen(salesOrderId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/warehouse-picking',
+        name: 'warehouse-picking',
+        builder: (context, state) => const WarehousePickingScreen(),
+      ),
+      GoRoute(
+        path: '/stocktake',
+        name: 'stocktake',
+        builder: (context, state) => const StocktakeScreen(),
+      ),
+      GoRoute(
+        path: '/stocktake-review/:id',
+        name: 'stocktake-review',
+        builder: (context, state) =>
+            StocktakeReviewScreen(sessionId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/notifications',
+        name: 'notifications',
+        builder: (context, state) => const NotificationCenterScreen(),
+      ),
+      GoRoute(
+        path: '/customer-360/:id',
+        name: 'customer-360',
+        builder: (context, state) => Customer360Screen(
+          customerId: state.pathParameters['id'] ?? 'cust-101',
+        ),
       ),
     ],
   );

@@ -35,8 +35,12 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
       }
     } else {
       // 1. Verify GPS location & Store Geofence
-      final location = await GeoLocationService.getCurrentLocation(simulateAtStore: true);
-      final isInsideGeofence = GeoLocationService.verifyStoreGeofence(workerLocation: location);
+      final location = await GeoLocationService.getCurrentLocation(
+        simulateAtStore: true,
+      );
+      final isInsideGeofence = GeoLocationService.verifyStoreGeofence(
+        workerLocation: location,
+      );
 
       if (!isInsideGeofence) {
         if (!mounted) return;
@@ -48,7 +52,10 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
               'Your GPS position ($location) is outside the authorized store perimeter (200m). Please clock-in inside the store building.',
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
             ],
           ),
         );
@@ -57,11 +64,14 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
 
       // 2. Clock-in with verified GPS tag
       final success = await attNotifier.clockIn(
-        notes: 'GPS Verified: [${location.latitude}, ${location.longitude}] (Accuracy: ${location.accuracyMeters}m)',
+        notes:
+            'GPS Verified: [${location.latitude}, ${location.longitude}] (Accuracy: ${location.accuracyMeters}m)',
       );
 
       // 3. Queue offline sync backup
-      ref.read(offlineSyncProvider.notifier).enqueueAction(
+      ref
+          .read(offlineSyncProvider.notifier)
+          .enqueueAction(
             actionType: 'CLOCK_IN',
             endpoint: '/api/v1/payroll/attendance/clock-in',
             payload: {
@@ -75,7 +85,9 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
       if (mounted && success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('GPS Geofence Verified: Clock-in recorded (PRESENT at store)'),
+            content: Text(
+              'GPS Geofence Verified: Clock-in recorded (PRESENT at store)',
+            ),
             backgroundColor: AppColors.secondary,
           ),
         );
@@ -88,7 +100,9 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
     if (mounted && authenticated) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Biometric identity confirmed (Fingerprint / Face ID verified)'),
+          content: Text(
+            'Biometric identity confirmed (Fingerprint / Face ID verified)',
+          ),
           backgroundColor: AppColors.secondary,
         ),
       );
@@ -104,8 +118,11 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
 
     final surveyCount = ref.watch(surveyListProvider).mySurveys.length;
     final deliveryOrders = ref.watch(deliveryProvider).orders;
-    final pendingDeliveries = deliveryOrders.where((d) => d.status != 'DELIVERED').length;
-    final activeTripNumber = ref.watch(deliveryProvider).activeTrip?.tripNumber ?? 'TRIP-082';
+    final pendingDeliveries = deliveryOrders
+        .where((d) => d.status != 'DELIVERED')
+        .length;
+    final activeTripNumber =
+        ref.watch(deliveryProvider).activeTrip?.tripNumber ?? 'TRIP-082';
 
     final collectionTasks = ref.watch(collectionProvider).tasks;
     final heldCash = ref.watch(collectionProvider).totalHeldCash;
@@ -130,6 +147,11 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            tooltip: 'Actionable Notifications',
+            onPressed: () => context.push('/notifications'),
+          ),
           IconButton(
             icon: const Icon(Icons.fingerprint_rounded),
             tooltip: 'Verify Biometrics',
@@ -167,7 +189,10 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
               if (offlineState.hasPending) ...[
                 Container(
                   margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.accent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
@@ -175,7 +200,11 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.cloud_upload_outlined, color: AppColors.accent, size: 22),
+                      const Icon(
+                        Icons.cloud_upload_outlined,
+                        color: AppColors.accent,
+                        size: 22,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Column(
@@ -183,11 +212,18 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                           children: [
                             Text(
                               '${offlineState.pendingCount} Offline Action(s) Queued',
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                             const Text(
                               'Auto-syncing in background when connected',
-                              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ],
                         ),
@@ -195,19 +231,30 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.accent,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                           visualDensity: VisualDensity.compact,
                         ),
                         onPressed: offlineState.isSyncing
                             ? null
-                            : () => ref.read(offlineSyncProvider.notifier).syncAll(),
+                            : () => ref
+                                  .read(offlineSyncProvider.notifier)
+                                  .syncAll(),
                         child: offlineState.isSyncing
                             ? const SizedBox(
                                 width: 14,
                                 height: 14,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
                               )
-                            : const Text('Sync Now', style: TextStyle(fontSize: 11)),
+                            : const Text(
+                                'Sync Now',
+                                style: TextStyle(fontSize: 11),
+                              ),
                       ),
                     ],
                   ),
@@ -236,7 +283,9 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                           fontWeight: FontWeight.w700,
                           color: AppColors.primary,
                         ),
-                        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                        backgroundColor: AppColors.primary.withValues(
+                          alpha: 0.1,
+                        ),
                         side: BorderSide.none,
                         padding: EdgeInsets.zero,
                         visualDensity: VisualDensity.compact,
@@ -262,8 +311,12 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          isClockedIn ? Icons.check_circle_rounded : Icons.access_time_rounded,
-                          color: isClockedIn ? AppColors.secondary : AppColors.accent,
+                          isClockedIn
+                              ? Icons.check_circle_rounded
+                              : Icons.access_time_rounded,
+                          color: isClockedIn
+                              ? AppColors.secondary
+                              : AppColors.accent,
                           size: 28,
                         ),
                       ),
@@ -273,7 +326,9 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              isClockedIn ? 'Clocked In (Present)' : 'Daily Attendance',
+                              isClockedIn
+                                  ? 'Clocked In (Present)'
+                                  : 'Daily Attendance',
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
@@ -296,12 +351,20 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                       ElevatedButton(
                         onPressed: () => _toggleClockIn(isClockedIn),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isClockedIn ? AppColors.error : AppColors.secondary,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          backgroundColor: isClockedIn
+                              ? AppColors.error
+                              : AppColors.secondary,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
                         ),
                         child: Text(
                           isClockedIn ? 'Clock Out' : 'Clock In',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ],
@@ -327,7 +390,8 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                   icon: Icons.assignment_outlined,
                   color: Colors.indigo,
                   title: 'Credit Surveys Queue',
-                  subtitle: '$surveyCount survey(s) • KTP/KK/GPS Photo Evidence',
+                  subtitle:
+                      '$surveyCount survey(s) • KTP/KK/GPS Photo Evidence',
                   badgeText: '$surveyCount PENDING',
                   badgeColor: AppColors.accent,
                   onTap: () => context.push('/survey/survey-101'),
@@ -340,7 +404,8 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                   icon: Icons.local_shipping_outlined,
                   color: Colors.blue,
                   title: 'Active Delivery Trip',
-                  subtitle: '$activeTripNumber • $pendingDeliveries Drops • Barcode & Signature',
+                  subtitle:
+                      '$activeTripNumber • $pendingDeliveries Drops • Barcode & Signature',
                   badgeText: 'DISPATCHED',
                   badgeColor: AppColors.secondary,
                   onTap: () => context.push('/delivery/trip-082'),
@@ -353,7 +418,8 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                   icon: Icons.payments_outlined,
                   color: Colors.teal,
                   title: 'Field Collection Visits',
-                  subtitle: '${collectionTasks.length} accounts • Cash: Rp ${heldCash.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
+                  subtitle:
+                      '${collectionTasks.length} accounts • Cash: Rp ${heldCash.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
                   badgeText: '${collectionTasks.length} DUE',
                   badgeColor: AppColors.error,
                   onTap: () => context.push('/collection/visit-201'),
@@ -366,10 +432,11 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                   icon: Icons.point_of_sale_rounded,
                   color: Colors.purple,
                   title: 'Sales & Customer Follow-Ups',
-                  subtitle: 'Confirmed orders eligible for commission recognition',
+                  subtitle:
+                      'Confirmed orders eligible for commission recognition',
                   badgeText: 'ACTIVE',
                   badgeColor: AppColors.primaryLight,
-                  onTap: () => context.push('/my-work'),
+                  onTap: () => context.push('/sales-work-center'),
                 ),
                 const SizedBox(height: 10),
               ],
@@ -443,6 +510,28 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildShortcutTile(
+                      icon: Icons.inventory_2_outlined,
+                      title: 'Mobile Stocktake',
+                      subtitle: 'Scan and compare book balance',
+                      onTap: () => context.push('/stocktake'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildShortcutTile(
+                      icon: Icons.qr_code_scanner_rounded,
+                      title: 'Warehouse Picking',
+                      subtitle: 'Verify manifest serials',
+                      onTap: () => context.push('/warehouse-picking'),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
@@ -495,7 +584,10 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: badgeColor.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(4),
@@ -522,7 +614,10 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textSecondary,
+              ),
             ],
           ),
         ),

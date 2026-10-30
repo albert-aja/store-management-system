@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/hardware/geo_location_service.dart';
 import '../../../core/hardware/photo_proof_widget.dart';
-import '../../../core/offline/offline_sync_queue.dart';
 import '../providers/survey_provider.dart';
 
 class SurveyorTaskScreen extends ConsumerStatefulWidget {
@@ -20,7 +19,13 @@ class _SurveyorTaskScreenState extends ConsumerState<SurveyorTaskScreen> {
   final _incomeController = TextEditingController(text: '7500000');
   final _expensesController = TextEditingController(text: '3500000');
   final _obligationsController = TextEditingController(text: 'None');
-  final _assessmentNotes = TextEditingController(text: 'Eligible for 12 months installment credit.');
+  final _assessmentNotes = TextEditingController(
+    text: 'Eligible for 12 months installment credit.',
+  );
+  final _alleyWidthController = TextEditingController();
+  final _stairClearanceController = TextEditingController();
+  final _gateAccessController = TextEditingController();
+  GeoCoordinates? _customerLocation;
 
   bool _ktpVerified = true;
   bool _kkVerified = true;
@@ -37,7 +42,9 @@ class _SurveyorTaskScreenState extends ConsumerState<SurveyorTaskScreen> {
   }
 
   Future<void> _loadSurveyData() async {
-    final survey = await ref.read(surveyListProvider.notifier).getSurvey(widget.surveyId);
+    final survey = await ref
+        .read(surveyListProvider.notifier)
+        .getSurvey(widget.surveyId);
     if (survey != null && mounted) {
       if (survey.monthlyIncome != null) {
         _incomeController.text = survey.monthlyIncome!.toInt().toString();
@@ -60,7 +67,25 @@ class _SurveyorTaskScreenState extends ConsumerState<SurveyorTaskScreen> {
     _expensesController.dispose();
     _obligationsController.dispose();
     _assessmentNotes.dispose();
+    _alleyWidthController.dispose();
+    _stairClearanceController.dispose();
+    _gateAccessController.dispose();
     super.dispose();
+  }
+
+  Future<void> _captureCustomerLocation() async {
+    try {
+      final location = await GeoLocationService.getCurrentLocation(
+        simulateAtStore: false,
+      );
+      if (mounted) setState(() => _customerLocation = location);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not capture GPS location: $error')),
+        );
+      }
+    }
   }
 
   Future<void> _submitDecision(bool approved) async {
@@ -95,42 +120,79 @@ class _SurveyorTaskScreenState extends ConsumerState<SurveyorTaskScreen> {
     setState(() => _isSubmitting = true);
 
     // Read GPS coordinates for field audit
-    final location = await GeoLocationService.getCurrentLocation(simulateAtStore: false);
+    late final GeoCoordinates location;
+    try {
+      location = await GeoLocationService.getCurrentLocation(
+        simulateAtStore: false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Survey decision not submitted; GPS unavailable: $error',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
-    final income = double.tryParse(_incomeController.text.replaceAll('.', '')) ?? 0.0;
-    final expenses = double.tryParse(_expensesController.text.replaceAll('.', '')) ?? 0.0;
+    final income =
+        double.tryParse(_incomeController.text.replaceAll('.', '')) ?? 0.0;
+    final expenses =
+        double.tryParse(_expensesController.text.replaceAll('.', '')) ?? 0.0;
 
     // 1. Submit updated assessment fields
-    await ref.read(surveyListProvider.notifier).updateAssessment(
+    final assessmentSaved = await ref
+        .read(surveyListProvider.notifier)
+        .updateAssessment(
           widget.surveyId,
           monthlyIncome: income,
           monthlyExpenses: expenses,
           existingObligations: _obligationsController.text,
-          residenceNotes: 'House status: $_houseStatus. KTP: $_ktpVerified, KK: $_kkVerified, Utility: $_utilityBillVerified. Photos: ${_surveyPhotos.length}. GPS: [${location.latitude}, ${location.longitude}]',
+          residenceNotes:
+              'House status: $_houseStatus. '
+              'Destination GPS: [${_customerLocation?.latitude ?? location.latitude}, '
+              '${_customerLocation?.longitude ?? location.longitude}]. '
+              'Alley width: ${_alleyWidthController.text.trim()} m. '
+              'Stair clearance: ${_stairClearanceController.text.trim()} m. '
+              'Gate access: ${_gateAccessController.text.trim()}. '
+              'KTP: $_ktpVerified, KK: $_kkVerified, Utility: $_utilityBillVerified. '
+              'Photos: ${_surveyPhotos.length}.',
           employmentNotes: 'Income proof verified: $_incomeProofVerified',
           referencesNotes: 'Field interview verified on-site by surveyor',
           abilityToPayAssessment: _assessmentNotes.text,
+          destinationLatitude: _customerLocation?.latitude ?? location.latitude,
+          destinationLongitude: _customerLocation?.longitude ?? location.longitude,
+          alleyWidthMeters: double.tryParse(_alleyWidthController.text.trim()),
+          stairClearanceMeters: double.tryParse(_stairClearanceController.text.trim()),
+          gateAccessNotes: _gateAccessController.text.trim(),
         );
+    if (!assessmentSaved) {
+      setState(() => _isSubmitting = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Survey profile was not saved. Check connection and retry.',
+            ),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return;
+    }
 
     // 2. Submit definitive decision
-    final success = await ref.read(surveyListProvider.notifier).decideSurvey(
+    final success = await ref
+        .read(surveyListProvider.notifier)
+        .decideSurvey(
           widget.surveyId,
           approve: approved,
-          notes: '${_assessmentNotes.text} (GPS: ${location.latitude}, ${location.longitude})',
-        );
-
-    // 3. Queue offline backup
-    ref.read(offlineSyncProvider.notifier).enqueueAction(
-          actionType: 'DECIDE_SURVEY',
-          endpoint: '/api/surveys/${widget.surveyId}/decide',
-          payload: {
-            'surveyId': widget.surveyId,
-            'approve': approved,
-            'notes': _assessmentNotes.text,
-            'latitude': location.latitude,
-            'longitude': location.longitude,
-            'photoCount': _surveyPhotos.length,
-          },
+          notes:
+              '${_assessmentNotes.text} (GPS: ${location.latitude}, ${location.longitude})',
         );
 
     setState(() => _isSubmitting = false);
@@ -139,7 +201,9 @@ class _SurveyorTaskScreenState extends ConsumerState<SurveyorTaskScreen> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Credit survey decision recorded: $decisionStr with GPS & ${_surveyPhotos.length} photos'),
+            content: Text(
+              'Credit survey decision recorded: $decisionStr with GPS & ${_surveyPhotos.length} photos',
+            ),
             backgroundColor: approved ? AppColors.secondary : AppColors.error,
           ),
         );
@@ -158,9 +222,7 @@ class _SurveyorTaskScreenState extends ConsumerState<SurveyorTaskScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Credit Survey Assessment'),
-      ),
+      appBar: AppBar(title: const Text('Credit Survey Assessment')),
       body: _isSubmitting
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -187,14 +249,23 @@ class _SurveyorTaskScreenState extends ConsumerState<SurveyorTaskScreen> {
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.accent.withValues(alpha: 0.15),
+                                  color: AppColors.accent.withValues(
+                                    alpha: 0.15,
+                                  ),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: const Text(
                                   'ASSIGNED',
-                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.accent),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.accent,
+                                  ),
                                 ),
                               ),
                             ],
@@ -202,17 +273,96 @@ class _SurveyorTaskScreenState extends ConsumerState<SurveyorTaskScreen> {
                           const SizedBox(height: 8),
                           const Text(
                             'Bambang Pamungkas',
-                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           const Text(
                             'NIK: 3171021405880003  •  Phone: 0812-8899-7711',
-                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                           const SizedBox(height: 2),
                           const Text(
                             'Address: Jl. Tebet Barat Dalam VII No. 4, Jakarta Selatan',
-                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Delivery Location Profile',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _customerLocation == null
+                                ? 'Destination GPS not captured'
+                                : 'GPS: ${_customerLocation!.latitude.toStringAsFixed(6)}, '
+                                      '${_customerLocation!.longitude.toStringAsFixed(6)} '
+                                      '(±${_customerLocation!.accuracyMeters.toStringAsFixed(1)} m)',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              onPressed: _captureCustomerLocation,
+                              icon: const Icon(Icons.location_searching),
+                              label: const Text('Capture destination GPS'),
+                            ),
+                          ),
+                          TextField(
+                            controller: _alleyWidthController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'Alley width (meters)',
+                              suffixText: 'm',
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: _stairClearanceController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'Stair / doorway clearance (meters)',
+                              suffixText: 'm',
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          TextField(
+                            controller: _gateAccessController,
+                            maxLines: 2,
+                            decoration: const InputDecoration(
+                              labelText: 'Gate and delivery access notes',
+                              hintText:
+                                  'Gate width, access hours, stairs, parking constraints',
+                            ),
                           ),
                         ],
                       ),
@@ -229,20 +379,39 @@ class _SurveyorTaskScreenState extends ConsumerState<SurveyorTaskScreen> {
                         children: [
                           const Text(
                             'Residence & Financial Verification',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           const SizedBox(height: 14),
                           DropdownButtonFormField<String>(
                             initialValue: _houseStatus,
-                            decoration: const InputDecoration(labelText: 'Home Ownership Status'),
+                            decoration: const InputDecoration(
+                              labelText: 'Home Ownership Status',
+                            ),
                             items: const [
-                              DropdownMenuItem(value: 'OWNED', child: Text('Milik Sendiri (Owned)')),
-                              DropdownMenuItem(value: 'FAMILY', child: Text('Milik Keluarga (Family Owned)')),
-                              DropdownMenuItem(value: 'RENT_ANNUAL', child: Text('Sewa Tahunan (Contract)')),
-                              DropdownMenuItem(value: 'RENT_MONTHLY', child: Text('Kost / Sewa Bulanan')),
+                              DropdownMenuItem(
+                                value: 'OWNED',
+                                child: Text('Milik Sendiri (Owned)'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'FAMILY',
+                                child: Text('Milik Keluarga (Family Owned)'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'RENT_ANNUAL',
+                                child: Text('Sewa Tahunan (Contract)'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'RENT_MONTHLY',
+                                child: Text('Kost / Sewa Bulanan'),
+                              ),
                             ],
                             onChanged: (val) {
-                              if (val != null) setState(() => _houseStatus = val);
+                              if (val != null) {
+                                setState(() => _houseStatus = val);
+                              }
                             },
                           ),
                           const SizedBox(height: 12),
@@ -259,7 +428,8 @@ class _SurveyorTaskScreenState extends ConsumerState<SurveyorTaskScreen> {
                             controller: _expensesController,
                             keyboardType: TextInputType.number,
                             decoration: const InputDecoration(
-                              labelText: 'Estimated Monthly Living Expenses (Rp)',
+                              labelText:
+                                  'Estimated Monthly Living Expenses (Rp)',
                               prefixText: 'Rp ',
                             ),
                           ),
@@ -267,7 +437,8 @@ class _SurveyorTaskScreenState extends ConsumerState<SurveyorTaskScreen> {
                           TextField(
                             controller: _obligationsController,
                             decoration: const InputDecoration(
-                              labelText: 'Other Existing Installments / Obligations',
+                              labelText:
+                                  'Other Existing Installments / Obligations',
                             ),
                           ),
                         ],
@@ -281,7 +452,12 @@ class _SurveyorTaskScreenState extends ConsumerState<SurveyorTaskScreen> {
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: PhotoProofGridWidget(
-                        requiredCategories: const ['KTP Customer', 'Kartu Keluarga', 'Bukti Listrik / Air', 'Rumah & Pintu Depan'],
+                        requiredCategories: const [
+                          'KTP Customer',
+                          'Kartu Keluarga',
+                          'Bukti Listrik / Air',
+                          'Rumah & Pintu Depan',
+                        ],
                         onPhotosChanged: (photos) {
                           _surveyPhotos = photos;
                         },
@@ -299,32 +475,45 @@ class _SurveyorTaskScreenState extends ConsumerState<SurveyorTaskScreen> {
                         children: [
                           const Text(
                             'Field Physical Document Checks',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           const SizedBox(height: 8),
                           CheckboxListTile(
                             contentPadding: EdgeInsets.zero,
                             title: const Text('Original KTP Verified on site'),
                             value: _ktpVerified,
-                            onChanged: (v) => setState(() => _ktpVerified = v ?? false),
+                            onChanged: (v) =>
+                                setState(() => _ktpVerified = v ?? false),
                           ),
                           CheckboxListTile(
                             contentPadding: EdgeInsets.zero,
                             title: const Text('Kartu Keluarga (KK) verified'),
                             value: _kkVerified,
-                            onChanged: (v) => setState(() => _kkVerified = v ?? false),
+                            onChanged: (v) =>
+                                setState(() => _kkVerified = v ?? false),
                           ),
                           CheckboxListTile(
                             contentPadding: EdgeInsets.zero,
-                            title: const Text('Recent Electricity / Water Utility Bill matches address'),
+                            title: const Text(
+                              'Recent Electricity / Water Utility Bill matches address',
+                            ),
                             value: _utilityBillVerified,
-                            onChanged: (v) => setState(() => _utilityBillVerified = v ?? false),
+                            onChanged: (v) => setState(
+                              () => _utilityBillVerified = v ?? false,
+                            ),
                           ),
                           CheckboxListTile(
                             contentPadding: EdgeInsets.zero,
-                            title: const Text('Proof of Income / Payslip / Bank Statement'),
+                            title: const Text(
+                              'Proof of Income / Payslip / Bank Statement',
+                            ),
                             value: _incomeProofVerified,
-                            onChanged: (v) => setState(() => _incomeProofVerified = v ?? false),
+                            onChanged: (v) => setState(
+                              () => _incomeProofVerified = v ?? false,
+                            ),
                           ),
                         ],
                       ),
@@ -341,7 +530,10 @@ class _SurveyorTaskScreenState extends ConsumerState<SurveyorTaskScreen> {
                         children: [
                           const Text(
                             'Surveyor Assessment & Justification',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                           const SizedBox(height: 12),
                           TextField(
@@ -349,7 +541,8 @@ class _SurveyorTaskScreenState extends ConsumerState<SurveyorTaskScreen> {
                             maxLines: 3,
                             decoration: const InputDecoration(
                               labelText: 'Assessment Notes',
-                              hintText: 'Provide detailed justification for credit viability...',
+                              hintText:
+                                  'Provide detailed justification for credit viability...',
                             ),
                           ),
                         ],

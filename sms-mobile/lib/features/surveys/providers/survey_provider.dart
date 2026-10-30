@@ -44,7 +44,9 @@ class SurveyListNotifier extends Notifier<SurveyListState> {
     final client = ref.read(apiClientProvider);
 
     try {
-      final response = await client.dio.get('/api/surveys?surveyorId=${user.id}&status=PENDING');
+      final response = await client.dio.get(
+        '/api/surveys?surveyorId=${user.id}&status=PENDING',
+      );
       if (response.data is List) {
         final list = (response.data as List)
             .map((e) => SurveyModel.fromJson(e as Map<String, dynamic>))
@@ -93,22 +95,34 @@ class SurveyListNotifier extends Notifier<SurveyListState> {
     required String employmentNotes,
     required String referencesNotes,
     required String abilityToPayAssessment,
+    double? destinationLatitude,
+    double? destinationLongitude,
+    double? alleyWidthMeters,
+    double? stairClearanceMeters,
+    String? gateAccessNotes,
   }) async {
     final client = ref.read(apiClientProvider);
     try {
-      await client.dio.put('/api/surveys/$surveyId/assessment', data: {
-        'monthlyIncome': monthlyIncome,
-        'monthlyExpenses': monthlyExpenses,
-        'existingObligations': existingObligations,
-        'residenceNotes': residenceNotes,
-        'employmentNotes': employmentNotes,
-        'referencesNotes': referencesNotes,
-        'abilityToPayAssessment': abilityToPayAssessment,
-      });
+      await client.dio.put(
+        '/api/surveys/$surveyId/assessment',
+        data: {
+          'monthlyIncome': monthlyIncome,
+          'monthlyExpenses': monthlyExpenses,
+          'existingObligations': existingObligations,
+          'residenceNotes': residenceNotes,
+          'employmentNotes': employmentNotes,
+          'referencesNotes': referencesNotes,
+          'abilityToPayAssessment': abilityToPayAssessment,
+          'destinationLatitude': ?destinationLatitude,
+          'destinationLongitude': ?destinationLongitude,
+          'alleyWidthMeters': ?alleyWidthMeters,
+          'stairClearanceMeters': ?stairClearanceMeters,
+          if (gateAccessNotes != null && gateAccessNotes.isNotEmpty) 'gateAccessNotes': gateAccessNotes,
+        },
+      );
       return true;
     } catch (_) {
-      // Offline simulation returns success
-      return true;
+      return false;
     }
   }
 
@@ -119,21 +133,19 @@ class SurveyListNotifier extends Notifier<SurveyListState> {
   }) async {
     final client = ref.read(apiClientProvider);
     try {
-      await client.dio.post('/api/surveys/$surveyId/decide', data: {
-        'approve': approve,
-        'notes': notes,
-      });
+      await client.dio.post(
+        '/api/surveys/$surveyId/decide',
+        data: {'approve': approve, 'notes': notes},
+      );
       await loadMySurveys();
       return true;
     } catch (_) {
-      // Offline simulation
-      state = state.copyWith(
-        mySurveys: state.mySurveys.where((s) => s.id != surveyId).toList(),
-      );
-      return true;
+      return false;
     }
   }
 }
 
-final surveyListProvider = NotifierProvider<SurveyListNotifier, SurveyListState>(() => SurveyListNotifier());
-
+final surveyListProvider =
+    NotifierProvider<SurveyListNotifier, SurveyListState>(
+      () => SurveyListNotifier(),
+    );

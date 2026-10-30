@@ -52,13 +52,19 @@ class DeliveryNotifier extends Notifier<DeliveryState> {
     final client = ref.read(apiClientProvider);
 
     try {
-      final response = await client.dio.get('/api/delivery-trips?driverId=${user.id}');
+      final response = await client.dio.get(
+        '/api/delivery-trips?driverId=${user.id}',
+      );
       if (response.data is List) {
         final trips = (response.data as List)
             .map((e) => DeliveryTripModel.fromJson(e as Map<String, dynamic>))
             .toList();
 
-        final active = trips.where((t) => t.status == 'DISPATCHED' || t.status == 'PLANNED').firstOrNull ?? trips.firstOrNull;
+        final active =
+            trips
+                .where((t) => t.status == 'DISPATCHED' || t.status == 'PLANNED')
+                .firstOrNull ??
+            trips.firstOrNull;
 
         state = state.copyWith(
           isLoading: false,
@@ -142,7 +148,9 @@ class DeliveryNotifier extends Notifier<DeliveryState> {
   Future<void> loadTripOrders(String tripId) async {
     final client = ref.read(apiClientProvider);
     try {
-      final response = await client.dio.get('/api/delivery-orders/by-trip/$tripId');
+      final response = await client.dio.get(
+        '/api/delivery-orders/by-trip/$tripId',
+      );
       if (response.data is List) {
         final list = (response.data as List)
             .map((e) => DeliveryOrderModel.fromJson(e as Map<String, dynamic>))
@@ -158,15 +166,19 @@ class DeliveryNotifier extends Notifier<DeliveryState> {
     required String recipientPhone,
     required double codCollected,
     String? notes,
+    String? proofPhotoUrl,
   }) async {
     final client = ref.read(apiClientProvider);
     try {
-      await client.dio.post('/api/delivery-orders/$orderId/deliver', data: {
-        'recipientName': recipientName,
-        'recipientPhone': recipientPhone,
-        'codAmountCollected': codCollected,
-        'notes': notes,
-      });
+      await client.dio.post(
+        '/api/delivery-orders/$orderId/deliver',
+        data: {
+          'recipientName': recipientName,
+          'recipientPhone': recipientPhone,
+          'codAmountCollected': codCollected,
+          'notes': notes,
+        },
+      );
 
       final updated = state.orders.map((o) {
         if (o.id == orderId) {
@@ -183,6 +195,7 @@ class DeliveryNotifier extends Notifier<DeliveryState> {
             preInspectionPassed: true,
             itemName: o.itemName,
             serialNumber: o.serialNumber,
+            manifestSerials: o.manifestSerials,
           );
         }
         return o;
@@ -190,30 +203,9 @@ class DeliveryNotifier extends Notifier<DeliveryState> {
 
       state = state.copyWith(orders: updated);
       return true;
-    } catch (_) {
-      // Local fallback
-      final updated = state.orders.map((o) {
-        if (o.id == orderId) {
-          return DeliveryOrderModel(
-            id: o.id,
-            deliveryOrderNumber: o.deliveryOrderNumber,
-            salesOrderId: o.salesOrderId,
-            tripId: o.tripId,
-            recipientName: recipientName,
-            recipientPhone: recipientPhone,
-            deliveryAddress: o.deliveryAddress,
-            codAmount: o.codAmount,
-            status: 'DELIVERED',
-            preInspectionPassed: true,
-            itemName: o.itemName,
-            serialNumber: o.serialNumber,
-          );
-        }
-        return o;
-      }).toList();
-
-      state = state.copyWith(orders: updated);
-      return true;
+    } catch (error) {
+      state = state.copyWith(error: error.toString());
+      return false;
     }
   }
 
@@ -221,13 +213,19 @@ class DeliveryNotifier extends Notifier<DeliveryState> {
     String orderId, {
     required String reason,
     String? notes,
+    String? proofPhotoUrl,
   }) async {
     final client = ref.read(apiClientProvider);
     try {
-      await client.dio.post('/api/delivery-orders/$orderId/fail', data: {
-        'reason': reason,
-        'notes': notes,
-      });
+      await client.dio.post(
+        '/api/delivery-orders/$orderId/fail',
+        data: {
+          'failureReason': reason,
+          'notes': notes,
+          if (proofPhotoUrl != null && proofPhotoUrl.isNotEmpty)
+            'proofPhotoUrl': proofPhotoUrl,
+        },
+      );
 
       final updated = state.orders.map((o) {
         if (o.id == orderId) {
@@ -244,6 +242,7 @@ class DeliveryNotifier extends Notifier<DeliveryState> {
             preInspectionPassed: o.preInspectionPassed,
             itemName: o.itemName,
             serialNumber: o.serialNumber,
+            manifestSerials: o.manifestSerials,
           );
         }
         return o;
@@ -251,36 +250,19 @@ class DeliveryNotifier extends Notifier<DeliveryState> {
 
       state = state.copyWith(orders: updated);
       return true;
-    } catch (_) {
-      final updated = state.orders.map((o) {
-        if (o.id == orderId) {
-          return DeliveryOrderModel(
-            id: o.id,
-            deliveryOrderNumber: o.deliveryOrderNumber,
-            salesOrderId: o.salesOrderId,
-            tripId: o.tripId,
-            recipientName: o.recipientName,
-            recipientPhone: o.recipientPhone,
-            deliveryAddress: o.deliveryAddress,
-            codAmount: o.codAmount,
-            status: 'FAILED',
-            preInspectionPassed: o.preInspectionPassed,
-            itemName: o.itemName,
-            serialNumber: o.serialNumber,
-          );
-        }
-        return o;
-      }).toList();
-
-      state = state.copyWith(orders: updated);
-      return true;
+    } catch (error) {
+      state = state.copyWith(error: error.toString());
+      return false;
     }
   }
 
   Future<bool> completeTrip(String tripId, {String? notes}) async {
     final client = ref.read(apiClientProvider);
     try {
-      await client.dio.post('/api/delivery-trips/$tripId/complete', data: notes);
+      await client.dio.post(
+        '/api/delivery-trips/$tripId/complete',
+        data: notes,
+      );
       await loadDriverTrips();
       return true;
     } catch (_) {
@@ -289,5 +271,6 @@ class DeliveryNotifier extends Notifier<DeliveryState> {
   }
 }
 
-final deliveryProvider = NotifierProvider<DeliveryNotifier, DeliveryState>(() => DeliveryNotifier());
-
+final deliveryProvider = NotifierProvider<DeliveryNotifier, DeliveryState>(
+  () => DeliveryNotifier(),
+);

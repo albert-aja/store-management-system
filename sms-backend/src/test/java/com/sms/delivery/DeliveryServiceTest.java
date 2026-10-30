@@ -1,8 +1,10 @@
 package com.sms.delivery;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -12,8 +14,10 @@ import static org.mockito.Mockito.when;
 import com.sms.common.web.BusinessRuleException;
 import com.sms.foundation.employee.Employee;
 import com.sms.foundation.employee.EmployeeRepository;
+import com.sms.foundation.employee.EmployeeRoleRepository;
 import com.sms.foundation.employee.EmploymentStatus;
 import com.sms.foundation.numbering.DocumentNumberingService;
+import com.sms.foundation.notification.NotificationService;
 import com.sms.foundation.store.Store;
 import com.sms.foundation.store.StoreRepository;
 import com.sms.inventory.MovementType;
@@ -37,6 +41,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class DeliveryServiceTest {
 
@@ -50,6 +55,8 @@ class DeliveryServiceTest {
     private final StockUnitRepository stockUnitRepository = mock(StockUnitRepository.class);
     private final StockMovementRepository stockMovementRepository = mock(StockMovementRepository.class);
     private final DocumentNumberingService numberingService = mock(DocumentNumberingService.class);
+    private final EmployeeRoleRepository employeeRoleRepository = mock(EmployeeRoleRepository.class);
+    private final NotificationService notificationService = mock(NotificationService.class);
 
     private DeliveryService service;
 
@@ -65,7 +72,9 @@ class DeliveryServiceTest {
                 allocationRepository,
                 stockUnitRepository,
                 stockMovementRepository,
-                numberingService
+                numberingService,
+                employeeRoleRepository,
+                notificationService
         );
     }
 
@@ -111,6 +120,45 @@ class DeliveryServiceTest {
                 .thenReturn(List.of(uninspectedOrder));
 
         assertThrows(BusinessRuleException.class, () -> service.dispatchTrip(tripId));
+    }
+
+    @Test
+    void verifyPackingAcceptsExactManifestSerials() {
+        UUID orderId = UUID.randomUUID();
+        DeliveryOrder order = pendingOrderWithSerial("SN-100");
+        when(deliveryOrderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+        DeliveryOrder result = service.verifyPacking(orderId, List.of("SN-100"));
+
+        assertTrue(result.isPreInspectionPassed());
+        assertEquals("Packing manifest barcode-verified (1 stock unit(s))",
+                result.getPreInspectionNotes());
+    }
+
+    @Test
+    void verifyPackingRejectsUnexpectedSerialsWithoutPassingInspection() {
+        UUID orderId = UUID.randomUUID();
+        DeliveryOrder order = pendingOrderWithSerial("SN-100");
+        when(deliveryOrderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+        assertThrows(
+                BusinessRuleException.class,
+                () -> service.verifyPacking(orderId, List.of("SN-OTHER")));
+
+        assertFalse(order.isPreInspectionPassed());
+    }
+
+    private DeliveryOrder pendingOrderWithSerial(String serial) {
+        StockUnit unit = new StockUnit();
+        unit.setManufacturerSerial(serial);
+        SalesOrderItemStockUnit allocation = new SalesOrderItemStockUnit();
+        allocation.setStockUnit(unit);
+        DeliveryItem item = new DeliveryItem();
+        item.setSoItemStockUnit(allocation);
+        DeliveryOrder order = new DeliveryOrder();
+        order.setStatus(DeliveryOrderStatus.PENDING);
+        order.setItems(List.of(item));
+        return order;
     }
 
     @Test
@@ -199,12 +247,46 @@ class DeliveryServiceTest {
 
         when(deliveryOrderRepository.findById(orderId)).thenReturn(Optional.of(order));
 
-        FailDeliveryOrderRequest req = new FailDeliveryOrderRequest("Customer unavailable", "Called 3 times");
+        FailDeliveryOrderRequest req = new FailDeliveryOrderRequest("Customer unavailable", "Called 3 times", "https://storage.example.com/proof.jpg");
 
         DeliveryOrder result = service.failDeliveryOrder(orderId, req);
 
         assertEquals(DeliveryOrderStatus.FAILED, result.getStatus());
         assertEquals("Customer unavailable", result.getFailureReason());
+        assertEquals("https://storage.example.com/proof.jpg", result.getProofPhotoUrl());
         assertEquals(DeliveryItemStatus.REJECTED, item.getStatus());
+    }
+
+    @Test
+    void failDeliveryOrderNotifiesStoreDispatchersToReschedule() {
+        UUID orderId = UUID.randomUUID();
+        UUID storeId = UUID.randomUUID();
+        UUID dispatcherId = UUID.randomUUID();
+        Store store = mock(Store.class);
+        when(store.getId()).thenReturn(storeId);
+        SalesOrder salesOrder = new SalesOrder();
+        salesOrder.setStore(store);
+
+        DeliveryOrder order = new DeliveryOrder();
+        ReflectionTestUtils.setField(order, "id", orderId);
+        order.setDeliveryOrderNumber("DO-100");
+        order.setSalesOrder(salesOrder);
+        order.setStatus(DeliveryOrderStatus.IN_TRANSIT);
+        order.setItems(List.of());
+        when(deliveryOrderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(employeeRoleRepository.findEmployeeIdsByStoreAndPermission(
+                storeId, "DELIVERY_MANAGE", EmploymentStatus.ACTIVE))
+                .thenReturn(List.of(dispatcherId));
+
+        service.failDeliveryOrder(orderId, new FailDeliveryOrderRequest("WRONG_ADDRESS", "Address missing"));
+
+        verify(notificationService).create(
+                "DELIVERY_ORDER",
+                orderId,
+                "Failed delivery requires rescheduling",
+                "Delivery DO-100 failed: WRONG_ADDRESS. Reassign this order to a new trip.",
+                List.of(dispatcherId));
+        verify(employeeRoleRepository).findEmployeeIdsByStoreAndPermission(
+                storeId, "DELIVERY_MANAGE", EmploymentStatus.ACTIVE);
     }
 }

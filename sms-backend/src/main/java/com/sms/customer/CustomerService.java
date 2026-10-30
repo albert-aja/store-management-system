@@ -52,6 +52,9 @@ public class CustomerService {
         customer.setNik(request.nik());
         customer.setPrimaryPhone(request.primaryPhone());
         customer.setPrimaryEmail(request.primaryEmail());
+        if (request.motherMaidenName() != null) customer.setMotherMaidenName(request.motherMaidenName());
+        if (request.birthDate() != null) customer.setBirthDate(request.birthDate());
+        if (request.birthPlace() != null) customer.setBirthPlace(request.birthPlace());
     }
 
     public void setActive(UUID id, boolean active) {

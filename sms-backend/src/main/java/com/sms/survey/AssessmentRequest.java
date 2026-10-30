@@ -9,5 +9,10 @@ public record AssessmentRequest(
         String residenceNotes,
         String employmentNotes,
         String referencesNotes,
-        String abilityToPayAssessment) {
+        String abilityToPayAssessment,
+        BigDecimal destinationLatitude,
+        BigDecimal destinationLongitude,
+        BigDecimal alleyWidthMeters,
+        BigDecimal stairClearanceMeters,
+        String gateAccessNotes) {
 }

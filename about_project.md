@@ -1,8 +1,8 @@
-# Store Management System (SMS) & Worker App — Master Project Documentation & Feature Review
+# Store Management System (SMS) — Integrated Retail Ecosystem Architecture & Master Project Documentation
 
-> **Version**: 3.1 (Refined Implementation Status, Canonical Backlog, Architecture Review & Operational Standards)  
+> **Version**: 3.2 (Integrated 4-Application Ecosystem Architecture, Omnichannel E-commerce, Unified Backend, Multi-Fulfillment & Cross-App Event Propagation)  
 > **Last Updated**: 2026-10-30  
-> **Architecture**: Modular Monolith (Spring Boot 4.1 + PostgreSQL + Redis) • Modern Web SPA (React 19 + TypeScript + MUI) • Cross-Platform Mobile App (Flutter 3.44 + Riverpod 3)
+> **Architecture**: Modular Monolith (Spring Boot 4.1 + PostgreSQL 16 + Redis) • Integrated 4-Application Ecosystem: Management Web SPA (React 19) • E-commerce Web • E-commerce Mobile App • Worker Mobile App (Flutter 3.44)
 
 ---
 
@@ -14,7 +14,7 @@ To avoid ambiguity regarding project completion, this document formally distingu
    - Measures whether the core business logic, domain entities, database migrations, REST endpoints, UI screens, forms, and state management have been written and integrated into the repository codebases.
 2. **Integration Verification (% Test & Integration Coverage)**:
    - Measures whether code has been verified through automated unit tests, component tests, local mock interceptors, and local builds.
-   - *Current Status*: Local unit and component test suites pass (e.g., 33/33 Vitest tests on Web, Spring Boot domain unit tests, Flutter component tests). **End-to-end multi-service integration against live cloud infrastructure (Backlog `[F.1]`, `[F.2]`) remains outstanding.**
+   - *Current Status*: Local unit and component test suites pass (e.g., 33/33 Vitest tests on Web, Spring Boot domain unit tests, Flutter component tests). **End-to-end multi-service integration against live cloud infrastructure and cross-application workflows (Backlog `[F.1]`, `[F.2]`, `[P.9]`) remains outstanding.**
 3. **Production Readiness (% Operational & Deployment Readiness)**:
    - Measures whether live cloud databases, managed Redis clusters, S3 storage buckets, automated backup/recovery runbooks, CI/CD deployment pipelines, SRE monitoring/alerting, and statutory legal sign-offs are active in production.
    - *Current Status*: **In Progress / Staged.** The system currently runs in local development/test configurations. Domains marked as "100% Implemented" refer strictly to **Feature Code & Local Verification**, not 100% production deployment readiness.
@@ -42,30 +42,48 @@ To avoid ambiguity regarding project completion, this document formally distingu
 
 ## 1. Executive Overview & System Purpose
 
-The **Store Management System (SMS)** is an enterprise retail operations and credit financing platform engineered for a multi-store chain specializing in electronics, home appliances, and furniture. 
+The **Store Management System (SMS)** is an integrated enterprise retail operations, omnichannel commerce, and money management platform engineered for a multi-store chain specializing in electronics, home appliances, and furniture.
+
+> [!IMPORTANT]
+> **System Scope & Boundary Clarification**: SMS is **not a banking application** that handles monetary creation, demand deposit accounts, interbank clearing, or regulated banking activities. The platform is purely an enterprise retail operations, omnichannel commerce, and money management system designed to track store sales, supplier procurement, multi-fulfillment logistics, customer receivables, cash custody, and in-house installment credit arrangements.
+
+The SMS platform operates as an **integrated ecosystem consisting of four applications**, all communicating through defined APIs with a single shared backend:
+
+1. **Management System (Web)**:
+   - Primary desktop/tablet web application for business administration, inventory control, pricing matrices, procurement, logistics dispatch, and operational governance.
+   - Comprehensive administrative coverage across catalog, SKUs, inventory, pricing, customers, sales, purchasing, payments, delivery, surveys, inspections, employee access, finance, and reporting.
+2. **E-commerce Website**:
+   - Customer-facing online shopping platform.
+   - Responsibilities: Product browsing and faceted search; categories, brands, and filters; detailed specifications, images, and variants; shopping cart and checkout; customer self-service registration and authentication; address management; online payments; order history and tracking; promotions and vouchers; fulfillment selection (own-driver delivery or customer pickup); and fulfillment grouping preferences.
+3. **E-commerce Mobile Application**:
+   - Customer-facing native mobile shopping experience providing essentially the same business capabilities as the e-commerce website.
+   - The website and mobile app are two interfaces to the same unified e-commerce platform, not independent commerce systems.
+4. **Worker Mobile Application**:
+   - Employee-facing mobile application for field and operational activities.
+   - Responsibilities: Customer credit surveys; multi-drop delivery operations (*Surat Jalan* execution); product inspections; store pickup verification and handover; delivery destination location marking; task management; and employee location tracking strictly during active tasks according to agreed tracking rules.
 
 The retailer operates on an end-to-end operational lifecycle:
-1. **Procurement & Inbound Logistics**: Sourcing branded products and spare parts from national distributors, managing purchase orders, inspection receiving, and auto-ingesting serialized inventory.
-2. **Showroom & Omnichannel Sales**: Selling via direct cash, cash-on-delivery (COD), or in-house installment credit financing (3, 6, 10, 12, 15 months) with store-specific terms.
-3. **Credit Verification & Field Appraisal**: Conducting in-person field surveys evaluating customer creditworthiness, dwelling stability, proof photos, and income verifications.
-4. **Fulfillment, Route Logistics & Surat Jalan**: Managing multi-drop delivery trips with formal Delivery Notes (*Surat Jalan*), pre-dispatch quality checks, customer digital signature sign-off, and photo proof.
+1. **Procurement & Inbound Logistics**: Sourcing branded products and spare parts from national distributors, managing purchase orders, inspection receiving, demand consolidation, and auto-ingesting serialized inventory.
+2. **Showroom & Omnichannel Sales**: Selling via showroom floor, e-commerce website, or e-commerce mobile app through direct cash, digital payment gateways, cash-on-delivery (COD), or in-house installment credit financing (3, 6, 10, 12, 15 months) with store-specific terms.
+3. **Credit Verification & Field Appraisal**: Conducting in-person field surveys evaluating customer creditworthiness, dwelling stability, proof photos, delivery access logistics, and income verifications.
+4. **Fulfillment, Multi-Group Logistics & Surat Jalan**: Managing flexible customer fulfillments (own-driver multi-drop delivery trips with formal Delivery Notes / *Surat Jalan*, or customer store pickup), pre-dispatch picking/packing checks, recipient digital signatures, and photo proof.
 5. **Debt Servicing, Field Collections & Cash Custody**: Monthly field installment collections, customer promise-to-pay tracking, two-stage cash custody handover, and cashier drawer reconciliation.
 6. **After-Sales, Repossessions, Warranty & Repairs**: Managing customer warranty claims, internal/external repair work orders, or executing asset recovery on defaulted credit accounts for grading, showroom re-sale, or scrap write-off.
 7. **Workforce, Attendance & Non-Calendar Payroll**: Managing employee attendance with Haversine GPS geofencing, leave rosters, and non-calendar sales/collection cutoff cycles (e.g., 26th–25th) calculating attendance-prorated salaries, sales commissions, and collection bonuses.
 8. **Financial Accounting & General Ledger (Proposed - Backlog `[H.1–H.10]`)**: Double-entry general ledger, chart of accounts, bank reconciliation, COGS calculation, landed cost attribution, balance sheet, and P&L financial reporting.
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                     END-TO-END BUSINESS FLOW                                     │
-├─────────────────┬───────────────────┬──────────────────┬───────────────────┬─────────────────────┤
-│ 1. INBOUND      │ 2. SALES & CREDIT │ 3. LOGISTICS     │ 4. SERVICING      │ 5. RECOVERY & AFTER │
-│  Purchase PO    │  Sales Order      │  Delivery Trip   │  Installment Debt │  Default Event      │
-│  Receiving      │  Price Approval   │  Surat Jalan     │  Collector Visit  │  Repossession       │
-│  Serial Unit    │  Credit Survey    │  Driver Mobile   │  Cash Custody     │  Grading & Triage   │
-│  Stock Movement │  Down Payment DP  │  Recipient Sign  │  Cashier Reconcil │  Resell or Scrap    │
-│  Landed Cost*   │  CRM 360 History* │  Failed Resched* │  Promise-to-Pay*  │  Warranty Repair    │
-│  (Backlog I.1)  │  (Backlog J.1)    │  (Backlog M.3)   │  (Backlog J.3)    │  (Backlog K.1)      │
-└─────────────────┴───────────────────┴──────────────────┴───────────────────┴─────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                          END-TO-END BUSINESS FLOW                                                 │
+├──────────────────┬──────────────────────────┬──────────────────────────┬───────────────────┬─────────────────────┤
+│ 1. INBOUND       │ 2. OMNICHANNEL SALES     │ 3. FULFILLMENT LOGISTICS │ 4. SERVICING      │ 5. RECOVERY & AFTER │
+│  Purchase PO     │  Showroom / Web / App    │  Fulfillment Groups      │  Installment Debt │  Default Event      │
+│  Receiving       │  Price Approval          │  Surat Jalan / Pickup    │  Collector Visit  │  Repossession       │
+│  Serial Unit     │  Credit Survey           │  Driver / Store Handover │  Cash Custody     │  Grading & Triage   │
+│  Stock Movement  │  Down Payment / Gateway  │  Recipient Sign / Proof  │  Cashier Reconcil │  Resell or Scrap    │
+│  Landed Cost*    │  CRM 360 History*        │  Failed Resched*         │  Promise-to-Pay*  │  Warranty Repair    │
+│  (Backlog I.1)   │  (Backlog J.1, P.1-P.8)  │  (Backlog M.3, P.4-P.5)  │  (Backlog J.3)    │  (Backlog K.1)      │
+└──────────────────┴──────────────────────────┴──────────────────────────┴───────────────────┴─────────────────────┘
 (* Indicates Proposed Enhancements cross-referenced to Canonical Backlog IDs)
 ```
 
@@ -73,46 +91,411 @@ The retailer operates on an end-to-end operational lifecycle:
 
 ## 2. Technology Stack & Architectural Topology
 
-The system uses a **single authoritative backend and shared relational database** to guarantee ACID compliance and avoid data synchronization drift.
+The SMS platform operates as a unified distributed enterprise system anchored by a **single authoritative backend and shared relational database** to guarantee ACID compliance, prevent split-brain inventory decisions, and eliminate data synchronization drift across channels.
 
 ```
-STORE MANAGEMENT SYSTEM
-├── sms-backend/ (Java 21 • Spring Boot 4.1.x)
-│   ├── Architecture: Modular Monolith with bounded domains
+STORE MANAGEMENT SYSTEM — INTEGRATED APPLICATION ECOSYSTEM
+├── sms-backend/ (Java 21 • Spring Boot 4.1.x) [CENTRAL AUTHORITATIVE BACKEND]
+│   ├── Architecture: Modular Monolith with strictly bounded domain contexts
 │   ├── Persistence: Spring Data JPA + Hibernate 6.x
-│   ├── Database: PostgreSQL 16 (Flyway migrations V1–V20)
-│   ├── Security: Spring Security + Supabase OAuth2 JWT validation
+│   ├── Database: PostgreSQL 16 (Flyway migrations V1–V20+)
+│   ├── Security: Spring Security + Supabase OAuth2 JWT validation (RBAC / PBAC)
 │   ├── High-Concurrency: Redis (Atomic sequence numbering & short-lived cache)
 │   ├── Document Vault: Supabase Storage S3-compatible Buckets
-│   ├── API Spec: Springdoc OpenAPI 3.0 (Swagger UI)
-│   └── Testing: JUnit 5, Mockito
+│   ├── Event Engine: Transactional Outbox Pattern (`outbox_events`) + Internal Spring Application Events
+│   ├── API Spec: Springdoc OpenAPI 3.0 (Contract generation for Web & Mobile)
+│   └── Testing: JUnit 5, Mockito, Testcontainers
 │
-├── sms-web/ (React 19 • TypeScript • Vite)
+├── sms-web/ (React 19 • TypeScript • Vite) [APPLICATION A: MANAGEMENT SYSTEM WEB]
+│   ├── Purpose: Business administration, operations, pricing, procurement, delivery trips, HR & finance
 │   ├── Framework: React 19 SPA with route-level code splitting (React.lazy)
 │   ├── UI Framework: Material UI v9 (Deep Navy & Emerald Light/Dark themes)
 │   ├── Data Grid: MUI X DataGrid with virtualized scrolling
 │   ├── Workflow Engine: React Flow (@xyflow/react v12) visual DAG builder
 │   ├── Data Fetching: TanStack Query v5 with optimistic mutations
-│   ├── Forms & Validation: React Hook Form + Zod
-│   ├── State: Zustand (Authentication, persistent theme mode)
-│   ├── Analytics & Visuals: Recharts v3 (Comparative trend overlays & aging charts)
-│   ├── Export Engines: UTF-8 BOM CSV exporter & SheetJS (.xlsx) multi-sheet engine
 │   └── Testing: Vitest + React Testing Library (33/33 tests passing)
 │
-└── sms-mobile/ (Flutter 3.44 • Dart 3.12)
+├── e-commerce-web/ (Next.js / React 19 • TypeScript) [APPLICATION B: E-COMMERCE WEBSITE]
+│   ├── Purpose: Customer-facing online shopping portal, catalog discovery, cart & checkout, order tracking
+│   ├── Architecture: Responsive Web Storefront (SSR / ISR / Client SPA)
+│   ├── Integration: REST API consuming shared backend (`/api/v1/storefront/*`)
+│   └── Capabilities: Catalog, Faceted Filters, Cart, Checkout, Online Payments, Multi-Fulfillment Preferences
+│
+├── e-commerce-mobile/ (Flutter / Native) [APPLICATION C: E-COMMERCE MOBILE APPLICATION]
+│   ├── Purpose: Native mobile customer shopping experience (twin interface to e-commerce web)
+│   ├── Integration: REST API consuming shared backend (`/api/v1/storefront/*`)
+│   └── Capabilities: Identical commerce capabilities to web storefront, push notifications for order progress
+│
+└── sms-mobile/ (Flutter 3.44 • Dart 3.12) [APPLICATION D: WORKER MOBILE APPLICATION]
+    ├── Purpose: Field-force mobile tool for credit surveys, delivery trips, inspections, pickups, and tasks
     ├── Architecture: Feature-first role-adaptive mobile client
     ├── State Management: Riverpod 3.x (Reactive asynchronous notifiers)
-    ├── Routing: GoRouter with auth and permission guards
     ├── Networking: Dio client with JWT interceptors & live/mock fallback
     ├── Hardware Hooks: Camera viewfinder barcode/QR scanner, touch signature pad
     ├── Anti-Fraud: Pure-Dart Haversine 200m GPS geofencing & photo watermarking
-    ├── Offline Engine: Persistent action queue & background auto-sync replay
-    └── Security: Local biometric authentication (Fingerprint / Face ID unlock)
+    ├── Task Tracking: Active task-bounded GPS tracking (strictly during deliveries/surveys)
+    └── Offline Engine: Persistent action queue & auto-sync replay (SQLite/Drift target)
 ```
 
 ---
 
-### 2.1 Architectural Recommendations & Technical Standards
+### 2.1 The Four Applications in the Integrated Ecosystem
+
+The SMS ecosystem is composed of four front-end applications serving distinct user groups, all interacting with the unified backend:
+
+1. **Application A: Management System (Web)**:
+   - Primary desktop and tablet platform for back-office business administration, store operations, and managerial oversight.
+   - Core Responsibilities:
+     - Master product, catalog, SKU, and variant management.
+     - Multi-store inventory, warehouse zones, and stock movements.
+     - Branch-specific pricing matrices, promotional campaigns, and discount approvals.
+     - Customer master directory, credit profile, and NIK deduplication.
+     - Sales order processing, price negotiation approvals, and credit contracting.
+     - Supplier management, purchase orders, receiving, and demand consolidation.
+     - Payment management, cash custody verification, and installment schedules.
+     - Multi-drop delivery trip planning, vehicle routing, and Surat Jalan generation.
+     - Credit survey task management and field inspection reviews.
+     - Employee master, 10-role RBAC, and data-scope access control.
+     - Non-calendar payroll, attendance geofence logs, and executive analytics.
+2. **Application B: E-commerce Website**:
+   - Customer-facing responsive online storefront accessible via modern desktop and mobile web browsers.
+   - Core Responsibilities:
+     - Product catalog browsing, real-time keyword search, and faceted filtering (by brand, category, price, specifications).
+     - Product detail presentations: high-resolution images, technical specifications, variant selectors, and real-time availability states.
+     - Shopping cart management, price quote calculation, and checkout workflows.
+     - Customer self-service account registration, profile management, and multi-address management (residence, shipping address, access notes).
+     - Secure online payment integration (QRIS, Virtual Accounts, Credit Cards) with real-time status updates.
+     - Order history, milestone tracking, and shipment delivery progress.
+     - Promotional voucher application, store credit redemption, and seasonal discounts.
+     - Fulfillment preference selection: Own-driver delivery or Customer store pickup.
+     - Multi-fulfillment grouping preferences (Complete fulfillment vs. Partial fulfillment).
+3. **Application C: E-commerce Mobile Application**:
+   - Customer-facing native mobile shopping experience providing essentially the same business capabilities as the E-commerce Website.
+   - Core Architectural Relationship:
+     - The E-commerce Website and Mobile Application are **two distinct interfaces to the exact same e-commerce platform**, not separate commerce systems.
+     - They share identical API contracts (`/api/v1/storefront/*`), product catalogs, pricing rules, customer account databases, order state machines, and payment gateway infrastructure.
+     - Native mobile enhancements include push notifications for order milestone updates (order confirmed, driver dispatched, pickup ready) and device biometric quick-login.
+4. **Application D: Worker Mobile Application**:
+   - Employee-facing operational field tool engineered for on-the-road and in-store staff (Surveyors, Drivers, Technicians, Store Assistants).
+   - Core Responsibilities:
+     - In-person customer credit survey execution (residence verification, income appraisal, proof photos with GPS watermarks).
+     - Multi-drop delivery trip execution: turn-by-turn navigation, pre-dispatch loading check, recipient touch signatures, and COD cash collection.
+     - Store customer pickup verification: scanning pickup QR codes, verifying recipient identity, and executing handover sign-off.
+     - Product triage and technical inspections (warranty evaluations, repossessed unit grading).
+     - Delivery destination location profiling: marking exact GPS coordinates, narrow street constraints, stair widths, and gate access notes.
+     - Operational task management and daily field assignments.
+     - Employee location tracking strictly during active operational tasks (active delivery trips and active surveys), adhering to agreed privacy and power-management rules.
+
+---
+
+### 2.2 Unified Backend and Single Source of Truth
+
+All four applications operate as client interfaces to a **single authoritative backend**. The system strictly avoids maintaining duplicate databases, siloed micro-backends for individual frontends, or disparate business rules.
+
+#### Architectural Principles:
+1. **One Shared Backend**: A unified Spring Boot modular monolith serves as the central engine for all business logic, data persistence, and inter-service coordination.
+2. **One Authoritative Source of Business Data**: All transactional and master data resides in a single relational PostgreSQL database.
+3. **Centralized Business Logic**: All validation, state transitions, calculation algorithms, and business rules are implemented exclusively in the backend.
+4. **Consistent Business Rules**: Operations behave identically regardless of whether they are initiated from the Management System, E-commerce Website, E-commerce Mobile App, or Worker Mobile App.
+5. **API-Based Communication**: All client applications interact with the backend exclusively via standardized REST APIs with zero direct database manipulation.
+6. **Clearly Defined Domain Ownership**: Every piece of business data has a single backend module acting as its authoritative custodian.
+7. **No Independent Frontend Data**: Frontend applications are presentation layers; they never maintain independent business data stores or shadow databases.
+
+#### Authoritative Data Ownership Matrix:
+
+| Business Data Domain | Responsible Backend Module | Authoritative Responsibilities |
+|---|---|---|
+| **Product Catalog, SKU, Variants** | Product Management | Master product definitions, specifications, BOM associations, category taxonomies, and variant SKUs. |
+| **Physical Inventory & Reservations** | Inventory Management | Physical warehouse stock, serialized `StockUnit` tracking, movement ledgers, and logical order reservations. |
+| **Selling Prices & Promotions** | Pricing Management | Store-specific price matrices, promotional campaigns, discount thresholds, and installment terms. |
+| **Customer Records & Profiles** | Customer Management | Customer master records, NIK deduplication, address directories, and CRM interaction history. |
+| **Sales Orders & Order Lifecycle** | Sales Management | Sales order creation, order state machines, fulfillment grouping, and order source attribution. |
+| **Purchase Orders & Procurement** | Purchasing Management | Supplier directory, purchase orders, demand consolidation, and inbound receipt tracking. |
+| **Payments & Cash Custody** | Payment Management | Digital payment gateway transactions, installment schedules, cash custody handovers, and reconciliation. |
+| **Delivery & Fulfillment** | Delivery Management | Fulfillment group orchestration, delivery trip planning, vehicle routing, and customer pickup tracking. |
+| **Employee Records & Permissions** | Identity & Access Management | Employee profiles, store assignments, role definitions (RBAC), and data-scope permissions. |
+| **Surveys & Credit Appraisals** | Survey Management | Credit survey scheduling, surveyor dispatch, field appraisal dossiers, and decisive credit determinations. |
+| **Inspections & Warranty** | Inspection Management | Product return triage, cosmetic/functional grading, warranty claim tracking, and repair work orders. |
+| **Notifications & Outbox** | Notification Management | Push notification dispatch, SMS/WhatsApp delivery, and transactional outbox event publishing. |
+| **Reporting & Executive Analytics** | Reporting Management | KPI aggregations, aging buckets, period comparisons, sales leaderboards, and financial exports. |
+
+> [!IMPORTANT]
+> **E-commerce Consumption Rule**: E-commerce frontends (Web and Mobile) consume product catalogs, inventory availability, pricing matrices, and order states directly from the shared backend via dedicated storefront endpoints (`/api/v1/storefront/*`). They **never maintain separate product catalogs or decoupled inventory databases**.
+
+---
+
+### 2.3 Centralized Business Logic & Rule Enforcement
+
+Business logic must never be duplicated or implemented independently across frontend clients. The backend acts as the sole gatekeeper of operational rules, ensuring that business integrity is guaranteed even if a client application contains bugs or malicious requests.
+
+For example, when a sales order is submitted through:
+- The E-commerce Website,
+- The E-commerce Mobile Application, or
+- The Management System (by a showroom salesperson),
+
+**The exact same sales order creation and validation rules are executed by the backend**:
+- **Price Validation**: The backend verifies current store pricing, promotional voucher validity, and active discount rules. Frontend-submitted prices are never trusted blindly.
+- **Inventory Availability Check**: Real-time evaluation of physical stock vs. commercial procurement rules.
+- **Stock Reservation**: Backend atomically acquires concurrency locks to logically reserve available units or flags procurement requirements.
+- **Procurement Gating**: Validation that non-stocked items are eligible for supplier procurement and lead-time estimation.
+- **Order Validation**: Completeness of customer delivery address Snapshot, contact details, and line item configurations.
+- **Payment Status & Method Validation**: Verification of gateway payment confirmation or installment credit eligibility.
+- **Fulfillment Feasibility**: Validation that selected fulfillment method (delivery vs pickup) is viable for the destination and store.
+- **Order Cancellation Rules**: Enforcing order cancellation eligibility based on fulfillment state (e.g., cannot cancel after driver dispatch).
+
+Frontend applications are responsible strictly for user experience, data entry ergonomics, responsive rendering, and client-side form validation. Authoritative business decisions belong exclusively to the backend.
+
+---
+
+### 2.4 API and Integration Architecture
+
+The interaction between all four frontend applications and the backend is strictly governed by structured API standards:
+
+1. **Consistent API Contracts**:
+   - RESTful endpoints documented via OpenAPI 3.0 / Swagger.
+   - Strongly-typed DTOs shared via automated TypeScript client generation for web and Dart models for mobile.
+2. **Centralized Authentication & Authorization**:
+   - Supabase Auth OAuth2 JWT tokens validated by Spring Security.
+   - Unified token parsing extracting `user_id`, `role`, and assigned `store_id`.
+   - Administrative and employee endpoints protected by Role-Based Access Control (RBAC) and Data-Scope Authorization.
+   - Customer storefront endpoints protected by Customer Session Guards.
+3. **API Versioning Strategy**:
+   - Predictable URI prefix versioning (`/api/v1/`) with backwards-compatibility guarantees to support staged mobile app releases.
+4. **Consistent Error Handling**:
+   - RFC 7807 Problem Details for HTTP APIs (standardized error code, localized error message, field-level validation error maps, timestamp, and trace ID).
+5. **Secure Communication & Transport**:
+   - Strict HTTPS with TLS 1.3 encryption across all public network traffic.
+   - Payload size limits and rate limiting to prevent denial-of-service abuse.
+6. **Robust Validation**:
+   - Server-side Jakarta Bean Validation on all incoming requests regardless of prior client-side Zod/form checks.
+7. **Comprehensive Audit Logging**:
+   - Sensitive business mutations (price overrides, cash custody transfers, credit decisions, scrap write-offs) generate immutable entries in `SecurityAuditLog`.
+8. **Internal Module Decoupling**:
+   - Within the backend, bounded domains interact through clean Java service interfaces and Spring application events.
+   - No frontend application ever executes direct database queries, stored procedures, or table mutations.
+
+---
+
+### 2.5 Cross-Application Event Propagation & Synchronization
+
+A change initiated in any application must propagate reliably and consistently across all other relevant applications in the ecosystem.
+
+#### Exemplary Cross-Application Event Workflows:
+
+| Initiating Action | Triggering Application | Propagation Mechanism | Resulting State & Downstream Impact |
+|---|---|---|---|
+| **Product Price Updated** | Management System (Admin) | Transactional Outbox → Storefront Cache Invalidation | E-commerce Website and Mobile App immediately display the updated price across catalog and cart views. |
+| **Inbound Inventory Received** | Management System (Warehouse) | DB Commit → Outbox Event → Availability Recalculation | Commercial availability transitions from "Procurement Required" to "In Stock" across E-commerce channels. |
+| **Customer Places Order** | E-commerce Web / Mobile | API Request → Sales Order Created → Outbox Event | Management System displays the new Sales Order with source badge (`ONLINE_WEB` or `ONLINE_APP`); inventory reserved. |
+| **Supplier PO Received** | Management System (Procurement) | Receiving Transaction → Outbox Event | Outstanding procurement requirements linked to customer sales orders are resolved; fulfillment groups ready for dispatch. |
+| **Delivery Assigned & Scheduled** | Management System (Logistics) | Trip Confirmed → Outbox Event → Push Dispatch | Worker Mobile App receives delivery stop in driver queue; E-commerce customer sees "Scheduled for Delivery". |
+| **Delivery Completed** | Worker Mobile App (Driver) | Signature Upload → Delivery Confirmed → Outbox Event | E-commerce Web and Mobile display "Delivered"; Management System releases driver and reconciles Surat Jalan. |
+| **Eligible Order Cancelled** | E-commerce Web / Mobile | Customer Request → Backend Cancellation Rules | Management System flags order as `CANCELLED`; reserved stock units released to available pool; procurement requirement revoked. |
+
+#### Reliable Event Propagation Architecture:
+- **Transactional Outbox Pattern (Backlog `[N.1]`)**:
+  - The system rejects the naive assumption that a successful database transaction automatically guarantees successful message delivery to external systems, search indices, or mobile push services.
+  - Every business event is written to an `outbox_events` table inside the **exact same ACID database transaction** as the underlying business mutation.
+  - A reliable background polling dispatcher or Change Data Capture (CDC) worker reads unpublished outbox rows and dispatches them with guaranteed at-least-once delivery.
+- **Idempotent Event Processing (Backlog `[N.2]`)**:
+  - Downstream consumers track processed `event_id` keys in dedicated idempotency tables, ensuring that repeated event deliveries cause zero side-effects.
+- **Retry & Dead-Letter Handling**:
+  - Failed event dispatches undergo exponential backoff with randomized jitter. Unrecoverable failures route to a dead-letter queue for administrative inspection.
+- **Audit Trails**:
+  - Full traceability from initiating user action through event dispatch, consumer receipt, and final state transition.
+
+---
+
+### 2.6 Unified Sales Order and Multi-Fulfillment Architecture
+
+The e-commerce platform is **not a disconnected, external sales silo**; it is a direct extension of the existing SMS sales management engine. All orders—whether placed online by a retail customer or created in a showroom by an employee—share the identical underlying sales order foundation.
+
+#### 1. Unified Order Model with Order Source Tagging:
+Every sales order records its initiating origin via an explicit `order_source` attribute:
+- `ONLINE_WEB`: Order created through customer self-service on the E-commerce Website.
+- `ONLINE_APP`: Order created through customer self-service on the E-commerce Mobile Application.
+- `EMPLOYEE`: Order drafted and confirmed by store staff or salespersons via the Management System.
+
+#### 2. Clear Conceptual Separation: Order vs. Fulfillment vs. Shipment:
+The system strictly distinguishes three distinct operational concepts:
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│ 1. SALES ORDER (What was purchased)                                                    │
+│    SO-00001: 1x Samsung TV, 1x LG Refrigerator, 1x Custom Sofa (Customer: Budi)       │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ 2. FULFILLMENT GROUPS (How and when items are prepared)                                 │
+│    ├── Fulfillment Group 1: Samsung TV [In Stock • Warehouse Central]                  │
+│    └── Fulfillment Group 2: LG Refrigerator & Sofa [Procurement Required • Supplier]   │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ 3. SHIPMENT / DELIVERY (Physical movement and handover of goods)                       │
+│    ├── Shipment 1 (Trip TR-101): Delivers Fulfillment Group 1 (Delivery Note SJ-001)   │
+│    └── Shipment 2 (Trip TR-108): Delivers Fulfillment Group 2 (Delivery Note SJ-008)   │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+1. **Sales Order**: The commercial agreement and legal transaction specifying what products the customer purchased, agreed pricing, discounts, and customer details.
+2. **Fulfillment (Fulfillment Group)**: The operational grouping defining how, from where, and when specific items within the order will be prepared and fulfilled.
+3. **Shipment / Delivery**: The physical movement, transport trip, or customer pickup handover of the fulfilled items.
+
+#### 3. Single Sales Order Invariant:
+> [!CAUTION]
+> **No Artificial Order Splitting**: The system must **NEVER create separate sales orders merely because an order contains multiple fulfillment groups or staggered shipments**. Doing so corrupts commercial invoices, breaks payment tracking, duplicates customer contracts, and prevents accurate financial reporting. One customer checkout produces exactly one Sales Order containing one or more Fulfillment Groups.
+
+#### 4. Customer Fulfillment Preferences:
+Customers configure their preferred fulfillment arrangement during online checkout:
+- **Option A: Complete Fulfillment**: Hold shipment until all items are ready, delivering the entire order in a single consolidated delivery trip.
+- **Option B: Partial Fulfillment**: Fulfill and dispatch immediately available items first; fulfill and deliver remaining items in subsequent trips as they become available.
+- **Option C: Customer Choice**: Provide dynamic checkout controls allowing the customer to assign delivery vs. pickup preferences per line item, subject to operational feasibility.
+
+#### 5. Cross-Cutting Implications of Multi-Fulfillment:
+- **Inventory Reservation**: Immediate reservations are applied to in-stock line items, while procurement requirements are assigned to back-ordered lines under the same sales order.
+- **Payment Allocation**: Digital payments and installment agreements cover the total sales order value; revenue recognition and accounting entries map to individual fulfillment dispatches.
+- **Delivery Charges**: Delivery fee algorithms calculate multi-drop logistics costs based on whether the customer requested consolidated or split deliveries.
+- **Cancellations & Refunds**: Individual unfulfilled groups can be cancelled and refunded without invalidating delivered portions of the sales order.
+- **Reporting & Margin**: Cost of goods sold (COGS) and freight expenses are attributed accurately per fulfillment group.
+
+---
+
+### 2.7 E-commerce Product Availability and Procurement Integration
+
+Products that are not physically present in store or warehouse inventory may still be made purchasable online if the business permits on-demand supplier procurement.
+
+#### Physical Stock vs. Commercial Sales Availability:
+The system formally decouples physical inventory counts from commercial sales availability:
+- **Physical Inventory**: Exact counts of serialized units currently sitting in warehouses or showroom floors (`StockUnit` with status `AVAILABLE`).
+- **Commercial Sales Availability**: Calculated status governing customer purchasing rules on e-commerce channels.
+
+#### The Four Commercial Availability States:
+1. `IN_STOCK`: Product units are physically present in the warehouse/store. Ready for immediate packing and dispatch.
+2. `AVAILABLE_PROCUREMENT_REQUIRED`: Physical inventory is zero, but the product is designated as procurable from suppliers. Customers may place orders with disclosed lead times.
+3. `PREORDER`: Advance purchase of upcoming product models before official general distributor release.
+4. `UNAVAILABLE`: Physical inventory is zero and procurement is not permitted. Customers cannot add the item to their cart.
+
+#### Procurement-Required Operational Protocol:
+- **Customer Transparency**:
+  - The E-commerce Website and Mobile App explicitly badge products as "Available (Procurement Required)" with estimated dispatch lead times (e.g., "Ships within 5–7 business days").
+  - Shopping cart and checkout summaries reiterate procurement lead times before payment commitment.
+- **Procurement Requirement Recording**:
+  - When an order containing procurement-required items is confirmed, the backend automatically logs an outstanding `ProcurementRequirement` linked to the sales order item.
+- **Demand Consolidation (No 1:1 Auto-PO)**:
+  - The system **does NOT automatically generate a separate supplier Purchase Order for every online customer order**. Automatic 1:1 PO generation creates unmanageable supplier logistics and prohibitive freight overheads.
+  - Instead, the Management System provides purchasing staff with a **Demand Consolidation Work Center**, allowing procurement officers to aggregate requirements from dozens of online and showroom orders into optimized bulk Purchase Orders to distributors.
+- **Inbound Receiving Linkage**:
+  - When goods are physically received and serialized by warehouse staff (Group 7), the inventory module matches ingested serials to pending procurement requirements, transitioning the associated fulfillment group to ready-for-dispatch.
+
+---
+
+### 2.8 Fulfillment Methods (Own-Driver & Customer Pickup)
+
+The integrated ecosystem supports two primary fulfillment methods from launch, modeled flexibly to accommodate future logistics expansions:
+
+#### Method A: Own-Driver Delivery
+- **Customer Experience**: Customer selects home delivery, inputs or selects destination address, and specifies delivery access notes (e.g., narrow street, second floor, vehicle height limits).
+- **Logistics Integration**: Delivery fee calculated dynamically based on store-to-destination distance. Order items assign to an own-driver fulfillment group.
+- **Trip Scheduling**: Management System logistics dispatchers group orders into multi-drop `DeliveryTrip` routes and assign company vehicles, drivers, and helpers.
+- **Mobile Execution**: Assigned drivers receive delivery stops in the Worker Mobile App, review manifests, execute loading verification, navigate to destination, capture recipient touch signatures, take photo proof, and collect COD payments if applicable.
+- **Status Synchronization**: Delivery confirmation updates the sales order, notifies the customer via push/SMS, and closes the delivery trip stop.
+
+#### Method B: Customer Store Pickup
+- **Customer Experience**: Customer chooses "Store Pickup" at checkout and selects an eligible store branch from the branch directory.
+- **Staging & Readiness**: Store warehouse staff receive a pickup staging task in the Management System, pull reserved items, verify serial numbers, and mark the order as `READY_FOR_PICKUP`.
+- **Customer Notification**: The backend triggers an automated pickup notification (Push Notification, Email, and WhatsApp) containing a unique Pickup Verification Code and QR barcode.
+- **Handover Verification**: When the customer arrives at the store, floor staff verify the customer's identity and scan the QR code via the Worker Mobile App or Management System web portal.
+- **Completion**: Staff and customer execute digital handover sign-off, transitioning the fulfillment group to `PICKED_UP` and updating the sales order status.
+
+#### Architectural Extensibility for Third-Party Couriers:
+Third-party courier integration (e.g., JNE, J&T, SiCepat, Lalamove) is not in the initial release scope. However, the fulfillment engine models fulfillment providers via a polymorphic interface (`FulfillmentProvider`), preventing courier-specific logic from being hardcoded into core sales order entities and ensuring straightforward API integration in future phases.
+
+---
+
+### 2.9 Backend Architecture Direction
+
+To maximize development velocity, maintain ACID data guarantees, and avoid the operational complexity of distributed networks, the SMS backend will **continue as a Modular Monolith** rather than prematurely decomposing into microservices.
+
+#### Principles of the Modular Monolith:
+- **Single Deployable Unit**: The entire backend compiles and deploys as a single Spring Boot executable artifact.
+- **Strict Domain Boundaries**: Code is partitioned into bounded domain modules with well-defined package boundaries and visibility rules:
+  1. `identity`: Employee records, customer auth, RBAC permissions, and data-scope security.
+  2. `product`: Product catalog, categories, specifications, BOM components, and SKUs.
+  3. `inventory`: Physical `StockUnit` tracking, serialized units, locations, and immutable movement ledger.
+  4. `pricing`: Multi-store cash/installment price matrices, promotional campaigns, and discount rules.
+  5. `customer`: Customer master directory, NIK deduplication, addresses, and CRM 360 profile.
+  6. `sales`: Unified sales orders, fulfillment groups, discount negotiations, and contracts.
+  7. `procurement`: Supplier directory, purchase orders, receiving auto-ingestion, and demand consolidation.
+  8. `payment`: Digital gateway webhooks, cash custody ledgers, installment schedules, and receipts.
+  9. `delivery`: Fulfillment orchestration, delivery trips, route maps, and Surat Jalan notes.
+  10. `survey`: Credit survey scheduling, field appraisals, residence photo dossiers, and determinations.
+  11. `inspection`: Warranty repair tickets, repossessed unit grading, triage, and scrap write-offs.
+  12. `notification`: Outbox dispatch, mobile push notifications, and customer messaging.
+  13. `reporting`: KPI dashboards, period comparisons, receivables aging, and Excel multi-sheet exports.
+- **Reuse and Extension**: New capabilities leverage and extend existing mature modules rather than creating duplicative parallel codebases.
+
+---
+
+### 2.10 Cross-Application Testing Requirements
+
+Integration across four applications and a unified backend cannot be verified through isolated unit tests alone. Quality assurance must evaluate features across the entire application lifecycle.
+
+#### Mandatory Test Suites:
+1. **API Integration Tests**: Verify request/response schemas, Bean Validation rules, and OpenAPI contracts for both back-office and customer storefront endpoints.
+2. **Backend Domain Integration Tests**: Test cross-module service interactions (e.g., Sales Order confirming and triggering Inventory reservation and Finance custody) using Spring Boot test slices and Testcontainers PostgreSQL.
+3. **Cross-Application Workflow Tests**: Automated multi-client test scenarios validating end-to-end user journeys spanning Management Web, E-commerce Web, and Worker Mobile App.
+4. **Authorization & Security Tests**: Verify RBAC role boundaries, data-scope restrictions (Store, Territory, Ownership), and customer session isolation.
+5. **Event Propagation & Outbox Tests**: Test transactional outbox publishing, event polling dispatch, and idempotent consumer execution under failure simulation.
+6. **Order Lifecycle State Machine Tests**: Verify valid state transitions and invalid state rejections from draft through fulfillment, partial delivery, and cancellation.
+7. **Concurrency & Inventory Consistency Tests**: Multi-threaded tests verifying that concurrent orders cannot double-reserve the same serialized `StockUnit`.
+8. **Payment Callback Idempotency Tests**: Simulate duplicate, delayed, and out-of-order payment gateway webhook notifications.
+
+#### Canonical End-to-End Test Scenario:
+The benchmark integration test scenario spanning all four applications:
+```
+[E-commerce Customer Web/App]
+  1. Customer browses catalog, selects in-stock item + procurement-required item.
+  2. Selects "Partial Fulfillment" and "Own-Driver Delivery".
+  3. Completes online payment via simulated payment gateway.
+        ↓ (API POST /api/v1/storefront/orders/checkout)
+[Shared Backend]
+  4. Single Sales Order created (`order_source = ONLINE_WEB`), 2 fulfillment groups established.
+  5. In-stock item unit reserved; procurement requirement recorded for backordered item.
+  6. Payment confirmed via webhook, customer receipt issued.
+  7. Outbox events dispatched.
+        ↓ (Outbox Dispatch)
+[Management System Web]
+  8. Sales Order appears in operations dashboard.
+  9. Purchasing officer consolidates procurement requirement into supplier Purchase Order.
+ 10. Inbound goods received at warehouse; serialized unit auto-ingested and linked to fulfillment group 2.
+ 11. Logistics dispatcher schedules Delivery Trip for Fulfillment Group 1.
+        ↓ (Trip Dispatched)
+[Worker Mobile Application]
+ 12. Driver views assigned trip, verifies loaded items with barcode scanner.
+ 13. Driver executes delivery at customer address, collects touch signature and photo proof.
+        ↓ (Mobile Sync)
+[E-commerce Customer Web/App & Management System]
+ 14. Customer sees Fulfillment Group 1 "Delivered"; Group 2 "Preparing".
+ 15. Surat Jalan marked complete in Management System; sales order records partial fulfillment.
+```
+
+---
+
+### 2.11 Future Feature Design Principle
+
+To ensure that the four applications remain harmoniously integrated as the platform expands, all future feature proposals, RFCs, and engineering implementations must adhere to the **7-Question Mandatory Evaluation Framework**:
+
+> [!IMPORTANT]
+> **The 7-Question Integration Standard**:
+> Whenever a new feature is proposed, designed, or implemented, the engineering team must formally answer:
+> 1. **Initiating Application**: Which application initiates the action (Management System Web, E-commerce Website, E-commerce Mobile App, or Worker Mobile App)?
+> 2. **Authoritative Module**: Which backend domain module owns the authoritative business logic, validation, and state machine?
+> 3. **Data Impact**: What database tables, ledger entries, or document records are created, mutated, or logically locked?
+> 4. **Downstream Applications**: Which other applications consume, display, or react to the resulting information?
+> 5. **Events & Notifications**: What outbox events, push notifications, customer messages, or UI cache invalidations must be dispatched?
+> 6. **Security & Permissions**: What RBAC roles, data scopes, or customer authentication guards are required?
+> 7. **Consistency & Idempotency**: How is cross-application consistency guaranteed under network partition, client retry, or concurrent execution?
+
+Integration must be designed into every feature from inception, not patched on as an operational afterthought.
+
+---
+
+### 2.12 Architectural Recommendations & Technical Standards
 
 #### A. Reliability & Transaction Integrity
 - **Transactional Outbox Pattern (Backlog `[N.1]`)**:
@@ -227,6 +610,26 @@ STORE MANAGEMENT SYSTEM
 8. **Anti-Fraud & Field GPS Verification**:
    - GPS coordinate logging with Haversine distance verification provides proximity validation.
    - Must be augmented with mock-location / spoofing detection, cell-tower triangulation, and photo timestamps to prevent attendance or delivery falsification.
+9. **Single Backend Authority & Zero Frontend Business Logic**:
+   - Business calculations, price validation, inventory allocation, and order state machines reside solely within backend domain services.
+   - Frontend applications (Management Web, E-commerce Web, E-commerce Mobile, Worker Mobile) are strictly presentation, data capture, and user ergonomics layers.
+   - No frontend application ever makes authoritative business decisions, bypasses validation rules, or interacts directly with the database.
+10. **Unified Sales Order & Multi-Fulfillment Invariant (1 SO : N Fulfillment Groups)**:
+   - A single customer purchase transaction yields exactly one immutable `SalesOrder` record regardless of channel (`ONLINE_WEB`, `ONLINE_APP`, `EMPLOYEE`).
+   - One sales order may be split into multiple `FulfillmentGroup` records (e.g., in-stock delivery vs. procurement-required delivery vs. store pickup).
+   - The system strictly prohibits splitting a single checkout into multiple independent sales orders merely because items have different delivery schedules or fulfillment methods.
+11. **Physical Inventory Decoupled from Commercial Sales Availability**:
+   - Physical serialized stock units (`StockUnit` rows with status `AVAILABLE`) represent ground-truth warehouse/store inventory.
+   - Commercial sales availability (`IN_STOCK`, `AVAILABLE_PROCUREMENT_REQUIRED`, `PREORDER`, `UNAVAILABLE`) represents customer purchasing rules.
+   - Items not physically in stock can be sold if procurement rules permit, generating a linked procurement requirement rather than failing order creation.
+12. **Reliable Event Synchronization via Transactional Outbox**:
+   - Committing a database mutation does not by itself guarantee delivery to other modules or applications.
+   - All cross-application events (price changes, order creation, delivery assignments, cancellations) must be committed to the `outbox_events` table inside the same transaction as the state change, ensuring at-least-once delivery and idempotent consumption.
+13. **Flexible Fulfillment Provider Modeling**:
+   - Fulfillment methods (Own-driver delivery, Customer store pickup, and future 3rd-party logistics) are modeled via extensible provider abstractions.
+   - Fulfillment execution details must never be hardcoded into core sales order accounting or receivable entities.
+14. **System-Wide 4-Application Feature Evaluation Standard**:
+   - Every architectural proposal, feature design, and implementation must evaluate its lifecycle and impact across all four applications and the shared backend using the 7-Question Integration Standard.
 
 ---
 
@@ -317,21 +720,49 @@ Status Legend:
 - **Proposed Enhancements**: Interactive Google Maps pin-drop widget; capture delivery destination coordinates, access constraints (narrow street, stairs, vehicle height limit), and gate access notes (`[M.1]`).
 
 #### Feature 2.3: Strict Context-Gated Customer Creation
-- **Purpose**: Prevent orphaned customer entries by enforcing customer creation only during active Sales Order drafting or via explicit Admin override.
+- **Purpose**: Prevent orphaned customer entries by enforcing customer creation only during active Sales Order drafting or via explicit Admin override within back-office operations.
 - **Backend**: `CustomerRequest.java` validation enforcing `salesOrderId` or admin context.
 - **Web UI**: `CustomerFormDialog.tsx` context parameters.
 - **Status**: `[DONE]`
-- **What Is Done**: Request validation rejects free-floating unlinked customer creation by standard staff.
+- **What Is Done**: Request validation rejects free-floating unlinked customer creation by standard back-office staff.
+- **Channel Architectural Distinction**: Back-office staff creation of customer records remains strictly gated by active Sales Order draft context or Admin role. Customer-facing E-commerce (Web and Mobile) provides self-service customer registration through dedicated storefront endpoints (`/api/v1/storefront/auth/register`), creating customer records within a dedicated customer security scope (see Feature 17.4 and Section 9.3 Conflict Analysis).
 
-#### Feature 2.4: Customer Relationship Management (CRM) / Customer 360 `[PROPOSED]` (Backlog `[J.1–J.7]`)
-- **Purpose**: Unified 360-degree customer profile consolidating commercial, credit, delivery, and service interactions.
-- **Scope**:
-  - Consolidated activity timeline: Sales orders, credit surveys, monthly payment track record, delivery attempts, warranty tickets, and repossession records (`[J.1]`).
-  - Customer segmentation & tags (e.g., "VIP Cash Buyer", "Repeat Credit Customer - Star Tier", "High Delinquency Risk") (`[J.2]`).
-  - Customer Lifetime Value (CLV) calculation and historical repayment reliability score (`[J.2]`).
-  - Customer gift vouchers, promotional coupons, and store credit ledger management (`[J.5]`).
-  - Customer omnichannel communication and interaction history log (calls, SMS, WhatsApp, in-person visits) (`[J.6]`).
-  - Customer follow-up scheduler and automated reminder engine (`[J.7]`).
+#### Feature 2.4: Customer Relationship Management (CRM) / Customer 360 `[DONE]` (Backlog `[J.1–J.7]`)
+- **Purpose**: Unified 360-degree customer profile consolidating commercial sales orders, credit surveys, installment repayment records, field delivery attempts, service warranties, repossession history, and omnichannel CRM touchpoints into a unified customer command center.
+- **Backend Architecture**:
+  - **Database Migration**: Flyway `V22__customer_360_crm.sql` adding demographic and profiling columns to `customer` (`mother_maiden_name`, `birth_date`, `birth_place`, `segment`, `credit_score_grade`, `credit_score_points`, `clv_amount`, `total_orders_count`), creating tables `customer_tag`, `customer_interaction`, `customer_follow_up`, `customer_promise_to_pay`, `customer_store_credit_entry`, `store_voucher`, and establishing RBAC permissions (`CUSTOMER_TAG_MANAGE`, `CUSTOMER_INTERACTION_MANAGE`, `CUSTOMER_FOLLOW_UP_MANAGE`, `CUSTOMER_PTP_MANAGE`, `CUSTOMER_STORE_CREDIT_MANAGE`, `VOUCHER_MANAGE`).
+  - **Entities & Repositories**: `CustomerTag`, `CustomerInteraction`, `CustomerFollowUp`, `CustomerPromiseToPay`, `StoreCreditEntry`, `StoreVoucher`, and repositories under `com.sms.customer.crm`.
+  - **Services & Controllers**: `Customer360Service`, `VoucherService`, `Customer360Controller` (`/api/customers/...`), `VoucherController` (`/api/vouchers/...`).
+  - **Key Business Engines & Algorithms**:
+    - **Chronological 360 Timeline Feed**: Streams and unifies cross-module events (sales orders, payments, surveys, delivery attempts, warranty repairs, and CRM logs) with unified filtering.
+    - **Customer Lifetime Value (CLV)**: Dynamic summation of historical revenue across all fulfilled commercial sales orders.
+    - **Credit Score & Behavioral Segmentation**: Algorithmic scoring evaluating installment repayment promptness (0–100 points, mapped to Letter Grades A/B/C/D) and auto-classification into segments (`VIP_CASH`, `STAR_CREDIT`, `HIGH_DELINQUENCY_RISK`, `STANDARD`).
+    - **Promise-to-Pay (PTP / Janji Bayar) Engine**: Complete lifecycle tracking (`PENDING`, `KEPT`, `BROKEN`, `CANCELLED`), recording payment amounts, promised dates, collector notes, and failure attribution.
+    - **Fuzzy Duplicate Customer Detection**: Multi-factor matching engine utilizing Bigram Dice Coefficient for phonetic name similarity, combined with exact NIK match, phone suffix normalization, and mother's maiden name comparison (`[J.4]`).
+    - **Retail Store Credit & Voucher Engine**: Merchant store credit balance ledger (strictly retail discount and refund credit balance management, not banking deposits or money transmission) and voucher promotion management (`PERCENTAGE` / `FIXED_AMOUNT`, minimum spending thresholds, validity periods, and usage caps) (`[J.5]`).
+    - **Omnichannel Communication Logger**: Audit logging of customer touchpoints across in-person store visits, field visits, phone calls, WhatsApp chats, and SMS (`[J.6]`).
+    - **Follow-up Scheduler**: Scheduled reminder engine for sales leads, installment follow-ups, and post-delivery check-ins with completion tracking (`[J.7]`).
+- **Web SPA UI (`sms-web`)**:
+  - `CustomerDetailPage.tsx`: Transformed into the Customer 360 Command Center featuring a PDP-protected demographic profile header (mother's maiden name, date of birth, place of birth), Segment chip, Credit rating badge with score progress indicator, 4 high-level KPI cards (CLV, Store Credit balance, Active PTPs, Pending Follow-ups), Demographic Tag management, and a 7-tab interface:
+    - Tab 0: Unified Chronological Timeline with multi-source filtering (Orders, Payments, CRM, All).
+    - Tab 1: Omnichannel Interaction Log with quick interaction dialog.
+    - Tab 2: Janji Bayar (PTP) Ledger with status chips and resolution dialog (Kept / Broken).
+    - Tab 3: Follow-Up Scheduler with completion modal.
+    - Tab 4: Store Credit Ledger & Voucher Codes with Grant/Redeem modals.
+    - Tab 5: Contacts & Addresses.
+    - Tab 6: Documents Repository.
+  - `CustomerListPage.tsx`: Segment filter chips (`ALL`, `VIP_CASH`, `STAR_CREDIT`, `HIGH_DELINQUENCY_RISK`, `STANDARD`), credit grade column, and enriched CSV export.
+  - `CustomerFormDialog.tsx`: New demographic inputs and inline Fuzzy Duplicate Detection widget showing potential matches with percentage similarity and matched reasons.
+- **Mobile Worker App UI (`sms-mobile`)**:
+  - `Customer360Screen` (`/customer-360/:id`): Mobile CRM dashboard showing customer segment, credit grade, CLV, active Janji Bayar (PTP), and interaction timeline.
+  - Integrated quick action dialogs for recording PTP and logging visits directly from mobile field operations.
+  - Offline sync integration via `offlineSyncProvider` (`RECORD_PROMISE_TO_PAY`, `RECORD_CUSTOMER_INTERACTION`).
+  - Seamless entry points from `CollectorVisitScreen` and `WorkerHomeScreen`.
+- **Status**: `[DONE]`
+- **Testing & Verification**:
+  - Backend: `Customer360ServiceTest.java` (5 unit tests passing).
+  - Web: `CustomerDetailPage.test.tsx` (2/2 tests passing), `CustomerFormDialog.test.tsx` (2/2 tests passing). Full web suite: 15/15 test files passing (35/35 tests passing).
+  - Mobile: Flutter analyze 0 errors.
 
 ---
 
@@ -374,12 +805,16 @@ Status Legend:
 
 ### Group 4: Sales Orders & Credit Contracting
 
-#### Feature 4.1: Sales Order Lifecycle & Item Reservation
-- **Purpose**: Draft, calculate, reserve stock, and release sales orders for cash, COD, or credit terms.
+#### Feature 4.1: Sales Order Lifecycle, Source Tracking & Multi-Fulfillment Grouping
+- **Purpose**: Draft, calculate, reserve stock, and release sales orders for cash, online digital payments, COD, or credit terms across all channels (Management System, E-commerce Web, E-commerce Mobile).
 - **Backend**: `SalesOrder.java`, `SalesOrderItem.java`, `SalesOrderService.java`, Flyway `V4__sales_orders.sql`.
 - **Web UI**: `SalesOrderListPage.tsx`, `SalesOrderDetailPage.tsx`.
-- **Status**: `[DONE]`
-- **What Is Done**: State machine (`DRAFT → PENDING_APPROVAL → RELEASED → CONFIRMED → CANCELLED`), logical inventory reservation.
+- **Status**: `[DONE]` (Core Lifecycle & In-Store SO) / `[PROPOSED]` (Omnichannel Source Tagging & Multi-Fulfillment Groups: `[P.1]`, `[P.4]`)
+- **What Is Done**: State machine (`DRAFT → PENDING_APPROVAL → RELEASED → CONFIRMED → CANCELLED`), logical inventory reservation, discount calculation.
+- **Integrated Omnichannel Enhancements**:
+  - `order_source` tracking: Differentiating orders originated via `ONLINE_WEB`, `ONLINE_APP`, or `EMPLOYEE` (`[P.1]`).
+  - Multi-Fulfillment Grouping: Modeling one Sales Order containing multiple `FulfillmentGroup` instances (e.g. partial warehouse dispatch + supplier procurement) without artificial order splitting (`[P.1]`).
+  - Customer Fulfillment Preferences: Supporting complete delivery (consolidated), partial delivery (staggered), or customer choice (`[P.4]`).
 - **Proposed Enhancements**: Quotation management with validity expiration dates (e.g., 7 days) and one-click quotation-to-order conversion (`[O.1]`); audit history tracking line-item changes and quantity edits on drafts (`[O.7]`).
 
 #### Feature 4.2: Automated Price Negotiation & Discount Approval
@@ -390,12 +825,13 @@ Status Legend:
 - **What Is Done**: Automatic workflow trigger, discount amount calculation, multi-level SPV/Manager review.
 - **Proposed Enhancements**: Margin threshold warning indicator showing gross profit impact to approvers; salesperson monthly quota target and tiered commission tracking.
 
-#### Feature 4.3: Down Payment (DP) Cash Custody Recording
-- **Purpose**: Require upfront down payment confirmation before credit order confirmation, automatically posting cash vouchers to Finance.
+#### Feature 4.3: Down Payment (DP) Cash Custody & Online Gateway Payment Recording
+- **Purpose**: Require upfront payment confirmation (Down Payment for credit orders or full payment for cash orders) before order confirmation, automatically reconciling transactions in Finance.
 - **Backend**: `ConfirmSalesOrderRequest.java`, `SalesOrderService.confirm(...)` auto-creating `CustomerPayment` and `PaymentCustody`.
 - **Web UI**: Down payment confirmation modal in `SalesOrderDetailPage.tsx`.
-- **Status**: `[DONE]`
-- **What Is Done**: Direct integration between Sales Order confirmation and Finance custody ledger.
+- **Status**: `[DONE]` (Cash Custody Confirmation) / `[PROPOSED]` (Online Payment Gateway Webhook Reconciliation: `[P.8]`)
+- **What Is Done**: Direct integration between in-store Sales Order confirmation and Finance cash custody ledger (`HELD_BY_CASHIER`).
+- **Omnichannel Payment Integration**: For online e-commerce orders, payments are processed via digital payment gateways (QRIS dynamic barcodes, Virtual Accounts, Credit Cards) with asynchronous webhook callback verification, automatically creating confirmed `CustomerPayment` records and bypassing physical cash custody (`[P.8]`).
 - **Proposed Enhancements**: Split DP payment methods (e.g., partial cash + partial bank transfer); digital payment gateway / QRIS dynamic barcode generation.
 
 #### Feature 4.4: Official Credit Agreement Document Generator
@@ -486,6 +922,9 @@ Status Legend:
 - **Web UI**: `SupplierListPage.tsx`, `SupplierDetailPage.tsx`, `PurchaseOrderListPage.tsx`, `PurchaseOrderDetailPage.tsx`.
 - **Status**: `[DONE]`
 - **What Is Done**: Full PO lifecycle (`DRAFT → PENDING_APPROVAL → ISSUED → RECEIVED → CANCELLED`).
+- **Omnichannel Demand Consolidation Engine `[PROPOSED]` (Backlog `[P.3]`)**:
+  - Consolidation dashboard aggregating backordered line items from sales orders (`AVAILABLE_PROCUREMENT_REQUIRED`) into optimized bulk supplier POs.
+  - Strictly avoids generating 1:1 automated POs per sales order, preserving bulk procurement economies of scale.
 - **Proposed Enhancements**: Internal Purchase Requisition (PR) workflow (`[K.3]`); automated reorder point alerts when warehouse stock drops below minimum safety threshold; supplier quotation comparison matrix.
 
 #### Feature 7.2: Physical Receiving & Serialized Unit Auto-Ingestion
@@ -512,12 +951,13 @@ Status Legend:
 
 ### Group 8: Delivery Logistics, Routing & Surat Jalan
 
-#### Feature 8.1: Multi-Drop Delivery Trip Planning
-- **Purpose**: Group confirmed sales orders into optimized delivery trips, assigning vehicle, driver, and helper staff.
+#### Feature 8.1: Multi-Drop Delivery Trip Planning (Own-Driver Method)
+- **Purpose**: Group confirmed sales order fulfillment groups into optimized delivery trips, assigning vehicle, driver, and helper staff.
 - **Backend**: `DeliveryTrip.java`, `DeliveryOrder.java`, `DeliveryService.java`, Flyway `V8__delivery_logistics.sql`.
 - **Web UI**: `DeliveryTripListPage.tsx`, `DeliveryTripDetailPage.tsx`.
 - **Status**: `[DONE]`
-- **What Is Done**: Trip scheduling, vehicle assignment, stop sequence ordering.
+- **What Is Done**: Trip scheduling, vehicle assignment, stop sequence ordering for own-driver delivery method.
+- **Multi-Fulfillment Association**: Binds specific `FulfillmentGroup` instances to delivery stops, supporting partial order deliveries without splitting parent sales orders.
 - **Proposed Enhancements**: Vehicle maintenance tracking (mileage, service intervals, oil changes) (`[L.5]`); vehicle fuel log tracking (`[L.5]`); operational expense tracking per trip (toll, parking, fuel allowance) (`[L.5]`).
 
 #### Feature 8.2: Interactive Delivery Route Map
@@ -535,13 +975,23 @@ Status Legend:
 - **What Is Done**: Clean print layout, barcode header, customer address snapshot display.
 - **Proposed Enhancements**: Digital PDF archive auto-upload to Supabase Storage upon print; QR code scan verification for warehouse security gate-pass checkout.
 
-#### Feature 8.4: Mobile Driver Delivery Execution, Touch Signature & COD
-- **Purpose**: Driver mobile app for delivery confirmation, recipient touch signature, proof photo upload, and COD cash collection.
+#### Feature 8.4: Mobile Driver Delivery Execution, Touch Signature & COD (`[DONE]`, Backlog `[M.3]`)
+- **Purpose**: Driver mobile app for delivery confirmation, recipient touch signature, proof photo upload, COD cash collection, and failed delivery incident reporting.
 - **Mobile**: `driver_trip_screen.dart`, `signature_pad_widget.dart`, `photo_proof_grid_widget.dart`, `delivery_provider.dart`.
-- **Backend**: `POST /api/delivery-orders/{id}/deliver`.
+- **Backend**: `POST /api/delivery-orders/{id}/deliver`, `POST /api/delivery-orders/{id}/fail`, `FailDeliveryOrderRequest.java`, `DeliveryService.java`.
 - **Status**: `[DONE]`
-- **What Is Done**: Mobile stop list, recipient signature capture, COD payment handover, proof upload.
-- **Proposed Enhancements**: Warehouse picking & packing mobile verification (barcode scan against manifest before loading truck) (`[M.2]`); turn-by-turn navigation deep linking to Google Maps / Waze using survey-verified destination coordinates.
+- **What Is Done**: Mobile stop list, recipient touch signature capture, COD payment collection, delivery completion with GPS watermark, and structured delivery issue reporting (`failDelivery`) capturing failure reason tags, proof photos (`proofPhotoUrl`), device geocoordinates, and triggering automated alerts to branch dispatchers (`DELIVERY_MANAGE`) to reschedule to a new trip.
+- **Architectural Policy**: Manual dispatcher reassignment is intentionally enforced instead of automatic re-dispatch to ensure vehicle payload balancing and driver route optimization.
+- **Proposed Enhancements**: Turn-by-turn navigation deep linking to Google Maps / Waze using survey-verified destination coordinates (`[M.7]`).
+
+#### Feature 8.5: Customer Store Pickup Fulfillment & Handover `[PROPOSED]` (Backlog `[P.5]`)
+- **Purpose**: Facilitate customer in-store pickup orders from checkout to item handover.
+- **Scope**:
+  - Eligible branch store selection during online checkout based on product availability.
+  - In-store preparation and staging tracking in Management System (`READY_FOR_PICKUP`).
+  - Automated customer notification via WhatsApp, Push, and Email containing unique Pickup Verification Code and QR barcode.
+  - Store staff QR code verification and recipient ID validation via Management System Web or Worker Mobile App.
+  - Digital pickup confirmation and automatic synchronization with parent sales order fulfillment group.
 
 ---
 
@@ -737,11 +1187,12 @@ Status Legend:
 
 ### Group 14: Mobile Worker App Capabilities & Field Tooling
 
-#### Feature 14.1: Role-Adaptive Dynamic Navigation & Work Center
-- **Purpose**: Single mobile app binary that dynamically adapts its home dashboard, quick actions, and route guards based on active employee roles.
+#### Feature 14.1: Role-Adaptive Dynamic Navigation & Work Center (Application D Overview)
+- **Purpose**: Unified field-force mobile application (Application D of the integrated ecosystem) dynamically adapting home dashboard, task queues, and route guards based on active employee roles (Surveyor, Driver, Technician, Store Assistant).
 - **Mobile**: `worker_home_screen.dart`, `my_work_screen.dart`, `app_router.dart`.
 - **Status**: `[DONE]`
-- **What Is Done**: Role-specific task cards, unified work center queue, quick status indicators.
+- **What Is Done**: Role-specific task cards, unified work center queue, quick status indicators, profile bootstrapping.
+- **Ecosystem Role**: Serves as the primary operational edge client for all physical field activities, store fulfillments, surveys, deliveries, inspections, and task tracking.
 - **Proposed Enhancements**: Actionable Notification Center with direct deep-links into target documents and one-tap supervisory approvals/rejections (`[M.6]`).
 
 #### Feature 14.2: Barcode & QR Viewfinder Scanner Modal
@@ -779,17 +1230,55 @@ Status Legend:
 - **Status**: `[DONE]`
 - **What Is Done**: Biometric availability check, prompt simulation, session unlock.
 
-#### Feature 14.7: Salesperson Mobile Work Center `[PROPOSED]` (Backlog `[M.4]`)
-- **Purpose**: Empower showroom and field sales staff with customer lookup, lead tracking, quotation generation, and sales quota progress.
-- **Scope**: Customer interaction logging, instant price matrix calculator, draft quotation access, personal target vs achievement metrics.
+#### Feature 14.7: Salesperson Mobile Work Center (`[DONE]`, Backlog `[M.4]`)
+- **Purpose**: Empower showroom and field sales staff with customer lookup, lead tracking, quotation generation, and sales quota progress tracking.
+- **Mobile**: `sales_work_center_screen.dart`, `sales_order_detail_screen.dart`.
+- **Status**: `[DONE]`
+- **What Is Done**: Real-time sales actuals integration with `/api/v1/reporting/sales-performance`, monthly sales quota target configuration (default Rp 50.000.000 benchmark), visual linear progress indicator with percentage achievement and tier color coding, customer search, product catalog browser, and draft quotation generation.
+- **Proposed Enhancements**: Audio chime upon reaching monthly quota milestones; offline draft quote creation queue.
 
-#### Feature 14.8: Warehouse Picking & Packing Verification `[PROPOSED]` (Backlog `[M.2]`, `[I.9]`)
-- **Purpose**: Guided mobile warehouse operations for staging and loading items onto delivery trucks.
-- **Scope**: Digital picking lists sorted by warehouse bin/bay, barcode scan verification ensuring correct serialized unit is pulled, packing confirmation, and item mismatch warnings.
+#### Feature 14.8: Warehouse Picking & Packing Verification (`[DONE]`, Backlog `[M.2]`, `[I.9]`)
+- **Purpose**: Guided mobile warehouse operations for staging and loading items onto delivery trucks with barcode manifest verification.
+- **Backend**: `DeliveryService.verifyPacking(...)`, `DeliveryOrderController.java`, `VerifyPackingRequest.java`.
+- **Mobile**: `warehouse_picking_screen.dart`.
+- **Status**: `[DONE]`
+- **What Is Done**: Delivery packing manifest retrieval (`/api/delivery-orders/picking-manifest`), camera barcode scanning matching unit serials or manufacturer barcodes, duplicate and mismatch rejection, and atomic manifest verification marking `preInspectionPassed = true`.
+- **Proposed Enhancements**: Haptic feedback on barcode match; Bluetooth ring scanner support for hands-free warehouse fulfillment.
 
-#### Feature 14.9: Mobile Physical Stocktaking (Stock Opname) Scanner `[PROPOSED]` (Backlog `[M.5]`)
-- **Purpose**: Floor staff scan serialized items and loose spare parts directly into active stocktaking audit sessions.
-- **Scope**: Continuous scan-and-beep counter, offline counting buffer, real-time variance alert against active session book balance.
+#### Feature 14.9: Mobile Physical Stocktaking (Stock Opname) Scanner (`[DONE]`, Backlog `[M.5]`)
+- **Purpose**: Floor staff scan serialized items into active stocktaking audit sessions with offline buffering and blind-count segregation of duties.
+- **Backend**: `StocktakeService.java`, `StocktakeController.java`, `V21__mobile_stocktake.sql`.
+- **Mobile**: `stocktake_screen.dart`, `stocktake_review_screen.dart`.
+- **Status**: `[DONE]`
+- **What Is Done**: Continuous barcode scanning buffering serials into persistent `SharedPreferences` cache for resilient offline counting; blind-count mode strictly hides system book balances from counters to prevent counting bias; batch count submission triggers server-side variance computation (`MISSING`, `SURPLUS`, `MATCHED`) reviewed and signed off by supervisors with auto-balancing stock adjustments.
+- **Proposed Enhancements**: Multi-counter zone partitioning; recount escalation alerts when variance exceeds configured threshold.
+
+#### Feature 14.10: Customer Store Pickup Mobile Verification & Handover `[PROPOSED]` (Backlog `[P.5]`)
+- **Purpose**: Enable branch floor employees to process customer store pickups via mobile device.
+- **Scope**: View ready pickup orders, scan customer pickup QR code via mobile camera, verify recipient ID card photo, execute touch signature sign-off, and synchronize status with sales order fulfillment group.
+
+#### Feature 14.11: Delivery Destination Logistics & Access Profiling (`[DONE]`, Backlog `[M.1]`, `[P.10]`)
+- **Purpose**: Enable surveyors and drivers to profile destination delivery logistics directly from the mobile app with structured database persistence.
+- **Backend**: `Survey.java`, `SurveyService.java`, `AssessmentRequest.java`, `SurveyResponse.java`, `V23__survey_location_profiling.sql`.
+- **Mobile**: `surveyor_task_screen.dart`, `survey_provider.dart`.
+- **Status**: `[DONE]`
+- **What Is Done**: Structured entity fields and database schema for `destination_latitude`, `destination_longitude`, `alley_width_meters`, `stair_clearance_meters`, and `gate_access_notes`; mobile surveyor UI captures GPS geocoordinates and physical dimension constraints, dispatching structured payloads during credit survey assessment updates.
+- **Proposed Enhancements**: Turn-by-turn navigation launch to Google Maps / Waze using survey-captured coordinates (`[M.7]`).
+
+#### Feature 14.12: Active Task-Bounded Mobile Worker Location Tracking `[PROPOSED]` (Backlog `[P.10]`)
+- **Purpose**: Track field staff location strictly during active delivery trips or field surveys for ETA calculation and driver safety.
+- **Scope**:
+  - Tracking is strictly bounded to the lifecycle of active tasks (`TRIP_IN_PROGRESS` or `SURVEY_ACTIVE`).
+  - No background location tracking occurs when off-duty or outside active tasks, preserving employee privacy and battery life.
+  - Periodic location breadcrumbs uploaded to backend via MQTT/REST or cached locally when offline.
+  - Visual breadcrumb route map rendered in Management System logistics center.
+
+#### Feature 14.13: Actionable Notification Center (`[DONE]`, Backlog `[M.6]`)
+- **Purpose**: Unified mobile notification center with direct document deep-links and one-tap supervisory approvals/rejections.
+- **Backend**: `NotificationService.java`, `NotificationController.java`.
+- **Mobile**: `notification_center_screen.dart`, `app_router.dart`.
+- **Status**: `[DONE]`
+- **What Is Done**: Notification feed querying `/api/notifications`, automatic unread/read state transitions (`PATCH /api/notifications/:id/read`), deep-link routing for `SURVEY` (`/survey/:id`), `DELIVERY` (`/delivery-order/:id`), `SALES_ORDER` (`/sales-order/:id`), and `STOCKTAKE` (`/stocktake-review/:id`), plus one-tap approval / rejection for multi-step approval workflows.
 
 ---
 
@@ -867,6 +1356,74 @@ Status Legend:
 
 ---
 
+### Group 17: E-commerce Platform (Web & Mobile Customer Experience) `[PROPOSED]` (Backlog `[P.1–P.10]`)
+
+> **Architectural Status**: Customer-facing online shopping platform operating as two unified front-ends (Application B: E-commerce Website, Application C: E-commerce Mobile Application) connected to the shared backend modular monolith via `/api/v1/storefront/*`. All business rules, product data, inventory availability, and order fulfillment remain centralized in the backend.
+
+#### Feature 17.1: Omnichannel Product Catalog, Faceted Search & Discovery `[PROPOSED]` (Backlog `[P.6]`, `[P.7]`)
+- **Purpose**: Enable retail customers to discover products across web and native mobile touchpoints.
+- **Scope**:
+  - Direct consumption of master product definitions (`Product`, `ProductCategory`, `ProductVariant`).
+  - Real-time keyword search, brand filtering, category navigation, and technical attribute facets.
+  - Multi-image gallery with pinch-to-zoom, warranty badges, and rich product specifications.
+  - Variant selector (color, capacity, screen size) with instantaneous price and availability updates.
+
+#### Feature 17.2: Commercial Availability Engine & Lead-Time Transparency `[PROPOSED]` (Backlog `[P.2]`)
+- **Purpose**: Provide clear customer visibility into stock availability and procurement lead times before checkout.
+- **Scope**:
+  - Real-time calculation of commercial status: `IN_STOCK`, `AVAILABLE_PROCUREMENT_REQUIRED`, `PREORDER`, or `UNAVAILABLE`.
+  - Prominent badge indicators on product listing pages and product detail screens.
+  - Estimated dispatch lead times communicated explicitly (e.g., "Ready for same-day dispatch" vs "Procurement required: Estimated dispatch in 5–7 business days").
+  - Clear itemized badge flags inside shopping cart and checkout order summaries.
+
+#### Feature 17.3: Shopping Cart, Checkout & Multi-Fulfillment Group Preference Selection `[PROPOSED]` (Backlog `[P.1]`, `[P.4]`)
+- **Purpose**: Streamlined self-service cart management and multi-fulfillment checkout.
+- **Scope**:
+  - Persistent shopping cart across web and mobile sessions linked to customer account.
+  - Price quote calculation including itemized tax (PPN), applied promo vouchers, and dynamic delivery fees.
+  - Fulfillment method selection per order: Own-driver delivery (with address selection) or Customer store pickup (with branch selection).
+  - Multi-fulfillment grouping preference selection:
+    - *Complete Fulfillment*: Hold all items and deliver together in one consolidated trip.
+    - *Partial Fulfillment*: Dispatch immediately available items first; deliver remaining backordered items upon receiving.
+    - *Customer Choice*: Assign individual items to delivery vs store pickup where operationally feasible.
+
+#### Feature 17.4: Customer Self-Service Registration, Authentication & Address Management `[PROPOSED]` (Backlog `[P.6]`, `[P.7]`)
+- **Purpose**: Secure customer onboarding and profile management decoupled from back-office employee creation gating.
+- **Scope**:
+  - Public customer registration via email/phone OTP and passwordless magic links.
+  - NIK validation for credit installment applications (optional for simple cash/gateway purchases).
+  - Multi-address book (Home, Office, Alternate) with interactive map pin-drop coordinates and delivery access notes.
+  - Customer profile settings, communication preferences, and data privacy management (UU PDP consent).
+
+#### Feature 17.5: Online Digital Payment Integration & Webhook Reconciliation `[PROPOSED]` (Backlog `[P.8]`)
+- **Purpose**: Frictionless online payment processing with automated backend ledger reconciliation.
+- **Scope**:
+  - Integration with reputable Indonesian payment gateways (e.g., Midtrans, Xendit).
+  - Supported payment methods: QRIS dynamic barcodes, bank Virtual Accounts (BCA, Mandiri, BRI, BNI), Credit/Debit cards, and e-wallets (GoPay, OVO).
+  - Secure cryptographic signature validation and idempotent webhook callback processing (`POST /api/v1/storefront/payments/webhook`).
+  - Automatic creation of confirmed `CustomerPayment` records upon successful authorization, bypassing physical cash custody.
+  - Automated timeout expiration and stock reservation release for unpaid checkout sessions.
+
+#### Feature 17.6: Self-Service Order History, Milestone Tracking & Pickup Alerts `[PROPOSED]` (Backlog `[P.6]`, `[P.7]`)
+- **Purpose**: Real-time customer transparency into order status, shipment tracking, and pickup readiness.
+- **Scope**:
+  - Visual order progression timeline: `ORDER_PLACED` → `PAYMENT_CONFIRMED` → `PROCESSING` → `DISPATCHED / READY_FOR_PICKUP` → `COMPLETED`.
+  - Staggered milestone tracking displaying individual status per fulfillment group for partial delivery orders.
+  - Real-time driver trip progress alerts for own-driver deliveries.
+  - Unique Pickup Verification Code and QR barcode display for store pickup orders.
+  - Downloadable printable sales receipt and invoice vouchers.
+
+#### Feature 17.7: Omnichannel Promotions, Discount Vouchers & Store Credit `[PROPOSED]` (Backlog `[J.5]`, `[P.6]`)
+- **Purpose**: Promotional marketing engine driving customer conversion and brand loyalty across online and showroom channels.
+- **Scope**:
+  - Single-use and multi-use coupon code validation with minimum spend requirements and brand/category restrictions.
+  - Store credit and gift voucher redemption applied directly to cart totals.
+  - Seasonal marketing banner integration on e-commerce homepage and category headers.
+
+---
+
+---
+
 ## 5. Master Implementation Review Table (Comprehensive)
 
 > **Important Note on Completion Percentages**: The completion percentages in the table below strictly reflect **Feature Implementation (% Code Written)** and **Local/Unit-Level Integration Verification**. A 100% rating indicates that the domain's business logic, database migrations, controllers, UI screens, and local tests are complete and verified. It **does NOT mean the domain is 100% production-ready for live cloud deployment**, as live cloud infrastructure provisioning (Backlog `[A.1–A.5]`), end-to-end integration testing (Backlog `[F.1–F.4]`), and external legal/compliance sign-offs (Backlog `[N.4]`) remain separate ongoing workstreams.
@@ -901,16 +1458,25 @@ Status Legend:
 | **26** | Client-Side Excel (.xlsx) Export | N/A (Client Engine) | `exportExcel.ts`, Finance & Dashboard | N/A | 33/33 Vitest Passed | **100%** | `[G.2]` |
 | **27** | *General Ledger & Accounting* | *Proposed* | *Proposed* | *N/A* | *Under Architectural Review*| **0% (Proposed)** | `[H.1–H.10]` |
 | **28** | *Physical Stocktaking (Opname)* | *Proposed* | *Proposed* | *Proposed* | *Under Architectural Review*| **0% (Proposed)** | `[I.5]`, `[M.5]` |
-| **29** | *Customer 360 & CRM* | *Proposed* | *Proposed* | *Proposed* | *Under Architectural Review*| **0% (Proposed)** | `[J.1–J.7]` |
-| **30** | *Promise-to-Pay (PTP) Engine* | *Proposed* | *Proposed* | *Proposed* | *Under Architectural Review*| **0% (Proposed)** | `[J.3]` |
+| **29** | Customer 360 & CRM | `Customer360Controller`, `V22` | `CustomerDetailPage.tsx` (Tabs 0-4) | `Customer360Screen.dart` | 5 JUnit + 4 Vitest Passed | **100%** | `[J.1–J.7]` |
+| **30** | Promise-to-Pay (PTP) Engine | `CustomerPromiseToPay`, Lifecycle | `CustomerDetailPage` (Tab 2) | PTP Quick Dialog & Offline | 5 JUnit + 2 Vitest Passed | **100%** | `[J.3]` |
 | **31** | *Sales Returns & Refunds* | *Proposed* | *Proposed* | *N/A* | *Under Architectural Review*| **0% (Proposed)** | `[K.1]`, `[K.2]` |
 | **32** | *Inventory Costing (COGS/FIFO)*| *Proposed* | *Proposed* | *N/A* | *Under Architectural Review*| **0% (Proposed)** | `[I.1–I.4]` |
 | **33** | *Warehouse Location & Picking* | *Proposed* | *Proposed* | *Proposed* | *Under Architectural Review*| **0% (Proposed)** | `[I.8]`, `[I.9]`, `[M.2]` |
 | **34** | *Store Checklists & Fleet* | *Proposed* | *Proposed* | *Proposed* | *Under Architectural Review*| **0% (Proposed)** | `[L.1]`, `[L.2]`, `[L.5–L.7]` |
 | **35** | *Internal Bulletins & Tasks* | *Proposed* | *Proposed* | *Proposed* | *Under Architectural Review*| **0% (Proposed)** | `[L.3]`, `[L.4]` |
-| **36** | *Mobile Work Centers (Sales/Pick)*| *Proposed* | *N/A* | *Proposed* | *Under Architectural Review*| **0% (Proposed)** | `[M.1–M.6]` |
+| **36** | Mobile Work Centers & Auditing | Survey, DO, Stocktake, Notif | N/A | Screens (Sales, Pick, Audit, Hub) | 77 JUnit + 5 Flutter Passed | **100%** | `[M.1–M.6]` |
 | **37** | *Architecture, SRE & Security* | *Proposed* | *Proposed* | *Proposed* | *Under Architectural Review*| **0% (Proposed)** | `[N.1–N.7]` |
 | **38** | *Workflow Governance & Usability*| *Proposed* | *Proposed* | *N/A* | *Under Architectural Review*| **0% (Proposed)** | `[O.1–O.7]` |
+| **39** | *E-commerce Web Application* | `StorefrontController` | *Proposed (Web)* | *N/A* | *Under Architectural Review*| **0% (Proposed)** | `[P.6]` |
+| **40** | *E-commerce Mobile Application* | `StorefrontController` | *N/A* | *Proposed (Mobile)* | *Under Architectural Review*| **0% (Proposed)** | `[P.7]` |
+| **41** | *Multi-Fulfillment Groups & Source Tagging*| `SalesOrder` Groups | `SalesOrderDetailPage` | *Proposed* | *Under Architectural Review*| **0% (Proposed)** | `[P.1]`, `[P.4]` |
+| **42** | *Commercial Availability & Lead Times*| `AvailabilityService` | *Proposed* | *Proposed* | *Under Architectural Review*| **0% (Proposed)** | `[P.2]` |
+| **43** | *Procurement Demand Consolidation* | `ProcurementService` | Demand Center | *N/A* | *Under Architectural Review*| **0% (Proposed)** | `[P.3]` |
+| **44** | *Customer Store Pickup & Handover* | `PickupService` | Handover Dialog | `PickupVerification` | *Under Architectural Review*| **0% (Proposed)** | `[P.5]` |
+| **45** | *Digital Payment Gateway & Webhooks* | `PaymentWebhookController`| *N/A* | Checkout Flow | *Under Architectural Review*| **0% (Proposed)** | `[P.8]` |
+| **46** | *Cross-Application Outbox Sync* | `OutboxEventDispatcher` | Push Events | Push Receiver | *Under Architectural Review*| **0% (Proposed)** | `[N.1]`, `[P.9]` |
+| **47** | *Worker Active-Task GPS Tracking* | `GeoLocationService` | Route Map Live | Active Task Daemon | *Under Architectural Review*| **0% (Proposed)** | `[P.10]` |
 
 ---
 
@@ -924,11 +1490,12 @@ While the full operational feature code across backend, web, and mobile is writt
 - A production Supabase project with JWKS URI validation and S3-compatible storage buckets (`sms-documents`, `sms-photos`, `sms-signatures`) must be provisioned with row-level security policies (`[A.1]`).
 - A production Redis cluster must be provisioned for high-concurrency atomic document sequence counters and query caching (`[A.2]`).
 
-### 2. Quality Assurance, DevOps & Multi-Service Integration Testing (Backlog `[F.1–F.4]`)
+### 2. Quality Assurance, DevOps & Multi-Service Integration Testing (Backlog `[F.1–F.4]`, `[P.9]`)
 - **End-to-End Browser Testing (`[F.1]`)**: Automated browser test suite using Playwright covering the primary business pipeline: *Sales Order Draft → Price Approval → Survey → Confirm + DP → Delivery Trip + Surat Jalan → Installment Payment*.
 - **Mobile Integration Tests (`[F.2]`)**: Flutter integration tests validating offline action queue persistence across app restarts, biometric unlock simulation, and sync replay.
 - **Continuous Integration Pipeline (`[F.3]`)**: GitHub Actions workflow running Maven build/tests, Web lint/build/Vitest, and Flutter analyze/tests on every pull request.
 - **Automated Database Backup & Disaster Recovery (`[F.4]`)**: Scheduled `pg_dump` snapshot script with offsite cloud storage replication.
+- **Cross-Application Integration & Event Tests (`[P.9]`)**: Multi-application test suite verifying end-to-end event propagation (Transactional Outbox → Dispatcher → Webhook / Mobile Push) and state machine coherence across all 4 applications.
 
 ### 3. Advanced Mobile Offline Architecture & Conflict Handling (Backlog `[N.3]`)
 - Transition from plain `SharedPreferences` to SQLite via Drift to support multi-table relational persistence, complex offline queries, and ACID local transactions.
@@ -936,6 +1503,15 @@ While the full operational feature code across backend, web, and mobile is writt
 
 ### 4. Proposed Business & Architectural Domains (Backlog `[H.1–H.10]`, `[I.1–I.9]`, `[J.1–J.7]`, `[K.1–K.5]`, `[L.1–L.7]`, `[M.1–M.6]`, `[N.1–N.7]`, `[O.1–O.7]`)
 - Detailed design and stakeholder review of ADR-01 through ADR-09 prior to scheduling implementation for Accounting, Inventory Costing, Stocktaking, CRM 360, Returns/Refunds, Fleet/Checklists, and Workflow Governance.
+
+### 5. E-commerce Customer Platforms & Ecosystem Integration (Backlog `[P.1–P.10]`)
+- Build customer-facing E-commerce Website (`e-commerce-web`) and E-commerce Mobile Application (`e-commerce-mobile`).
+- Implement the Multi-Fulfillment Grouping data model and checkout preference selector (Complete vs Partial fulfillment).
+- Implement commercial availability status calculations decoupled from raw physical inventory balances.
+- Implement procurement demand consolidation work center for purchasing staff.
+- Build customer pickup scheduling, preparation staging, and mobile/web verification handover workflow.
+- Integrate online digital payment gateway webhooks (QRIS, VA, Cards) with idempotent financial reconciliation.
+- Implement active task-bounded mobile worker location tracking.
 
 ---
 
@@ -1032,14 +1608,18 @@ While the full operational feature code across backend, web, and mobile is writt
 - [ ] **I.8**: Warehouse spatial location management (hierarchical warehouse, zone, aisle, rack, shelf, bin/bay).
 - [ ] **I.9**: Advanced warehouse picking and put-away workflows (wave picking, directed put-away routing, item mismatch validation).
 
-### J. Customer 360, CRM & Omnichannel Experience (Proposed)
-- [ ] **J.1**: Unified Customer 360 profile consolidating sales orders, credit surveys, payment histories, delivery attempts, warranties, and interaction notes.
-- [ ] **J.2**: Customer demographic tags, behavioral segmentation, Customer Lifetime Value (CLV), and historical credit reliability scoring.
-- [ ] **J.3**: Customer Promise-to-Pay (PTP) tracking engine recording promised payment dates and amounts, tracking Kept vs Broken status, and triggering reminders.
-- [ ] **J.4**: Fuzzy duplicate customer detection matching phone numbers, name phonetics, and mother's maiden name.
-- [ ] **J.5**: Customer gift vouchers, promotional coupons, and store credit ledger management.
-- [ ] **J.6**: Customer omnichannel communication and interaction history log (in-person visits, phone calls, SMS, WhatsApp interactions).
-- [ ] **J.7**: Customer follow-up scheduler and automated reminder engine (sales lead follow-up, payment reminders, service check-ins).
+### J. Customer 360, CRM & Omnichannel Experience (Completed)
+- [x] **J.1**: Unified Customer 360 profile consolidating sales orders, credit surveys, payment histories, delivery attempts, warranties, and interaction notes.
+- [x] **J.2**: Customer demographic tags, behavioral segmentation, Customer Lifetime Value (CLV), and historical credit reliability scoring.
+- [x] **J.3**: Customer Promise-to-Pay (PTP) tracking engine recording promised payment dates and amounts, tracking Kept vs Broken status, and triggering reminders.
+- [x] **J.4**: Fuzzy duplicate customer detection matching phone numbers, name phonetics, and mother's maiden name.
+- [x] **J.5**: Customer gift vouchers, promotional coupons, and store credit ledger management.
+- [x] **J.6**: Customer omnichannel communication and interaction history log (in-person visits, phone calls, SMS, WhatsApp interactions).
+- [x] **J.7**: Customer follow-up scheduler and automated reminder engine (sales lead follow-up, payment reminders, service check-ins).
+- [ ] **J.8**: Automated WhatsApp Business API integration via webhook for interactive 2-way payment reminders, PTP confirmations, and post-delivery NPS feedback.
+- [ ] **J.9**: Dynamic retail invoice payment links with QRIS generation for installment payments linked to PTP promises.
+- [ ] **J.10**: Geofenced GPS check-in validation for field collector and sales visits with automatic proximity confirmation.
+- [ ] **J.11**: Sentiment analysis and keyword flag extraction on customer interaction notes for proactive delinquency and churn mitigation.
 
 ### K. Supply Chain, Procurement & Returns Refinements (Proposed)
 - [ ] **K.1**: Dedicated Sales Return, Product Inspection, and Multi-Disposition triage workflow (Restock to Available, Quarantine for Testing, Repair Work Order, Scrap Write-Off).
@@ -1057,13 +1637,16 @@ While the full operational feature code across backend, web, and mobile is writt
 - [ ] **L.6**: Business continuity procedures and operational disaster recovery runbooks (manual offline sales slips, power outage failover protocol).
 - [ ] **L.7**: Shift operational issue tracking and resolution log.
 
-### M. Mobile Work Center Enhancements (Proposed)
-- [ ] **M.1**: Surveyor Customer Location Profiling capturing delivery destination GPS coordinates, alley width, stair clearance, and gate access notes.
-- [ ] **M.2**: Warehouse mobile guided picking and packing verification with barcode scanning against delivery packing manifests.
-- [ ] **M.3**: Delivery Issue Reporting for failed deliveries with photographic proof, failure reason tagging, and auto-rescheduling triggers.
-- [ ] **M.4**: Salesperson Mobile Work Center with customer lookup, quotation generator, and personal quota progress tracking.
-- [ ] **M.5**: Mobile Physical Stocktaking (Stock Opname) continuous barcode scanning tool with offline buffer and instant variance alert against active session book balances.
-- [ ] **M.6**: Mobile Actionable Notification Center with document deep-links and one-tap supervisory approvals/rejections.
+### M. Mobile Work Center Enhancements (Completed & Extended)
+- [x] **M.1**: Surveyor Customer Location Profiling capturing delivery destination GPS coordinates, alley width, stair clearance, and gate access notes (persisted in structured backend columns via `V23__survey_location_profiling.sql` and mobile survey assessment updates).
+- [x] **M.2**: Warehouse mobile guided picking and packing verification with barcode scanning against delivery packing manifests (`verifyPacking` backend endpoint and mobile guided picking scanner).
+- [x] **M.3**: Delivery Issue Reporting for failed deliveries with photographic proof (`proofPhotoUrl`), failure reason tagging, and dispatcher notification workflow for manual trip reassignment.
+- [x] **M.4**: Salesperson Mobile Work Center with customer lookup, quotation generator, and personal quota progress tracking (configurable target benchmark and visual progress indicator).
+- [x] **M.5**: Mobile Physical Stocktaking (Stock Opname) continuous barcode scanning tool with resilient offline buffer and server-side variance reconciliation for supervisor review (blind-count mode).
+- [x] **M.6**: Mobile Actionable Notification Center with document deep-links and one-tap supervisory approvals/rejections.
+- [ ] **M.7**: Offline map tile caching and one-tap turn-by-turn navigation deep-linking to Google Maps / Waze using survey-captured GPS destination coordinates.
+- [ ] **M.8**: Acoustic / haptic feedback engine for mobile barcode scanner (distinct audio-tactile signatures for successful scan, duplicate buffer scan, and manifest mismatch).
+- [ ] **M.9**: Wireless Bluetooth ESC/POS thermal printer integration for printing serialized warehouse barcode labels and customer receipt slips directly from mobile worker app.
 
 ### N. Platform Architecture, Reliability & Security Hardening (Proposed)
 - [ ] **N.1**: Transactional Outbox Pattern implementation with CDC worker/polling dispatcher for reliable asynchronous event publishing.
@@ -1082,6 +1665,18 @@ While the full operational feature code across backend, web, and mobile is writt
 - [ ] **O.5**: Universal document attachment previewer modal supporting inline rendering of PDFs, images, and Word documents.
 - [ ] **O.6**: Bulk operations across data grids (bulk document print, status updates, exports).
 - [ ] **O.7**: Master data change history audit log capturing field-level diffs.
+
+### P. Integrated E-commerce Ecosystem & Omnichannel Architecture (Proposed)
+- [ ] **P.1**: Data model and Flyway migration for unified Sales Order source tagging (`ONLINE_WEB`, `ONLINE_APP`, `EMPLOYEE`) and Multi-Fulfillment Grouping (`fulfillment_group`, `shipment_status`, line-item association) avoiding order fragmentation.
+- [ ] **P.2**: Commercial sales availability calculation service decoupling physical warehouse stock (`StockUnit`) from customer-facing purchasability states (`IN_STOCK`, `AVAILABLE_PROCUREMENT_REQUIRED`, `PREORDER`, `UNAVAILABLE`).
+- [ ] **P.3**: Demand consolidation work center in Management System allowing purchasing staff to aggregate backordered sales order requirements into optimized bulk distributor Purchase Orders.
+- [ ] **P.4**: Customer fulfillment preference selection engine (Complete fulfillment, Partial fulfillment, Customer choice) with multi-trip delivery charge computation.
+- [ ] **P.5**: Customer store pickup fulfillment module: pickup branch selection, in-store staging tracking, customer pickup QR code generation, and mobile/web handover verification.
+- [ ] **P.6**: Customer-facing E-commerce Website (`e-commerce-web`: Next.js / React) with catalog browsing, faceted search, shopping cart, checkout, online payments, and self-service order tracking.
+- [ ] **P.7**: Customer-facing E-commerce Mobile Application (`e-commerce-mobile`: Flutter / native) sharing backend APIs with web storefront, with native push notifications for order milestones.
+- [ ] **P.8**: Online digital payment gateway integration (QRIS dynamic barcodes, Virtual Accounts, Credit Cards) with cryptographic signature validation and idempotent webhook callback reconciliation.
+- [ ] **P.9**: Cross-application event propagation test suite and transactional outbox dispatcher validating at-least-once message delivery and state machine coherence across all 4 applications.
+- [ ] **P.10**: Worker Mobile App field logistics extensions: delivery destination access profiling (gang senggol, stairs, vehicle limits) and active task-bounded GPS tracking.
 
 ---
 
@@ -1137,6 +1732,55 @@ While the full operational feature code across backend, web, and mobile is writt
     - Refined technical recommendations on Redis document numbering (ADR-05), durable database idempotency, SQLite/Drift mobile offline sync with server authority, and Indonesian legal/regulatory validation caveats (ADR-08).
     - Added 12 new backlog specifications across warehouse operations, labeling, customer interaction logging, approval delegation, operational checklists, and business continuity.
     - Fixed backlog category ordering and updated comprehensive review table (Section 5).
+  - **Ecosystem Architecture Expansion & Master Documentation Update (Version 3.2)**:
+    - Formalized expansion of SMS into an integrated retail ecosystem consisting of 4 applications: Management System (Web), E-commerce Website, E-commerce Mobile Application, and Worker Mobile Application.
+    - Documented Single Source of Truth architecture and authoritative domain ownership matrix across Product, Inventory, Pricing, Customer, Sales, Procurement, Payment, Delivery, Identity, Survey, Inspection, Notification, and Reporting modules.
+    - Centralized business logic invariants ensuring identical rule enforcement across web storefront, mobile storefront, and back-office management.
+    - Specified unified Sales Order infrastructure with `order_source` tagging (`ONLINE_WEB`, `ONLINE_APP`, `EMPLOYEE`) and multi-fulfillment grouping (`FulfillmentGroup`), establishing the core invariant that an order is never fragmented into separate sales orders due to multiple fulfillments or shipments.
+    - Established commercial sales availability states (`IN_STOCK`, `AVAILABLE_PROCUREMENT_REQUIRED`, `PREORDER`, `UNAVAILABLE`) decoupled from physical inventory counts, and specified demand consolidation for supplier procurement without 1:1 auto-PO generation.
+    - Formally modeled initial fulfillment methods: Own-Driver Delivery and Customer Store Pickup with extensible provider abstractions for future couriers.
+    - Defined cross-application event propagation mechanisms using the Transactional Outbox pattern (`outbox_events`), idempotent processing, and auditability.
+    - Established the 7-Question Future Feature Design Principle and comprehensive Cross-Application Testing standards.
+    - Added Section P to Canonical Backlog (`[P.1–P.10]`), updated master review tables, and recorded ADR-10, ADR-11, and ADR-12 with detailed conflict and tension analysis.
+  - **Customer 360, CRM & Omnichannel Experience Full-Stack Execution (`[J.1–J.7]`)**:
+    - **Backend Architecture & Flyway Migration**:
+      - Authored `V22__customer_360_crm.sql` adding demographic profiling columns to `customer` (`mother_maiden_name`, `birth_date`, `birth_place`, `segment`, `credit_score_grade`, `credit_score_points`, `clv_amount`, `total_orders_count`).
+      - Created relational tables: `customer_tag`, `customer_interaction`, `customer_follow_up`, `customer_promise_to_pay`, `customer_store_credit_entry`, `store_voucher`.
+      - Established granular RBAC permissions (`CUSTOMER_TAG_MANAGE`, `CUSTOMER_INTERACTION_MANAGE`, `CUSTOMER_FOLLOW_UP_MANAGE`, `CUSTOMER_PTP_MANAGE`, `CUSTOMER_STORE_CREDIT_MANAGE`, `VOUCHER_MANAGE`).
+      - Created entities, enums, DTOs, repositories, services (`Customer360Service`, `VoucherService`), and REST controllers (`Customer360Controller`, `VoucherController`).
+      - Implemented 360 Timeline Feed aggregation engine chronologically streaming commercial sales orders, payments, credit surveys, deliveries, CRM logs, and warranties.
+      - Developed Customer Lifetime Value (CLV) calculation and historical repayment reliability scoring algorithm (0-100 score, A/B/C/D grade) with behavioral segmentation (`VIP_CASH`, `STAR_CREDIT`, `HIGH_DELINQUENCY_RISK`, `STANDARD`).
+      - Engineered Janji Bayar (PTP) state machine (`PENDING`, `KEPT`, `BROKEN`, `CANCELLED`).
+      - Implemented Bigram Dice Coefficient fuzzy duplicate detection matching NIK, phone suffix, phonetic name similarity, and mother's maiden name (`[J.4]`).
+      - Built retail store credit balance ledger (strictly merchant discount and refund credit balance management, not banking deposits or money transmission) and voucher promotion engine (`[J.5]`).
+    - **Web SPA (`sms-web`)**:
+      - Transformed `CustomerDetailPage.tsx` into a 360 Command Center with demographic tags, KPI stats (CLV, Store credit balance, active PTPs, follow-ups), multi-source timeline filtering, omnichannel communication log modal, PTP ledger, follow-up scheduler, store credit & voucher ledger.
+      - Enhanced `CustomerListPage.tsx` with segment filter chips, credit grade columns, and CRM CSV export.
+      - Integrated inline fuzzy duplicate detection widget (`[J.4]`) and PDP-protected demographic fields into `CustomerFormDialog.tsx`.
+      - Verified: 15/15 test files passing (35/35 tests passing) and clean production build with Vite code splitting.
+    - **Mobile Worker App (`sms-mobile`)**:
+      - Built `Customer360Screen` (`/customer-360/:id`) displaying customer credit tier, CLV, active PTPs, and interaction timeline.
+      - Added quick dialogs for recording PTP and logging visits directly from mobile field operations.
+      - Enqueued offline actions in `offlineSyncProvider` (`RECORD_PROMISE_TO_PAY`, `RECORD_CUSTOMER_INTERACTION`) for offline field reliability.
+      - Integrated one-tap entry points from `CollectorVisitScreen` and shortcut tile in `WorkerHomeScreen`.
+      - Verified: Flutter analyze 0 errors.
+  - **Mobile Work Center Enhancements Integration & Verification (`[M.1–M.6]`)**:
+    - **Backend Architecture, Migrations & Testing**:
+      - Fixed syntax error in `SalesOrderService.java` and unblocked backend compilation.
+      - Authored `V23__survey_location_profiling.sql` adding structured delivery logistics profiling columns to `survey` (`destination_latitude`, `destination_longitude`, `alley_width_meters`, `stair_clearance_meters`, `gate_access_notes`).
+      - Updated `Survey.java`, `AssessmentRequest.java`, `SurveyResponse.java`, and `SurveyService.updateAssessment` to persist and return structured location coordinates and physical access constraints (`[M.1]`).
+      - Updated `FailDeliveryOrderRequest.java` and `DeliveryService.failDeliveryOrder` to persist photographic proof URLs (`proofPhotoUrl`) on failed deliveries and dispatch instant reschedule alerts to store dispatchers (`DELIVERY_MANAGE`) (`[M.3]`).
+      - Resolved `DeliveryServiceTest` JPA entity ID reflection mocking (`ReflectionTestUtils.setField`) and added unit test coverage for structured location fields and photographic failure proof.
+      - Verified: 77/77 backend unit tests passing cleanly via `mvnw test`.
+    - **Mobile Worker App (`sms-mobile`)**:
+      - Enhanced `surveyor_task_screen.dart` and `survey_provider.dart` to dispatch structured GPS coordinates, alley width, stair clearance, and gate access constraints directly to backend endpoints (`[M.1]`).
+      - Verified warehouse guided picking and packing verification with barcode scanning against active manifests (`warehouse_picking_screen.dart`, `[M.2]`).
+      - Enforced architectural policy for delivery failure handling: captured failure root-cause tags, photo proof, and GPS coordinates while notifying dispatchers for manual load-balanced trip reassignment (`driver_trip_screen.dart`, `delivery_provider.dart`, `[M.3]`).
+      - Enhanced `sales_work_center_screen.dart` with configurable monthly quota target (default Rp 50.000.000 benchmark) and visual progress bar (`LinearProgressIndicator`) with percentage calculation, tier color-coding, and estimated commission display (`[M.4]`).
+      - Verified blind physical stocktaking mode (`stocktake_screen.dart`) with continuous barcode scanning, offline `SharedPreferences` buffering, and server-side variance reconciliation for supervisory sign-off (`[M.5]`).
+      - Verified Actionable Notification Center (`notification_center_screen.dart`) with deep links (`/survey/:id`, `/delivery-order/:id`, `/sales-order/:id`, `/stocktake-review/:id`) and one-tap supervisory approvals/rejections (`[M.6]`).
+      - Created automated Flutter test suite (`test/features/mobile_enhancements_test.dart`) mocking network adapters and testing all M features.
+      - Verified: Flutter analyze 0 errors/warnings, 5/5 Flutter tests passing, and Android Gradle `compileDebugSources` build verified cleanly with Gradle 9.1.0 and Build-Tools 36.
 
 ---
 
@@ -1160,8 +1804,12 @@ While the full operational feature code across backend, web, and mobile is writt
 
 #### C. New Operational & Customer Management Modules
 - **Physical Stocktaking / Stock Opname (`[I.5]`, `[M.5]`)**: Scheduled audit sessions, blind counting mode, mobile barcode scanner counting, recount escalation workflows, discrepancy threshold investigations, supervisory sign-off, and balancing stock adjustments.
-- **Customer Relationship Management / Customer 360 (`[J.1–J.7]`)**: Unified interaction timeline, consolidated multi-module history, demographic tags and segmentation, Customer Lifetime Value (CLV) calculation, omnichannel communication logs, follow-up scheduler, and fuzzy duplicate detection.
-- **Customer Promise-to-Pay Management (`[J.3]`)**: Structured logging of payment promises, automated tracking of Kept vs Broken promises, proactive reminders, and collector morning queue integration.
+- **Customer Relationship Management & Customer 360 Extensions (`[J.8–J.11]`)**:
+  - Automated WhatsApp Business API integration via webhook for interactive 2-way payment reminders, PTP confirmations, and post-delivery NPS feedback (`[J.8]`).
+  - Dynamic retail invoice payment links with QRIS generation for installment payments linked to PTP promises (`[J.9]`).
+  - Geofenced GPS check-in validation for field collector and sales visits with automatic proximity confirmation (`[J.10]`).
+  - Sentiment analysis and keyword flag extraction on customer interaction notes for proactive delinquency and churn mitigation (`[J.11]`).
+  *(Note: Core Customer 360, CLV, PTP Engine, Fuzzy Duplicate Detection, Store Credit, Omnichannel Logs, and Follow-ups `[J.1–J.7]` completed across backend, web, and mobile in Version 3.3)*.
 
 #### D. Mobile Application Enhancements (Worker App)
 - **Field & Logistics Operations (`[M.1–M.3]`)**: Customer delivery location survey (GPS coordinates, access notes), warehouse mobile guided picking and packing with barcode verification, and delivery issue reporting.
@@ -1182,6 +1830,13 @@ While the full operational feature code across backend, web, and mobile is writt
 - **Reliability & Offline Architecture (`[N.1–N.3]`)**: Transactional Outbox Pattern; durable database idempotency table; migration to SQLite with Drift; deterministic 5-state sync lifecycle (`PENDING`, `SYNCING`, `SUCCESS`, `RETRY`, `CONFLICT`); server-authoritative conflict resolution rules.
 - **Observability & Security (`[N.4–N.7]`)**: Structured JSON logging with trace IDs, Prometheus metrics, OpenTelemetry distributed tracing, Sentry tracking; Indonesian UU No. 27/2022 PDP data protection compliance (NIK encryption, PII masking); MFA; data-scope authorization hierarchy.
 
+#### I. Integrated E-commerce Ecosystem & Omnichannel Commerce (`[P.1–P.10]`)
+- **Unified Sales Orders & Multi-Fulfillment Grouping (`[P.1]`, `[P.4]`)**: Single Sales Order model with order source badges (`ONLINE_WEB`, `ONLINE_APP`, `EMPLOYEE`), multi-fulfillment groups, and complete vs partial delivery customer preferences.
+- **Commercial Availability & Procurement Consolidation (`[P.2]`, `[P.3]`)**: Decoupled commercial sales availability engine (`IN_STOCK`, `AVAILABLE_PROCUREMENT_REQUIRED`, `PREORDER`, `UNAVAILABLE`) and demand consolidation work center for purchasing staff.
+- **Storefront Touchpoints (`[P.6]`, `[P.7]`)**: Customer web portal and mobile app sharing backend endpoints, catalog, and cart states.
+- **Customer Pickup & Logistics Execution (`[P.5]`, `[P.10]`)**: Store pickup verification, destination access constraints profiling, and active task-bounded worker tracking.
+- **Online Payment Automation (`[P.8]`)**: Payment gateway webhooks (QRIS, VA, Cards) with automated financial ledger reconciliation.
+
 ---
 
 ### 9.2 Architectural Decisions to Revisit
@@ -1199,3 +1854,52 @@ Before any implementation begins on the proposed enhancements, the technical lea
 | **ADR-07** | **Digital Signatures Legal Validity under Indonesian Law** | Is mobile touch signature capture sufficient for statutory credit financing enforcement, or is certified digital signature integration required? | **Analysis**: Under Indonesian ITE Law (UU ITE No. 11/2008 & PP No. 71/2019), a simple canvas touch signature has evidentiary weight but can be contested in court. Certified electronic signatures issued by a licensed Certificate Authority (e.g., PrivyID, Vida, Peruri) have non-repudiation status.<br>*Decision Needed*: Use canvas touch signatures for daily logistics (Surat Jalan DO receipt); integrate licensed CA e-signatures with e-Meterai for formal multi-year credit agreement financing contracts. |
 | **ADR-08** | **Indonesian Personal Data Protection (UU No. 27 Tahun 2022 / PDP) Compliance** | What technical and organizational security measures must be enforced for customer NIK, family cards (KK), and location tracking data? | **Requirements**: Implement field-level encryption for NIK and bank accounts; enforce strict role-based PII masking; record audit logs on every PII unmask event; establish customer data retention and deletion policies upon contract termination.<br>*Caveat*: All statutory interpretations must be formally reviewed and signed off by qualified Indonesian legal counsel. |
 | **ADR-09** | **Statutory Payroll, Overtime & Labor Regulations** | What calculation rules apply to employee payroll, tax withholding, and social security? | **Requirements**: Comply with Indonesian PPh 21 TER (Tarif Efektif Rata-rata) progressive tax regulations (PP No. 58/2023 & PMK 168/2023), BPJS Ketenagakerjaan (JKK, JKM, JHT, JP), BPJS Kesehatan (4% employer / 1% employee), and statutory overtime multipliers under Government Regulation No. 35 of 2021 (PP 35/2021).<br>*Caveat*: All statutory tax tables and social security withholding formulas must be reviewed and certified by a licensed Indonesian tax consultant. |
+| **ADR-10** | **Multi-Fulfillment Grouping, Partial Delivery & Financial Treatment** | How should sales orders with multiple fulfillment groups be billed, invoiced, and accounted for when dispatches are staggered? | **Policy**: A single Sales Order must never be split into multiple sales orders. The order maintains overall commercial agreement totals.<br>*Decision Needed*: Are partial delivery notes (*Surat Jalan*) treated as interim shipments with pro-rata invoicing, or is a single final commercial invoice generated upon complete delivery? How are partial delivery cancellation refunds disbursed when part of the order has already been physically delivered? |
+| **ADR-11** | **Customer Identity, Self-Registration vs Gated Creation, and Guest Checkout** | How should customer identity be reconciled between back-office staff creation (strictly context-gated to SO drafts) and online e-commerce self-registration? | **Policy**: Back-office staff creation remains context-gated. E-commerce platforms permit self-service customer registration with email/phone OTP verification.<br>*Decision Needed*: Should guest checkout be supported without registration? If a guest later registers or an online buyer visits a physical showroom, how should NIK and phone number deduplication link the accounts without violating UU PDP data protection consent? |
+| **ADR-12** | **E-commerce Storefront Technology Stack & API Gateway Pattern** | Which front-end frameworks and communication patterns should power the E-commerce Website (App B) and E-commerce Mobile App (App C)? | **Recommendation**: E-commerce Website built on Next.js 15 (React 19) for Search Engine Optimization (SEO), Server-Side Rendering (SSR), and incremental static regeneration. E-commerce Mobile App built on Flutter or React Native to leverage shared design tokens.<br>*Architecture*: Both frontends communicate with `sms-backend` via dedicated `/api/v1/storefront/*` endpoints, isolated from internal administrative APIs via Spring Security route guards or an API gateway. |
+
+---
+
+### 9.3 Detailed Analysis of Architectural Conflicts, Questions & Reconciliations for Executive Discussion
+
+To ensure complete transparency and prevent arbitrary decisions, the following five architectural tensions between existing system rules and the new four-application ecosystem are explicitly highlighted for technical leadership and executive review:
+
+#### 1. Context-Gated Customer Creation vs. E-commerce Self-Registration
+- **Existing Documented Decision**: Feature 2.3 enforces strict context-gating: store staff cannot create free-floating customer records without an active Sales Order draft or explicit administrative override. This prevents orphaned dummy records and CRM clutter.
+- **New Ecosystem Requirement**: Section 1.B requires customer-facing self-service registration and authentication on the E-commerce Website and Mobile App.
+- **Architectural Reconciliation**:
+  - The two mechanisms operate in completely distinct security scopes. Back-office employee endpoints (`/api/customers`) remain strictly gated by sales order context and RBAC.
+  - Public storefront endpoints (`/api/v1/storefront/auth/register`) allow self-service customer registration with phone/email verification.
+  - *Open Question for Discussion*: When an online-registered customer walks into a brick-and-mortar showroom, how should the showroom salesperson look up their record? Searching by NIK or verified mobile phone number will link the existing online customer record without triggering the context-gated creation rule.
+
+#### 2. Real-Time Stock Reservation vs. Procurement-Required Ordering
+- **Existing Documented Decision**: The inventory module requires that confirmed sales orders acquire concurrency locks and reserve physical serialized units (`StockUnit` with status `AVAILABLE`).
+- **New Ecosystem Requirement**: Section 7 permits customers to purchase products with status `AVAILABLE_PROCUREMENT_REQUIRED` where physical inventory is currently zero.
+- **Architectural Reconciliation**:
+  - The sales order item entity must support an explicit `is_procurement_required` flag and a linked `ProcurementRequirement` record.
+  - In-stock line items trigger immediate `StockUnit` reservation locks; procurement-required line items skip physical unit locking and transition the fulfillment group to `AWAITING_PROCUREMENT`.
+  - *Open Question for Discussion*: If a customer places an order with "Complete Fulfillment" (wait for all items) containing 1 in-stock item and 1 procurement-required item, should the in-stock item remain locked in warehouse inventory for 5–7 days while waiting for distributor procurement, or should reservation be deferred until supplier PO arrival? Locking inventory ties up working capital; deferring reservation risks stock depletion by showroom floor sales.
+
+#### 3. Multi-Fulfillment Deliveries vs. Surat Jalan Document Numbering & Invoicing
+- **Existing Documented Decision**: Invariant 6 and Feature 8.3 assume that a Sales Order corresponds to a delivery order trip generating a formal Delivery Note (*Surat Jalan*) with sequential numbering.
+- **New Ecosystem Requirement**: Section 6 establishes that one Sales Order may have multiple Fulfillment Groups resulting in staggered physical deliveries.
+- **Architectural Reconciliation**:
+  - A single Sales Order must never be cloned or split into multiple sales orders.
+  - Instead, the system must support 1-to-N relationships between `SalesOrder` and `DeliveryOrder` / `SuratJalan`. Each delivery note receives a distinct sequence number referencing the parent SO and fulfillment group (e.g., `SJ/{STORE}/10/2026/0042-01` for Fulfillment 1, and `-02` for Fulfillment 2).
+  - *Open Question for Discussion*: For statutory Indonesian tax invoicing (*Faktur Pajak*), should tax invoices be generated upon full sales order payment or incrementally upon each Surat Jalan physical dispatch? Tax counsel alignment is required.
+
+#### 4. Active Task-Bounded Worker Location Tracking vs. Employee Privacy
+- **Existing Documented Decision**: Group 12 and Feature 14.1 restrict GPS verification to attendance clock-in geofences (Haversine 200m) and field photo watermarks to protect employee privacy and battery life.
+- **New Ecosystem Requirement**: Section 1.D specifies employee location tracking during active operational tasks.
+- **Architectural Reconciliation**:
+  - The system will enforce **strict lifecycle bounding**: GPS tracking is activated *only* when a driver starts a delivery trip (`TRIP_IN_PROGRESS`) or a surveyor starts an on-site survey (`SURVEY_ACTIVE`).
+  - Tracking immediately halts when the trip or survey is marked complete or paused. Background tracking when off-duty or on break is strictly prohibited.
+  - *Open Question for Discussion*: What breadcrumb frequency should be enforced (e.g., 60 seconds vs 180 seconds) to balance battery consumption and road safety visibility across typical 8-hour delivery routes?
+
+#### 5. Enterprise Money Management Platform Scope vs. Payment Gateway Escrow
+- **Existing Documented Decision**: Invariant 1 and Section 1 clarify that SMS is an enterprise money management platform, not a bank. Finance modules track cash custody, cashier handovers, and installment debt.
+- **New Ecosystem Requirement**: Section 1.B and Section 4 require online payments via digital payment gateways (QRIS, Virtual Accounts, Credit Cards).
+- **Architectural Reconciliation**:
+  - SMS does not hold customer deposits or operate an escrow wallet.
+  - Third-party licensed payment gateways (Midtrans, Xendit) handle fund processing, payment clearance, and statutory central bank compliance.
+  - The SMS backend acts purely as the merchant ledger, receiving cryptographic webhook notifications and recording settled transactions into `CustomerPayment` registers.

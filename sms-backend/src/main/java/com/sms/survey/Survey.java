@@ -58,6 +58,21 @@ public class Survey extends BaseEntity {
     @Column(name = "ability_to_pay_assessment", length = 500)
     private String abilityToPayAssessment;
 
+    @Column(name = "destination_latitude", precision = 10, scale = 7)
+    private BigDecimal destinationLatitude;
+
+    @Column(name = "destination_longitude", precision = 10, scale = 7)
+    private BigDecimal destinationLongitude;
+
+    @Column(name = "alley_width_meters", precision = 5, scale = 2)
+    private BigDecimal alleyWidthMeters;
+
+    @Column(name = "stair_clearance_meters", precision = 5, scale = 2)
+    private BigDecimal stairClearanceMeters;
+
+    @Column(name = "gate_access_notes", length = 500)
+    private String gateAccessNotes;
+
     @Column(name = "decided_at")
     private Instant decidedAt;
 

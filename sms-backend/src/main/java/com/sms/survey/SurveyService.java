@@ -88,6 +88,21 @@ public class SurveyService {
         survey.setEmploymentNotes(request.employmentNotes());
         survey.setReferencesNotes(request.referencesNotes());
         survey.setAbilityToPayAssessment(request.abilityToPayAssessment());
+        if (request.destinationLatitude() != null) {
+            survey.setDestinationLatitude(request.destinationLatitude());
+        }
+        if (request.destinationLongitude() != null) {
+            survey.setDestinationLongitude(request.destinationLongitude());
+        }
+        if (request.alleyWidthMeters() != null) {
+            survey.setAlleyWidthMeters(request.alleyWidthMeters());
+        }
+        if (request.stairClearanceMeters() != null) {
+            survey.setStairClearanceMeters(request.stairClearanceMeters());
+        }
+        if (request.gateAccessNotes() != null) {
+            survey.setGateAccessNotes(request.gateAccessNotes());
+        }
         return survey;
     }
 

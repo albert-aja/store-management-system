@@ -1,11 +1,13 @@
 package com.sms.delivery;
 
+import com.sms.common.security.SmsUserPrincipal;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +24,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class DeliveryOrderController {
 
     private final DeliveryService deliveryService;
+
+    @GetMapping("/picking-manifest")
+    @PreAuthorize("hasAnyAuthority('DELIVERY_PACK', 'DELIVERY_MANAGE')")
+    public List<DeliveryOrderResponse> pickingManifest(
+            @RequestParam UUID storeId,
+            @AuthenticationPrincipal SmsUserPrincipal principal) {
+        requireStoreAccess(principal, storeId);
+        return deliveryService.listPendingForPicking(storeId).stream()
+                .map(DeliveryOrderResponse::from)
+                .toList();
+    }
 
     @GetMapping
     @PreAuthorize("hasAnyAuthority('DELIVERY_MANAGE', 'DELIVERY_EXECUTE')")
@@ -73,6 +86,16 @@ public class DeliveryOrderController {
         return DeliveryOrderResponse.from(deliveryService.recordPreInspection(id, request.passed(), request.notes()));
     }
 
+    @PostMapping("/{id}/packing-verification")
+    @PreAuthorize("hasAnyAuthority('DELIVERY_PACK', 'DELIVERY_MANAGE')")
+    public DeliveryOrderResponse verifyPacking(
+            @PathVariable UUID id,
+            @Valid @RequestBody VerifyPackingRequest request,
+            @AuthenticationPrincipal SmsUserPrincipal principal) {
+        requireStoreAccess(principal, deliveryService.getStoreIdForOrder(id));
+        return DeliveryOrderResponse.from(deliveryService.verifyPacking(id, request.scannedSerials()));
+    }
+
     @PostMapping("/{id}/deliver")
     @PreAuthorize("hasAnyAuthority('DELIVERY_MANAGE', 'DELIVERY_EXECUTE')")
     public DeliveryOrderResponse deliverOrder(
@@ -98,5 +121,14 @@ public class DeliveryOrderController {
             @RequestBody(required = false) String reason
     ) {
         return DeliveryOrderResponse.from(deliveryService.cancelDeliveryOrder(id, reason));
+    }
+
+    private void requireStoreAccess(SmsUserPrincipal principal, UUID storeId) {
+        if (!principal.hasStore(storeId)
+                && !principal.hasRole("OWNER")
+                && !principal.hasRole("ADMIN")) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "No access to store: " + storeId);
+        }
     }
 }

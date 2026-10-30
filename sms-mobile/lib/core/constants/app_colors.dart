@@ -16,4 +16,5 @@ class AppColors {
   static const Color textSecondary = Color(0xFF64748B); // Slate 500
   static const Color divider = Color(0xFFE2E8F0); // Slate 200
   static const Color cardBorder = Color(0xFFE2E8F0);
+  static const Color border = cardBorder;
 }

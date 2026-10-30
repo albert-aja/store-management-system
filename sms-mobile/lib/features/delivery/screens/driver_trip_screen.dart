@@ -5,7 +5,6 @@ import '../../../core/hardware/barcode_scanner_view.dart';
 import '../../../core/hardware/geo_location_service.dart';
 import '../../../core/hardware/photo_proof_widget.dart';
 import '../../../core/hardware/signature_pad_widget.dart';
-import '../../../core/offline/offline_sync_queue.dart';
 import '../providers/delivery_provider.dart';
 
 class DriverTripScreen extends ConsumerStatefulWidget {
@@ -25,7 +24,6 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
       builder: (ctx) => BarcodeScannerModal(
         title: 'Scan Delivery Barcode',
         prompt: 'Scan Surat Jalan QR or Stock Unit Serial',
-        mockPresets: [expectedDo, 'LG-WM-1148', 'SHP-RF-9021'],
       ),
     ).then((scanned) {
       if (scanned != null && mounted) {
@@ -39,10 +37,17 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
     });
   }
 
-  void _markDelivered(String orderId, String currentCustomer, double codAmount, String doNumber) {
+  void _markDelivered(
+    String orderId,
+    String currentCustomer,
+    double codAmount,
+    String doNumber,
+  ) {
     final receiverController = TextEditingController(text: currentCustomer);
     final phoneController = TextEditingController(text: '0812-3344-5566');
-    final codController = TextEditingController(text: codAmount.toInt().toString());
+    final codController = TextEditingController(
+      text: codAmount.toInt().toString(),
+    );
     String? digitalSignatureBase64;
     List<PhotoProofItem> proofPhotos = [];
 
@@ -58,16 +63,23 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Surat Jalan: $doNumber', style: const TextStyle(fontWeight: FontWeight.w700)),
+                    Text(
+                      'Surat Jalan: $doNumber',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
                     const SizedBox(height: 12),
                     TextField(
                       controller: receiverController,
-                      decoration: const InputDecoration(labelText: 'Recipient Full Name'),
+                      decoration: const InputDecoration(
+                        labelText: 'Recipient Full Name',
+                      ),
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: phoneController,
-                      decoration: const InputDecoration(labelText: 'Recipient Phone'),
+                      decoration: const InputDecoration(
+                        labelText: 'Recipient Phone',
+                      ),
                     ),
                     const SizedBox(height: 10),
                     TextField(
@@ -86,7 +98,8 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                         showDialog<String>(
                           context: context,
                           builder: (_) => SignaturePadWidget(
-                            signerName: receiverController.text.trim().isNotEmpty
+                            signerName:
+                                receiverController.text.trim().isNotEmpty
                                 ? receiverController.text.trim()
                                 : currentCustomer,
                             documentTitle: 'Surat Jalan $doNumber Handover',
@@ -98,18 +111,27 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                         });
                       },
                       icon: Icon(
-                        digitalSignatureBase64 != null ? Icons.check_circle_rounded : Icons.draw_rounded,
-                        color: digitalSignatureBase64 != null ? AppColors.secondary : AppColors.primary,
+                        digitalSignatureBase64 != null
+                            ? Icons.check_circle_rounded
+                            : Icons.draw_rounded,
+                        color: digitalSignatureBase64 != null
+                            ? AppColors.secondary
+                            : AppColors.primary,
                       ),
                       label: Text(
-                        digitalSignatureBase64 != null ? 'Signature Captured' : 'Customer Digital Signature',
+                        digitalSignatureBase64 != null
+                            ? 'Signature Captured'
+                            : 'Customer Digital Signature',
                       ),
                     ),
                     const SizedBox(height: 14),
 
                     // Photo Proof of Handover
                     PhotoProofGridWidget(
-                      requiredCategories: const ['Goods Handover', 'Signed Paper SJ'],
+                      requiredCategories: const [
+                        'Goods Handover',
+                        'Signed Paper SJ',
+                      ],
                       onPhotosChanged: (photos) {
                         proofPhotos = photos;
                       },
@@ -118,50 +140,63 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                 ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.secondary,
+                  ),
                   onPressed: () async {
                     final cod = double.tryParse(codController.text) ?? 0.0;
                     Navigator.pop(ctx);
 
                     // Read hardware GPS coordinates
-                    final location = await GeoLocationService.getCurrentLocation(simulateAtStore: false);
+                    late final GeoCoordinates location;
+                    try {
+                      location = await GeoLocationService.getCurrentLocation(
+                        simulateAtStore: false,
+                      );
+                    } catch (error) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(this.context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Delivery not confirmed; GPS unavailable: $error',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
 
-                    final success = await ref.read(deliveryProvider.notifier).completeDelivery(
+                    final success = await ref
+                        .read(deliveryProvider.notifier)
+                        .completeDelivery(
                           orderId,
                           recipientName: receiverController.text.trim(),
                           recipientPhone: phoneController.text.trim(),
                           codCollected: cod,
-                          notes: 'Handover verified via GPS [${location.latitude}, ${location.longitude}]. Signature captured: ${digitalSignatureBase64 != null}. Photos: ${proofPhotos.length}',
+                          notes:
+                              'Handover verified via GPS [${location.latitude}, ${location.longitude}]. Signature captured: ${digitalSignatureBase64 != null}. Photos: ${proofPhotos.length}',
                         );
 
-                    // Enqueue offline action as well for fail-safe background sync
-                    ref.read(offlineSyncProvider.notifier).enqueueAction(
-                          actionType: 'DELIVER_ORDER',
-                          endpoint: '/api/delivery-orders/$orderId/deliver',
-                          payload: {
-                            'orderId': orderId,
-                            'recipientName': receiverController.text.trim(),
-                            'recipientPhone': phoneController.text.trim(),
-                            'codAmountCollected': cod,
-                            'latitude': location.latitude,
-                            'longitude': location.longitude,
-                            'hasSignature': digitalSignatureBase64 != null,
-                          },
-                        );
-
-                    if (mounted) {
-                      setState(() {
-                        _totalCodCollected += cod.toInt();
-                      });
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Delivery confirmed! Surat Jalan status updated to DELIVERED with GPS & Signature.'),
-                          backgroundColor: AppColors.secondary,
-                        ),
-                      );
+                    if (!context.mounted) return;
+                    if (success) {
+                      setState(() => _totalCodCollected += cod.toInt());
                     }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          success
+                              ? 'Delivery confirmed.'
+                              : 'Delivery was not confirmed by server. Check connection and retry.',
+                        ),
+                        backgroundColor: success
+                            ? AppColors.secondary
+                            : AppColors.error,
+                      ),
+                    );
                   },
                   child: const Text('Confirm Handover'),
                 ),
@@ -176,6 +211,7 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
   void _reportFailed(String orderId) {
     String reason = 'CUSTOMER_UNREACHABLE';
     final notesController = TextEditingController();
+    List<PhotoProofItem> failurePhotos = [];
 
     showDialog(
       context: context,
@@ -184,48 +220,100 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
           builder: (context, setDlgState) {
             return AlertDialog(
               title: const Text('Report Delivery Failure'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<String>(
-                    initialValue: reason,
-                    decoration: const InputDecoration(labelText: 'Failure Reason'),
-                    items: const [
-                      DropdownMenuItem(value: 'CUSTOMER_UNREACHABLE', child: Text('Customer Unreachable / Not Home')),
-                      DropdownMenuItem(value: 'WRONG_ADDRESS', child: Text('Wrong / Incomplete Address')),
-                      DropdownMenuItem(value: 'REFUSED_BY_CUSTOMER', child: Text('Customer Refused Goods')),
-                      DropdownMenuItem(value: 'TRANSIT_DAMAGE', child: Text('Item Damaged in Transit')),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) setDlgState(() => reason = val);
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: notesController,
-                    decoration: const InputDecoration(labelText: 'Operational Notes'),
-                  ),
-                ],
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      initialValue: reason,
+                      decoration: const InputDecoration(
+                        labelText: 'Failure Reason',
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'CUSTOMER_UNREACHABLE',
+                          child: Text('Customer Unreachable / Not Home'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'WRONG_ADDRESS',
+                          child: Text('Wrong / Incomplete Address'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'REFUSED_BY_CUSTOMER',
+                          child: Text('Customer Refused Goods'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'TRANSIT_DAMAGE',
+                          child: Text('Item Damaged in Transit'),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setDlgState(() => reason = val);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: notesController,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        labelText: 'Operational Notes',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    PhotoProofGridWidget(
+                      requiredCategories: const ['Delivery Failure Proof'],
+                      onPhotosChanged: (photos) => failurePhotos = photos,
+                    ),
+                  ],
+                ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
+                ),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.error,
+                  ),
                   onPressed: () async {
                     Navigator.pop(ctx);
-                    await ref.read(deliveryProvider.notifier).failDelivery(
-                          orderId,
-                          reason: reason,
-                          notes: notesController.text,
-                        );
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Delivery failure recorded. Unit returned to warehouse custody.'),
-                          backgroundColor: AppColors.error,
+                    late final GeoCoordinates location;
+                    try {
+                      location = await GeoLocationService.getCurrentLocation(
+                        simulateAtStore: false,
+                      );
+                    } catch (error) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(this.context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Failure not reported; GPS unavailable: $error',
+                          ),
                         ),
                       );
+                      return;
                     }
+                    final notes =
+                        '${notesController.text.trim()} '
+                                'GPS: ${location.latitude}, ${location.longitude}. '
+                                'Failure proof photos: ${failurePhotos.length}.'
+                            .trim();
+                    final success = await ref
+                        .read(deliveryProvider.notifier)
+                        .failDelivery(orderId, reason: reason, notes: notes, proofPhotoUrl: failurePhotos.isNotEmpty ? failurePhotos.first.id : null);
+                    if (!context.mounted) return;
+                    final error = ref.read(deliveryProvider).error;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          success
+                              ? 'Failure report submitted. Dispatcher must reschedule delivery.'
+                              : 'Report not saved: ${error ?? 'request failed'}',
+                        ),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
                   },
                   child: const Text('Submit Failure Report'),
                 ),
@@ -247,7 +335,11 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.tripId.isEmpty ? 'Driver Trip Execution' : 'Trip: ${widget.tripId}'),
+        title: Text(
+          widget.tripId.isEmpty
+              ? 'Driver Trip Execution'
+              : 'Trip: ${widget.tripId}',
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code_scanner_rounded),
@@ -256,7 +348,8 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => ref.read(deliveryProvider.notifier).loadDriverTrips(),
+            onPressed: () =>
+                ref.read(deliveryProvider.notifier).loadDriverTrips(),
           ),
         ],
       ),
@@ -277,7 +370,8 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                deliveryState.activeTrip?.vehiclePlate ?? 'Vehicle: B 9142 SAA',
+                                deliveryState.activeTrip?.vehiclePlate ??
+                                    'Vehicle: B 9142 SAA',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,
@@ -287,12 +381,18 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                               const SizedBox(height: 2),
                               const Text(
                                 'Route: Jakarta Selatan 3-Drop Delivery',
-                                style: TextStyle(color: Colors.white70, fontSize: 12),
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.secondary,
                               borderRadius: BorderRadius.circular(12),
@@ -320,7 +420,11 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                           children: [
                             const Text(
                               'COD Custody Cash Balance:',
-                              style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                             Text(
                               'Rp ${_totalCodCollected.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
@@ -340,11 +444,16 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                 // Delivery Stops List
                 Expanded(
                   child: orders.isEmpty
-                      ? const Center(child: Text('No active delivery stops for this trip.'))
+                      ? const Center(
+                          child: Text(
+                            'No active delivery stops for this trip.',
+                          ),
+                        )
                       : ListView.separated(
                           padding: const EdgeInsets.all(16),
                           itemCount: orders.length,
-                          separatorBuilder: (_, _) => const SizedBox(height: 12),
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final order = orders[index];
                             final isDelivered = order.status == 'DELIVERED';
@@ -357,7 +466,8 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
                                           'Stop #${index + 1}  •  ${order.deliveryOrderNumber}',
@@ -368,14 +478,24 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                                           ),
                                         ),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
                                           decoration: BoxDecoration(
                                             color: isDelivered
-                                                ? AppColors.secondary.withValues(alpha: 0.15)
+                                                ? AppColors.secondary
+                                                      .withValues(alpha: 0.15)
                                                 : isFailed
-                                                    ? AppColors.error.withValues(alpha: 0.15)
-                                                    : AppColors.accent.withValues(alpha: 0.15),
-                                            borderRadius: BorderRadius.circular(4),
+                                                ? AppColors.error.withValues(
+                                                    alpha: 0.15,
+                                                  )
+                                                : AppColors.accent.withValues(
+                                                    alpha: 0.15,
+                                                  ),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
                                           ),
                                           child: Text(
                                             order.status,
@@ -385,8 +505,8 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                                               color: isDelivered
                                                   ? AppColors.secondary
                                                   : isFailed
-                                                      ? AppColors.error
-                                                      : AppColors.accent,
+                                                  ? AppColors.error
+                                                  : AppColors.accent,
                                             ),
                                           ),
                                         ),
@@ -395,17 +515,26 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                                     const SizedBox(height: 8),
                                     Text(
                                       order.recipientName,
-                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       'Phone: ${order.recipientPhone}',
-                                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondary,
+                                      ),
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
                                       'Address: ${order.deliveryAddress}',
-                                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondary,
+                                      ),
                                     ),
                                     const SizedBox(height: 8),
                                     Container(
@@ -416,18 +545,33 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                                       ),
                                       child: Row(
                                         children: [
-                                          const Icon(Icons.inventory_2_outlined, size: 16, color: AppColors.primary),
+                                          const Icon(
+                                            Icons.inventory_2_outlined,
+                                            size: 16,
+                                            color: AppColors.primary,
+                                          ),
                                           const SizedBox(width: 8),
                                           Expanded(
                                             child: Text(
                                               '${order.itemName ?? 'Product Item'} (SN: ${order.serialNumber ?? 'SN-PENDING'})',
-                                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                             ),
                                           ),
                                           IconButton(
-                                            icon: const Icon(Icons.qr_code_scanner_rounded, size: 18, color: AppColors.primary),
+                                            icon: const Icon(
+                                              Icons.qr_code_scanner_rounded,
+                                              size: 18,
+                                              color: AppColors.primary,
+                                            ),
                                             tooltip: 'Verify Serial Barcode',
-                                            onPressed: () => _openBarcodeScanner(order.serialNumber ?? 'SHP-RF-9021'),
+                                            onPressed: () =>
+                                                _openBarcodeScanner(
+                                                  order.serialNumber ??
+                                                      'SHP-RF-9021',
+                                                ),
                                           ),
                                         ],
                                       ),
@@ -436,7 +580,11 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                                       const SizedBox(height: 8),
                                       Row(
                                         children: [
-                                          const Icon(Icons.payments_outlined, size: 16, color: AppColors.accent),
+                                          const Icon(
+                                            Icons.payments_outlined,
+                                            size: 16,
+                                            color: AppColors.accent,
+                                          ),
                                           const SizedBox(width: 8),
                                           Text(
                                             'COD Collection Required: Rp ${order.codAmount.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
@@ -455,12 +603,18 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                                         children: [
                                           Expanded(
                                             child: OutlinedButton(
-                                              onPressed: () => _reportFailed(order.id),
+                                              onPressed: () =>
+                                                  _reportFailed(order.id),
                                               style: OutlinedButton.styleFrom(
-                                                foregroundColor: AppColors.error,
-                                                side: const BorderSide(color: AppColors.error),
+                                                foregroundColor:
+                                                    AppColors.error,
+                                                side: const BorderSide(
+                                                  color: AppColors.error,
+                                                ),
                                               ),
-                                              child: const Text('Failed / Refused'),
+                                              child: const Text(
+                                                'Failed / Refused',
+                                              ),
                                             ),
                                           ),
                                           const SizedBox(width: 10),
@@ -472,8 +626,13 @@ class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
                                                 order.codAmount,
                                                 order.deliveryOrderNumber,
                                               ),
-                                              style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
-                                              child: const Text('Handover Done'),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor:
+                                                    AppColors.secondary,
+                                              ),
+                                              child: const Text(
+                                                'Handover Done',
+                                              ),
                                             ),
                                           ),
                                         ],

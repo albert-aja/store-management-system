@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../network/api_client.dart';
 import '../../features/auth/providers/auth_provider.dart';
 
 class OfflineActionItem {
@@ -51,10 +50,7 @@ class OfflineActionItem {
     };
   }
 
-  OfflineActionItem copyWith({
-    int? retryCount,
-    String? status,
-  }) {
+  OfflineActionItem copyWith({int? retryCount, String? status}) {
     return OfflineActionItem(
       id: id,
       actionType: actionType,
@@ -172,10 +168,9 @@ class OfflineSyncQueueNotifier extends Notifier<OfflineSyncState> {
         successCount++;
       } catch (e) {
         // Increment retry or keep pending
-        remainingQueue.add(item.copyWith(
-          retryCount: item.retryCount + 1,
-          status: 'PENDING',
-        ));
+        remainingQueue.add(
+          item.copyWith(retryCount: item.retryCount + 1, status: 'PENDING'),
+        );
       }
     }
 
@@ -196,5 +191,6 @@ class OfflineSyncQueueNotifier extends Notifier<OfflineSyncState> {
 }
 
 final offlineSyncProvider =
-    NotifierProvider<OfflineSyncQueueNotifier, OfflineSyncState>(() => OfflineSyncQueueNotifier());
-
+    NotifierProvider<OfflineSyncQueueNotifier, OfflineSyncState>(
+      () => OfflineSyncQueueNotifier(),
+    );

@@ -48,7 +48,8 @@ public class SalesOrderService {
     private final ApprovalRequestRepository approvalRequestRepository;
     private final DocumentNumberingService numberingService;
     private final com.sms.survey.SurveyRepository surveyRepository;
-    private final com.sms.inventory.ReservationService reservationService;`r`n    private final com.sms.finance.FinanceService financeService;
+    private final com.sms.inventory.ReservationService reservationService;
+    private final com.sms.finance.FinanceService financeService;
 
     @Transactional(readOnly = true)
     public List<SalesOrder> search(UUID storeId, UUID customerId, SalesOrderStatus status) {
@@ -251,11 +252,11 @@ public class SalesOrderService {
             payReq.setSalesOrderId(salesOrder.getId());
             payReq.setAmount(dpAmount);
             payReq.setPaymentType(com.sms.finance.PaymentType.DOWN_PAYMENT);
-            payReq.setPaymentMethod(paymentMethod != null && paymentMethod.equalsIgnoreCase("TRANSFER")
-                    ? com.sms.finance.PaymentMethod.TRANSFER
+            payReq.setPaymentMethod(paymentMethod != null && (paymentMethod.equalsIgnoreCase("TRANSFER") || paymentMethod.equalsIgnoreCase("BANK_TRANSFER"))
+                    ? com.sms.finance.PaymentMethod.BANK_TRANSFER
                     : com.sms.finance.PaymentMethod.CASH);
             payReq.setCollectedById(collectorEmployeeId);
-            payReq.setNotes(notes != null ? notes : "DP for SO " + salesOrder.getSalesOrderNumber());
+            payReq.setNotes(notes != null ? notes : "DP for SO " + salesOrder.getNumber());
             financeService.recordPayment(payReq);
         }
 

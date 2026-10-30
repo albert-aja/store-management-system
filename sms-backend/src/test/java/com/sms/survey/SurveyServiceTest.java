@@ -11,6 +11,7 @@ import com.sms.sales.SalesOrder;
 import com.sms.sales.SalesOrderItemRepository;
 import com.sms.sales.SalesOrderRepository;
 import com.sms.sales.SalesOrderStatus;
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -62,5 +63,36 @@ class SurveyServiceTest {
 
         assertThatThrownBy(() -> surveyService.decide(surveyId, true, null))
                 .isInstanceOf(BusinessRuleException.class);
+    }
+
+    @Test
+    void updateAssessment_savesStructuredLocationFields() {
+        UUID surveyId = UUID.randomUUID();
+        Survey survey = new Survey();
+        survey.setStatus(SurveyStatus.PENDING);
+        when(surveyRepository.findById(surveyId)).thenReturn(Optional.of(survey));
+
+        AssessmentRequest req = new AssessmentRequest(
+                BigDecimal.valueOf(5000000),
+                BigDecimal.valueOf(2000000),
+                "None",
+                "Residential house",
+                "Permanent staff",
+                "Neighbors confirmed",
+                "High capacity",
+                BigDecimal.valueOf(-6.2088),
+                BigDecimal.valueOf(106.8456),
+                BigDecimal.valueOf(3.5),
+                BigDecimal.valueOf(1.8),
+                "Narrow entrance gate with ramp"
+        );
+
+        Survey updated = surveyService.updateAssessment(surveyId, req);
+
+        assertThat(updated.getDestinationLatitude()).isEqualTo(BigDecimal.valueOf(-6.2088));
+        assertThat(updated.getDestinationLongitude()).isEqualTo(BigDecimal.valueOf(106.8456));
+        assertThat(updated.getAlleyWidthMeters()).isEqualTo(BigDecimal.valueOf(3.5));
+        assertThat(updated.getStairClearanceMeters()).isEqualTo(BigDecimal.valueOf(1.8));
+        assertThat(updated.getGateAccessNotes()).isEqualTo("Narrow entrance gate with ramp");
     }
 }

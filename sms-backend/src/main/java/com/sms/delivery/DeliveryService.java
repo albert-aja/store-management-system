@@ -4,8 +4,10 @@ import com.sms.common.web.BusinessRuleException;
 import com.sms.common.web.NotFoundException;
 import com.sms.foundation.employee.Employee;
 import com.sms.foundation.employee.EmployeeRepository;
+import com.sms.foundation.employee.EmployeeRoleRepository;
 import com.sms.foundation.employee.EmploymentStatus;
 import com.sms.foundation.numbering.DocumentNumberingService;
+import com.sms.foundation.notification.NotificationService;
 import com.sms.foundation.store.Store;
 import com.sms.foundation.store.StoreRepository;
 import com.sms.inventory.MovementType;
@@ -24,7 +26,9 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -45,6 +49,8 @@ public class DeliveryService {
     private final StockUnitRepository stockUnitRepository;
     private final StockMovementRepository stockMovementRepository;
     private final DocumentNumberingService numberingService;
+    private final EmployeeRoleRepository employeeRoleRepository;
+    private final NotificationService notificationService;
 
     // ── Delivery Trips ────────────────────────────────────────────────────────
 
@@ -245,6 +251,11 @@ public class DeliveryService {
     }
 
     @Transactional(readOnly = true)
+    public UUID getStoreIdForOrder(UUID id) {
+        return getDeliveryOrder(id).getSalesOrder().getStore().getId();
+    }
+
+    @Transactional(readOnly = true)
     public List<DeliveryOrder> searchDeliveryOrders(UUID salesOrderId, UUID tripId, DeliveryOrderStatus status) {
         return deliveryOrderRepository.searchOrders(salesOrderId, tripId, status);
     }
@@ -257,6 +268,51 @@ public class DeliveryService {
     @Transactional(readOnly = true)
     public List<DeliveryOrder> listBySalesOrder(UUID salesOrderId) {
         return deliveryOrderRepository.findBySalesOrderIdOrderByCreatedAtDesc(salesOrderId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DeliveryOrder> listPendingForPicking(UUID storeId) {
+        return deliveryOrderRepository.findPendingForPicking(storeId, DeliveryOrderStatus.PENDING);
+    }
+
+    public DeliveryOrder verifyPacking(UUID orderId, List<String> scannedSerials) {
+        DeliveryOrder order = getDeliveryOrder(orderId);
+        if (order.getStatus() != DeliveryOrderStatus.PENDING) {
+            throw new BusinessRuleException("Packing can only be verified while the order is PENDING");
+        }
+        if (order.getItems().isEmpty()) {
+            throw new BusinessRuleException("Cannot verify packing without manifest items");
+        }
+
+        Set<String> scanned = new HashSet<>();
+        for (String serial : scannedSerials) {
+            if (serial == null || serial.isBlank()) {
+                throw new BusinessRuleException("Scanned serials must not be blank");
+            }
+            if (!scanned.add(serial.trim())) {
+                throw new BusinessRuleException("Duplicate scanned serial: " + serial.trim());
+            }
+        }
+        Set<String> expected = new HashSet<>();
+        for (DeliveryItem item : order.getItems()) {
+            if (item.getSoItemStockUnit() == null || item.getSoItemStockUnit().getStockUnit() == null) {
+                throw new BusinessRuleException("Manifest contains an item without an allocated stock unit");
+            }
+            var unit = item.getSoItemStockUnit().getStockUnit();
+            String serial = unit.getManufacturerSerial();
+            expected.add(serial == null || serial.isBlank() ? unit.getId().toString() : serial);
+        }
+        if (!scanned.equals(expected)) {
+            Set<String> missing = new HashSet<>(expected);
+            missing.removeAll(scanned);
+            Set<String> unexpected = new HashSet<>(scanned);
+            unexpected.removeAll(expected);
+            throw new BusinessRuleException(
+                    "Packing manifest mismatch. Missing: " + missing + "; unexpected: " + unexpected);
+        }
+        order.setPreInspectionPassed(true);
+        order.setPreInspectionNotes("Packing manifest barcode-verified (" + expected.size() + " stock unit(s))");
+        return order;
     }
 
     public DeliveryOrder recordPreInspection(UUID orderId, boolean passed, String notes) {
@@ -321,6 +377,9 @@ public class DeliveryService {
 
         order.setStatus(DeliveryOrderStatus.FAILED);
         order.setFailureReason(request.failureReason());
+        if (request.proofPhotoUrl() != null && !request.proofPhotoUrl().isBlank()) {
+            order.setProofPhotoUrl(request.proofPhotoUrl());
+        }
         if (request.notes() != null) {
             order.setNotes(order.getNotes() != null ? order.getNotes() + " | " + request.notes() : request.notes());
         }
@@ -331,7 +390,23 @@ public class DeliveryService {
             item.setRejectionReason(request.failureReason());
         }
 
+        notifyDispatcher(order);
         return order;
+    }
+
+    private void notifyDispatcher(DeliveryOrder order) {
+        if (order.getSalesOrder() == null || order.getSalesOrder().getStore() == null) return;
+        UUID storeId = order.getSalesOrder().getStore().getId();
+        List<UUID> dispatchers = employeeRoleRepository.findEmployeeIdsByStoreAndPermission(
+                storeId, "DELIVERY_MANAGE", EmploymentStatus.ACTIVE);
+        if (dispatchers.isEmpty()) return;
+        notificationService.create(
+                "DELIVERY_ORDER",
+                order.getId(),
+                "Failed delivery requires rescheduling",
+                "Delivery " + order.getDeliveryOrderNumber() + " failed: "
+                        + order.getFailureReason() + ". Reassign this order to a new trip.",
+                dispatchers);
     }
 
     public DeliveryOrder cancelDeliveryOrder(UUID orderId, String reason) {

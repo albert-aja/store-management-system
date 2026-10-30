@@ -30,4 +30,28 @@ public class Customer extends BaseEntity {
 
     @Column(nullable = false)
     private boolean active = true;
+
+    @Column(name = "mother_maiden_name", length = 150)
+    private String motherMaidenName;
+
+    @Column(name = "birth_date")
+    private java.time.LocalDate birthDate;
+
+    @Column(name = "birth_place", length = 100)
+    private String birthPlace;
+
+    @Column(length = 50, nullable = false)
+    private String segment = "STANDARD";
+
+    @Column(name = "credit_score_grade", length = 5, nullable = false)
+    private String creditScoreGrade = "B";
+
+    @Column(name = "credit_score_points", nullable = false)
+    private int creditScorePoints = 80;
+
+    @Column(name = "total_orders_count", nullable = false)
+    private int totalOrdersCount = 0;
+
+    @Column(name = "clv_amount", nullable = false, precision = 15, scale = 2)
+    private java.math.BigDecimal clvAmount = java.math.BigDecimal.ZERO;
 }
