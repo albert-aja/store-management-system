@@ -32,6 +32,8 @@ import BuildIcon from '@mui/icons-material/Build';
 import VerifiedIcon from '@mui/icons-material/Verified';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import PrintIcon from '@mui/icons-material/Print';
+import { IconButton, Tooltip } from '@mui/material';
 import { useAuthStore } from '../../store/authStore';
 import { useStores } from '../stores/hooks';
 import {
@@ -303,6 +305,20 @@ export default function RepossessionWarrantyPage() {
                           </TableCell>
                           <TableCell>{r.scheduledDate || '-'}</TableCell>
                           <TableCell align="right">
+                            {r.returnType === 'REPOSSESSION' && (
+                              <Tooltip title="Print Formal Repossession Notice (Berita Acara Penarikan)">
+                                <IconButton
+                                  size="small"
+                                  color="warning"
+                                  sx={{ mr: 1 }}
+                                  onClick={() =>
+                                    window.open(`/api/documents/print/repossession-notice/${r.id}`, "_blank")
+                                  }
+                                >
+                                  <PrintIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
                             {r.status === 'SCHEDULED' && (
                               <Button
                                 size="small"

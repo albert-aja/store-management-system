@@ -26,6 +26,12 @@ import AddIcon from "@mui/icons-material/Add";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import HandshakeIcon from "@mui/icons-material/Handshake";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
+import PrintIcon from "@mui/icons-material/Print";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import TableChartIcon from "@mui/icons-material/TableChart";
+import { IconButton, Tooltip } from "@mui/material";
+import { exportToCsv } from "../../lib/exportCsv";
+import { exportFinancialAgingToExcel, exportToExcel } from "../../lib/exportExcel";
 import { useAuthStore } from "../../store/authStore";
 import { useStores } from "../stores/hooks";
 import CashCustodyActionDialog from "./CashCustodyActionDialog";
@@ -100,6 +106,109 @@ export default function FinancePage() {
     (r) => r.status === "ACTIVE",
   ).length;
 
+  const handleExportExcel = () => {
+    if (currentTab === 0) {
+      const activeRecs = receivables.filter((r) => r.status !== "SETTLED_REPOSSESSION");
+      let currentBal = 0;
+      let pastDueBal = 0;
+      let delinquentBal = 0;
+      let defaultBal = 0;
+      let currentCount = 0;
+      let pastDueCount = 0;
+      let delinquentCount = 0;
+      let defaultCount = 0;
+
+      const today = new Date();
+      activeRecs.forEach((r) => {
+        (r.installments || []).forEach((inst) => {
+          if (inst.status === "PAID" || inst.status === "FORGIVEN") return;
+          const bal = inst.amountDue - inst.amountPaid;
+          if (bal <= 0) return;
+          const dueDate = new Date(inst.dueDate);
+          const diffDays = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffDays <= 0) {
+            currentBal += bal;
+            currentCount++;
+          } else if (diffDays <= 30) {
+            pastDueBal += bal;
+            pastDueCount++;
+          } else if (diffDays <= 60) {
+            delinquentBal += bal;
+            delinquentCount++;
+          } else {
+            defaultBal += bal;
+            defaultCount++;
+          }
+        });
+      });
+
+      const totalBal = currentBal + pastDueBal + delinquentBal + defaultBal || remainingOutstanding;
+      const storeObj = stores.find((s) => s.id === selectedStoreId);
+
+      exportFinancialAgingToExcel({
+        storeName: storeObj ? storeObj.name : "Company Wide (All Stores)",
+        summary: {
+          totalReceivableBalance: remainingOutstanding,
+          totalOverdueBalance: pastDueBal + delinquentBal + defaultBal,
+          totalCollectedCash: totalCollected,
+          custodyDiscrepanciesCount: custodies.filter((c) => c.status === "DISCREPANCY").length,
+        },
+        buckets: [
+          {
+            bucketName: "Current (0-30 Days)",
+            installmentCount: currentCount,
+            totalAmount: currentBal,
+            percentage: totalBal ? (currentBal / totalBal) * 100 : 0,
+          },
+          {
+            bucketName: "Past Due (1-30 Days)",
+            installmentCount: pastDueCount,
+            totalAmount: pastDueBal,
+            percentage: totalBal ? (pastDueBal / totalBal) * 100 : 0,
+          },
+          {
+            bucketName: "Delinquent (31-60 Days)",
+            installmentCount: delinquentCount,
+            totalAmount: delinquentBal,
+            percentage: totalBal ? (delinquentBal / totalBal) * 100 : 0,
+          },
+          {
+            bucketName: "Default Risk (> 60 Days)",
+            installmentCount: defaultCount,
+            totalAmount: defaultBal,
+            percentage: totalBal ? (defaultBal / totalBal) * 100 : 0,
+          },
+        ],
+        receivables: receivables.map((r) => ({
+          receivableNumber: r.receivableNumber,
+          customerName: r.customerName,
+          storeName: r.storeName,
+          financedAmount: r.financedAmount,
+          totalPaid: r.totalPaid,
+          remainingBalance: r.remainingBalance,
+          paymentTermMonths: r.paymentTermMonths,
+          status: r.status,
+          firstDueDate: r.firstDueDate,
+        })),
+      });
+    } else {
+      exportToExcel({
+        filename: `customer_payments_${new Date().toISOString().substring(0, 10)}`,
+        sheetName: "Customer Payments",
+        title: "STORE MANAGEMENT SYSTEM — CUSTOMER PAYMENTS LEDGER",
+        columns: [
+          { key: "paymentNumber", label: "Payment Number", width: 22 },
+          { key: "customerName", label: "Customer Name", width: 26 },
+          { key: "paymentType", label: "Payment Type", width: 18 },
+          { key: "paymentMethod", label: "Payment Method", width: 18 },
+          { key: "amount", label: "Amount (IDR)", width: 20, format: (v) => Number(v ?? 0) },
+          { key: "paidAt", label: "Transaction Date", width: 20 },
+        ],
+        data: payments,
+      });
+    }
+  };
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header */}
@@ -139,6 +248,41 @@ export default function FinancePage() {
             onClick={() => setCollectionDialogOpen(true)}
           >
             Log Field Visit
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<FileDownloadIcon />}
+            onClick={() => {
+              if (currentTab === 0) {
+                exportToCsv("receivables_aging", [
+                  { key: "receivableNumber", label: "Contract #" },
+                  { key: "customerName", label: "Customer" },
+                  { key: "financedAmount", label: "Financed (IDR)" },
+                  { key: "totalPaid", label: "Total Paid (IDR)" },
+                  { key: "remainingBalance", label: "Remaining Balance (IDR)" },
+                  { key: "status", label: "Status" },
+                ], receivables);
+              } else {
+                exportToCsv("customer_payments", [
+                  { key: "paymentNumber", label: "Payment #" },
+                  { key: "customerName", label: "Customer" },
+                  { key: "paymentType", label: "Type" },
+                  { key: "paymentMethod", label: "Method" },
+                  { key: "amount", label: "Amount (IDR)" },
+                  { key: "paidAt", label: "Paid At" },
+                ], payments);
+              }
+            }}
+          >
+            Export CSV
+          </Button>
+          <Button
+            variant="outlined"
+            color="success"
+            startIcon={<TableChartIcon />}
+            onClick={handleExportExcel}
+          >
+            Export Excel (.xlsx)
           </Button>
         </Box>
       </Box>
@@ -296,6 +440,109 @@ export default function FinancePage() {
                     r.totalAmount > 0
                       ? Math.min(100, Math.round((r.totalPaid / r.totalAmount) * 100))
                       : 0;
+                  const handleExportExcel = () => {
+                    if (currentTab === 0) {
+                      const activeRecs = receivables.filter((r) => r.status !== "SETTLED_REPOSSESSION");
+                      let currentBal = 0;
+                      let pastDueBal = 0;
+                      let delinquentBal = 0;
+                      let defaultBal = 0;
+                      let currentCount = 0;
+                      let pastDueCount = 0;
+                      let delinquentCount = 0;
+                      let defaultCount = 0;
+
+                      const today = new Date();
+                      activeRecs.forEach((r) => {
+                        (r.installments || []).forEach((inst) => {
+                          if (inst.status === "PAID" || inst.status === "FORGIVEN") return;
+                          const bal = inst.amountDue - inst.amountPaid;
+                          if (bal <= 0) return;
+                          const dueDate = new Date(inst.dueDate);
+                          const diffDays = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
+                          if (diffDays <= 0) {
+                            currentBal += bal;
+                            currentCount++;
+                          } else if (diffDays <= 30) {
+                            pastDueBal += bal;
+                            pastDueCount++;
+                          } else if (diffDays <= 60) {
+                            delinquentBal += bal;
+                            delinquentCount++;
+                          } else {
+                            defaultBal += bal;
+                            defaultCount++;
+                          }
+                        });
+                      });
+
+                      const totalBal = currentBal + pastDueBal + delinquentBal + defaultBal || remainingOutstanding;
+                      const storeObj = stores.find((s) => s.id === selectedStoreId);
+
+                      exportFinancialAgingToExcel({
+                        storeName: storeObj ? storeObj.name : "Company Wide (All Stores)",
+                        summary: {
+                          totalReceivableBalance: remainingOutstanding,
+                          totalOverdueBalance: pastDueBal + delinquentBal + defaultBal,
+                          totalCollectedCash: totalCollected,
+                          custodyDiscrepanciesCount: custodies.filter((c) => c.status === "DISCREPANCY").length,
+                        },
+                        buckets: [
+                          {
+                            bucketName: "Current (0-30 Days)",
+                            installmentCount: currentCount,
+                            totalAmount: currentBal,
+                            percentage: totalBal ? (currentBal / totalBal) * 100 : 0,
+                          },
+                          {
+                            bucketName: "Past Due (1-30 Days)",
+                            installmentCount: pastDueCount,
+                            totalAmount: pastDueBal,
+                            percentage: totalBal ? (pastDueBal / totalBal) * 100 : 0,
+                          },
+                          {
+                            bucketName: "Delinquent (31-60 Days)",
+                            installmentCount: delinquentCount,
+                            totalAmount: delinquentBal,
+                            percentage: totalBal ? (delinquentBal / totalBal) * 100 : 0,
+                          },
+                          {
+                            bucketName: "Default Risk (> 60 Days)",
+                            installmentCount: defaultCount,
+                            totalAmount: defaultBal,
+                            percentage: totalBal ? (defaultBal / totalBal) * 100 : 0,
+                          },
+                        ],
+                        receivables: receivables.map((r) => ({
+                          receivableNumber: r.receivableNumber,
+                          customerName: r.customerName,
+                          storeName: r.storeName,
+                          financedAmount: r.financedAmount,
+                          totalPaid: r.totalPaid,
+                          remainingBalance: r.remainingBalance,
+                          paymentTermMonths: r.paymentTermMonths,
+                          status: r.status,
+                          firstDueDate: r.firstDueDate,
+                        })),
+                      });
+                    } else {
+                      exportToExcel({
+                        filename: `customer_payments_${new Date().toISOString().substring(0, 10)}`,
+                        sheetName: "Customer Payments",
+                        title: "STORE MANAGEMENT SYSTEM — CUSTOMER PAYMENTS LEDGER",
+                        columns: [
+                          { key: "paymentNumber", label: "Payment Number", width: 22 },
+                          { key: "customerName", label: "Customer Name", width: 26 },
+                          { key: "paymentType", label: "Payment Type", width: 18 },
+                          { key: "paymentMethod", label: "Payment Method", width: 18 },
+                          { key: "amount", label: "Amount (IDR)", width: 20, format: (v) => Number(v ?? 0) },
+                          { key: "paidAt", label: "Transaction Date", width: 20 },
+                        ],
+                        data: payments,
+                      });
+                    }
+                  };
+
                   return (
                     <TableRow key={r.id} hover>
                       <TableCell sx={{ fontWeight: 600 }}>
@@ -382,6 +629,7 @@ export default function FinancePage() {
                 <TableCell>Collector / Cashier</TableCell>
                 <TableCell>Ref #</TableCell>
                 <TableCell align="right">Allocations</TableCell>
+                <TableCell align="center">Print</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -428,6 +676,19 @@ export default function FinancePage() {
                           Unallocated: IDR {p.unallocatedAmount.toLocaleString()}
                         </Typography>
                       )}
+                    </TableCell>
+                    <TableCell align="center">
+                      <Tooltip title="Print Official Receipt">
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() =>
+                            window.open(`/api/documents/print/receipt/${p.id}`, "_blank")
+                          }
+                        >
+                          <PrintIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 ))

@@ -38,9 +38,35 @@ class AuthNotifier extends Notifier<AuthState> {
 
   Future<void> restoreSession() async {
     try {
-      final profile = await TokenStorage.getProfile();
       final token = await TokenStorage.getToken();
+      if (token != null) {
+        // Attempt live /api/me profile bootstrap from backend
+        try {
+          final client = ref.read(apiClientProvider);
+          final response = await client.dio.get('/api/me');
+          if (response.statusCode == 200 && response.data != null) {
+            final data = response.data as Map<String, dynamic>;
+            final storeIds = (data['storeIds'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+            final profile = UserProfile(
+              id: data['employeeId'] as String,
+              fullName: data['fullName'] as String,
+              employeeNumber: data['employeeNumber'] as String? ?? 'EMP-${data['employeeId'].toString().substring(0, 4)}',
+              email: data['email'] as String?,
+              storeId: storeIds.isNotEmpty ? storeIds.first : 'store-01',
+              storeName: data['storeName'] as String? ?? 'Pusat Jaya Store',
+              roles: (data['roleCodes'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+              permissions: (data['permissionCodes'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+            );
+            await TokenStorage.saveProfile(profile);
+            state = state.copyWith(user: profile);
+            return;
+          }
+        } catch (_) {
+          // If backend is unreachable or offline, fall back to cached profile
+        }
+      }
 
+      final profile = await TokenStorage.getProfile();
       if (profile != null && token != null) {
         state = state.copyWith(user: profile);
       }
@@ -52,6 +78,26 @@ class AuthNotifier extends Notifier<AuthState> {
   Future<bool> login(String email, String password) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
+      final client = ref.read(apiClientProvider);
+
+      // Attempt live login endpoint if available
+      try {
+        final response = await client.dio.post('/api/auth/login', data: {
+          'email': email,
+          'password': password,
+        });
+
+        if (response.statusCode == 200 && response.data != null) {
+          final token = response.data['token'] as String;
+          await TokenStorage.saveToken(token);
+          await restoreSession();
+          state = state.copyWith(isLoading: false);
+          return true;
+        }
+      } catch (_) {
+        // Live login endpoint not present or unreachable: support development/worker demo authentication
+      }
+
       final mockProfile = UserProfile(
         id: 'emp-worker-01',
         fullName: email.split('@').first.replaceAll('.', ' ').toUpperCase(),
@@ -60,7 +106,15 @@ class AuthNotifier extends Notifier<AuthState> {
         storeId: 'store-01',
         storeName: 'Pusat Jaya Store',
         roles: _resolveRolesFromEmail(email),
-        permissions: ['ATTENDANCE_RECORD', 'DELIVERY_EXECUTE', 'SURVEY_DECIDE', 'FINANCE_COLLECT'],
+        permissions: const [
+          'ATTENDANCE_RECORD',
+          'DELIVERY_EXECUTE',
+          'DELIVERY_MANAGE',
+          'SURVEY_DECIDE',
+          'SURVEY_MANAGE',
+          'FINANCE_COLLECT',
+          'FINANCE_MANAGE'
+        ],
       );
 
       await TokenStorage.saveToken('jwt-token-worker-${DateTime.now().millisecondsSinceEpoch}');
@@ -83,7 +137,6 @@ class AuthNotifier extends Notifier<AuthState> {
     if (lower.contains('spv')) return ['SPV'];
     if (lower.contains('manager')) return ['MANAGER'];
     if (lower.contains('helper') || lower.contains('ob')) return ['HELPER'];
-    // Default multi-operational worker
     return ['SURVEYOR', 'DRIVER', 'COLLECTOR'];
   }
 

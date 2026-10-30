@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Box, Button, Switch, TextField, Typography } from "@mui/material";
 import { DataGrid, type GridColDef } from "@mui/x-data-grid";
 import { useSnackbar } from "notistack";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
+import { exportToCsv } from "../../lib/exportCsv";
 import CustomerFormDialog from "./CustomerFormDialog";
 import {
   useCreateCustomer,
@@ -84,17 +86,38 @@ export default function CustomerListPage() {
         }}
       >
         <Typography variant="h5">Customers</Typography>
-        {canManage && (
+        <Box sx={{ display: "flex", gap: 1 }}>
           <Button
-            variant="contained"
-            onClick={() => {
-              setEditing(null);
-              setDialogOpen(true);
-            }}
+            variant="outlined"
+            startIcon={<FileDownloadIcon />}
+            onClick={() =>
+              exportToCsv(
+                "customers_directory",
+                [
+                  { key: "fullName", label: "Full Name" },
+                  { key: "nik", label: "NIK" },
+                  { key: "primaryPhone", label: "Phone" },
+                  { key: "primaryEmail", label: "Email" },
+                  { key: "active", label: "Active" },
+                ],
+                data ?? [],
+              )
+            }
           >
-            New Customer
+            Export CSV
           </Button>
-        )}
+          {canManage && (
+            <Button
+              variant="contained"
+              onClick={() => {
+                setEditing(null);
+                setDialogOpen(true);
+              }}
+            >
+              New Customer
+            </Button>
+          )}
+        </Box>
       </Box>
       <TextField
         label="Search by name, NIK, or phone"

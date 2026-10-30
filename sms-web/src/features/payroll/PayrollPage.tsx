@@ -33,6 +33,8 @@ import LockIcon from '@mui/icons-material/Lock';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import ScheduleIcon from '@mui/icons-material/Schedule';
+import PrintIcon from '@mui/icons-material/Print';
+import { IconButton, Tooltip } from '@mui/material';
 import TimeToLeaveIcon from '@mui/icons-material/TimeToLeave';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useAuthStore } from '../../store/authStore';
@@ -608,16 +610,29 @@ export default function PayrollPage() {
                             />
                           </TableCell>
                           <TableCell align="right">
-                            {canManage && s.paymentStatus !== 'PAID' && (
-                              <Button
-                                size="small"
-                                variant="contained"
-                                color="success"
-                                onClick={() => handlePaySlip(s.id)}
-                              >
-                                Disburse
-                              </Button>
-                            )}
+                            <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", alignItems: "center" }}>
+                              <Tooltip title="Print Official Payroll Slip (Slip Gaji)">
+                                <IconButton
+                                  size="small"
+                                  color="primary"
+                                  onClick={() =>
+                                    window.open(`/api/documents/print/payroll-slip/${s.id}`, "_blank")
+                                  }
+                                >
+                                  <PrintIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                              {canManage && s.paymentStatus !== 'PAID' && (
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color="success"
+                                  onClick={() => handlePaySlip(s.id)}
+                                >
+                                  Disburse
+                                </Button>
+                              )}
+                            </Box>
                           </TableCell>
                         </TableRow>
                       ))

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import {
   Accordion,
   AccordionDetails,
@@ -37,6 +37,7 @@ import {
   useRecordPreInspection,
 } from "./hooks";
 import type { DeliveryOrder } from "./types";
+import DeliveryRouteMap from "./DeliveryRouteMap";
 
 // ── Modals ──────────────────────────────────────────────────────────────────
 
@@ -493,6 +494,9 @@ export default function DeliveryTripDetailPage() {
           )}
         </Box>
       )}
+
+      {/* Interactive Route Map */}
+      <DeliveryRouteMap trip={trip} orders={orders} />
 
       {/* Assigned Delivery Orders */}
       <Paper sx={{ p: 2 }}>

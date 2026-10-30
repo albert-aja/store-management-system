@@ -1,55 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../collection/providers/collection_provider.dart';
+import '../../delivery/providers/delivery_provider.dart';
+import '../../surveys/providers/survey_provider.dart';
 
-class MyWorkScreen extends StatefulWidget {
+class MyWorkScreen extends ConsumerStatefulWidget {
   const MyWorkScreen({super.key});
 
   @override
-  State<MyWorkScreen> createState() => _MyWorkScreenState();
+  ConsumerState<MyWorkScreen> createState() => _MyWorkScreenState();
 }
 
-class _MyWorkScreenState extends State<MyWorkScreen> {
+class _MyWorkScreenState extends ConsumerState<MyWorkScreen> {
   String _selectedFilter = 'ALL';
-
-  final List<Map<String, dynamic>> _tasks = [
-    {
-      'id': 'task-01',
-      'title': 'Credit Survey: Bambang Pamungkas',
-      'type': 'SURVEY',
-      'ref': 'SO/JKT/10/2026/0014',
-      'priority': 'HIGH',
-      'status': 'PENDING',
-      'route': '/survey/survey-101',
-    },
-    {
-      'id': 'task-02',
-      'title': 'Delivery Trip #TRIP-082 (3 Destinations Remaining)',
-      'type': 'DELIVERY',
-      'ref': 'TRIP-082',
-      'priority': 'MEDIUM',
-      'status': 'IN_PROGRESS',
-      'route': '/delivery/trip-082',
-    },
-    {
-      'id': 'task-03',
-      'title': 'Field Collection Visit: Hendra Wijaya',
-      'type': 'COLLECTION',
-      'ref': 'REC/JKT/10/2026/0088',
-      'priority': 'HIGH',
-      'status': 'PENDING',
-      'route': '/collection/visit-201',
-    },
-    {
-      'id': 'task-04',
-      'title': 'Helper Loading: Warehouse Truck Prep for Trip #082',
-      'type': 'HELPER',
-      'ref': 'WH-TASK-09',
-      'priority': 'LOW',
-      'status': 'COMPLETED',
-      'route': null,
-    },
-  ];
 
   Color _getPriorityColor(String p) {
     switch (p) {
@@ -58,20 +23,101 @@ class _MyWorkScreenState extends State<MyWorkScreen> {
       case 'MEDIUM':
         return AppColors.accent;
       default:
+        return AppColors.secondary;
+    }
+  }
+
+  Color _getStatusColor(String s) {
+    switch (s) {
+      case 'COMPLETED':
+      case 'DELIVERED':
+        return AppColors.secondary;
+      case 'IN_PROGRESS':
+      case 'DISPATCHED':
+        return AppColors.accent;
+      default:
         return AppColors.textSecondary;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _tasks.where((t) {
-      if (_selectedFilter == 'ALL') return true;
-      return t['status'] == _selectedFilter;
-    }).toList();
+    final surveys = ref.watch(surveyListProvider).mySurveys;
+    final deliveryOrders = ref.watch(deliveryProvider).orders;
+    final collectionTasks = ref.watch(collectionProvider).tasks;
+
+    final List<Map<String, dynamic>> allTasks = [];
+
+    // Add Surveys
+    for (var s in surveys) {
+      allTasks.add({
+        'id': s.id,
+        'title': 'Credit Survey: Customer #${s.salesOrderId.substring(0, 8)}',
+        'type': 'SURVEY',
+        'ref': 'SO-${s.salesOrderId.substring(0, 8)}',
+        'priority': 'HIGH',
+        'status': s.status,
+        'route': '/survey/${s.id}',
+      });
+    }
+
+    // Add Delivery Stops
+    for (var d in deliveryOrders) {
+      allTasks.add({
+        'id': d.id,
+        'title': 'Delivery: ${d.recipientName} (${d.itemName ?? 'Goods'})',
+        'type': 'DELIVERY',
+        'ref': d.deliveryOrderNumber,
+        'priority': d.codAmount > 0 ? 'HIGH' : 'MEDIUM',
+        'status': d.status,
+        'route': '/delivery/${d.tripId ?? 'active-trip'}',
+      });
+    }
+
+    // Add Collection Visits
+    for (var c in collectionTasks) {
+      allTasks.add({
+        'id': c.id,
+        'title': 'Field Collection: ${c.customerName}',
+        'type': 'COLLECTION',
+        'ref': c.receivableNumber,
+        'priority': c.daysOverdue > 10 ? 'HIGH' : 'MEDIUM',
+        'status': 'PENDING',
+        'route': '/collection/${c.id}',
+      });
+    }
+
+    // Fallback if empty
+    if (allTasks.isEmpty) {
+      allTasks.add({
+        'id': 'task-default',
+        'title': 'Warehouse Truck Prep & Helper Inspection',
+        'type': 'HELPER',
+        'ref': 'WH-TASK-01',
+        'priority': 'LOW',
+        'status': 'COMPLETED',
+        'route': null,
+      });
+    }
+
+    final filteredTasks = _selectedFilter == 'ALL'
+        ? allTasks
+        : allTasks.where((t) => t['type'] == _selectedFilter).toList();
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Work & Tasks'),
+        title: const Text('My Work & Task Queue'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: () {
+              ref.read(surveyListProvider.notifier).loadMySurveys();
+              ref.read(deliveryProvider.notifier).loadDriverTrips();
+              ref.read(collectionProvider.notifier).loadCollectionData();
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -81,144 +127,147 @@ class _MyWorkScreenState extends State<MyWorkScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
-                _buildFilterChip('ALL', 'All Tasks (${_tasks.length})'),
+                _buildFilterChip('ALL', 'All Tasks'),
                 const SizedBox(width: 8),
-                _buildFilterChip('PENDING', 'Pending'),
+                _buildFilterChip('DELIVERY', 'Deliveries'),
                 const SizedBox(width: 8),
-                _buildFilterChip('IN_PROGRESS', 'In Progress'),
+                _buildFilterChip('SURVEY', 'Surveys'),
                 const SizedBox(width: 8),
-                _buildFilterChip('COMPLETED', 'Completed'),
+                _buildFilterChip('COLLECTION', 'Collections'),
+                const SizedBox(width: 8),
+                _buildFilterChip('HELPER', 'Helper / Floor'),
               ],
             ),
           ),
 
+          // Tasks List
           Expanded(
-            child: ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              itemCount: filtered.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
-              itemBuilder: (context, index) {
-                final task = filtered[index];
-                return Card(
-                  child: InkWell(
-                    onTap: () {
-                      final route = task['route'] as String?;
-                      if (route != null) {
-                        context.push(route);
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Task already completed')),
-                        );
-                      }
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              _getTaskIcon(task['type'] as String),
-                              color: AppColors.primary,
-                              size: 22,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+            child: filteredTasks.isEmpty
+                ? const Center(child: Text('No operational tasks for this filter.'))
+                : ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    itemCount: filteredTasks.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final task = filteredTasks[index];
+                      final pColor = _getPriorityColor(task['priority'] as String);
+                      final sColor = _getStatusColor(task['status'] as String);
+
+                      return Card(
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: task['route'] != null
+                              ? () => context.push(task['route'] as String)
+                              : null,
+                          child: Padding(
+                            padding: const EdgeInsets.all(14),
+                            child: Row(
                               children: [
-                                Row(
+                                // Priority indicator strip
+                                Container(
+                                  width: 4,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: pColor,
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.primary.withValues(alpha: 0.1),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              task['type'] as String,
+                                              style: const TextStyle(
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.w700,
+                                                color: AppColors.primary,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            task['ref'] as String,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.textSecondary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        task['title'] as String,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                       decoration: BoxDecoration(
-                                        color: _getPriorityColor(task['priority'] as String).withValues(alpha: 0.12),
+                                        color: sColor.withValues(alpha: 0.15),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
-                                        task['priority'] as String,
+                                        task['status'] as String,
                                         style: TextStyle(
-                                          fontSize: 9,
+                                          fontSize: 10,
                                           fontWeight: FontWeight.w700,
-                                          color: _getPriorityColor(task['priority'] as String),
+                                          color: sColor,
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      task['ref'] as String,
-                                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                                    ),
+                                    if (task['route'] != null) ...[
+                                      const SizedBox(height: 6),
+                                      const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textSecondary),
+                                    ],
                                   ],
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  task['title'] as String,
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Status: ${task['status']}',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: task['status'] == 'COMPLETED'
-                                        ? AppColors.secondary
-                                        : AppColors.textSecondary,
-                                  ),
                                 ),
                               ],
                             ),
                           ),
-                          const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
-                        ],
-                      ),
-                    ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
     );
   }
 
-  IconData _getTaskIcon(String type) {
-    switch (type) {
-      case 'SURVEY':
-        return Icons.assignment_outlined;
-      case 'DELIVERY':
-        return Icons.local_shipping_outlined;
-      case 'COLLECTION':
-        return Icons.payments_outlined;
-      case 'HELPER':
-        return Icons.handyman_outlined;
-      default:
-        return Icons.task_alt_rounded;
-    }
-  }
-
-  Widget _buildFilterChip(String key, String label) {
-    final isSelected = _selectedFilter == key;
+  Widget _buildFilterChip(String value, String label) {
+    final isSelected = _selectedFilter == value;
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
+      onSelected: (selected) {
+        if (selected) setState(() => _selectedFilter = value);
+      },
+      selectedColor: AppColors.primary,
       labelStyle: TextStyle(
         fontSize: 12,
-        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+        fontWeight: FontWeight.w600,
         color: isSelected ? Colors.white : AppColors.textPrimary,
       ),
-      selectedColor: AppColors.primary,
-      backgroundColor: Colors.white,
-      side: BorderSide(color: isSelected ? AppColors.primary : AppColors.cardBorder),
-      onSelected: (_) => setState(() => _selectedFilter = key),
     );
   }
 }

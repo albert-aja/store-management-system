@@ -1,15 +1,23 @@
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import '../storage/token_storage.dart';
 
 class ApiClient {
-  static const String defaultBaseUrl = 'http://10.0.2.2:8080';
+  static String get defaultBaseUrl {
+    if (kIsWeb) return 'http://localhost:8080';
+    try {
+      if (Platform.isAndroid) return 'http://10.0.2.2:8080';
+    } catch (_) {}
+    return 'http://localhost:8080';
+  }
 
   final Dio _dio;
 
-  ApiClient({String baseUrl = defaultBaseUrl})
+  ApiClient({String? baseUrl})
       : _dio = Dio(
           BaseOptions(
-            baseUrl: baseUrl,
+            baseUrl: baseUrl ?? defaultBaseUrl,
             connectTimeout: const Duration(seconds: 15),
             receiveTimeout: const Duration(seconds: 15),
             headers: {

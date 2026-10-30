@@ -19,6 +19,7 @@ import DeliveryOrderPanel from "../delivery/DeliveryOrderPanel";
 import ReceivableSalesOrderPanel from "../finance/ReceivableSalesOrderPanel";
 import { usePaymentPlans, useStorePrices } from "../pricing/hooks";
 import { useProductSearch, useVariants } from "../products/hooks";
+import PrintIcon from "@mui/icons-material/Print";
 import SurveyPanel from "../surveys/SurveyPanel";
 import {
   useAddItem,
@@ -71,20 +72,34 @@ export default function SalesOrderDetailPage() {
 
   return (
     <Box>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
-        <Typography variant="h5">{so.number ?? "Draft Sales Order"}</Typography>
-        <Chip
-          label={so.status}
-          color={
-            so.status === "RELEASED"
-              ? "success"
-              : so.status === "REJECTED" || so.status === "CANCELLED"
-                ? "error"
-                : "default"
-          }
-        />
-        {so.requiresPriceApproval && (
-          <Chip label="Negotiated price" color="warning" size="small" />
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1, flexWrap: "wrap", gap: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Typography variant="h5">{so.number ?? "Draft Sales Order"}</Typography>
+          <Chip
+            label={so.status}
+            color={
+              so.status === "RELEASED" || so.status === "CONFIRMED"
+                ? "success"
+                : so.status === "REJECTED" || so.status === "CANCELLED"
+                  ? "error"
+                  : "default"
+            }
+          />
+          {so.requiresPriceApproval && (
+            <Chip label="Negotiated price" color="warning" size="small" />
+          )}
+        </Box>
+        {(so.status === "RELEASED" || so.status === "CONFIRMED") && (
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<PrintIcon />}
+            onClick={() =>
+              window.open(`/api/documents/print/credit-agreement/${so.id}`, "_blank")
+            }
+          >
+            Print Credit Agreement
+          </Button>
         )}
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>

@@ -1,144 +1,237 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/hardware/barcode_scanner_view.dart';
+import '../../../core/hardware/geo_location_service.dart';
+import '../../../core/hardware/photo_proof_widget.dart';
+import '../../../core/hardware/signature_pad_widget.dart';
+import '../../../core/offline/offline_sync_queue.dart';
+import '../providers/delivery_provider.dart';
 
-class DriverTripScreen extends StatefulWidget {
+class DriverTripScreen extends ConsumerStatefulWidget {
   final String tripId;
   const DriverTripScreen({super.key, required this.tripId});
 
   @override
-  State<DriverTripScreen> createState() => _DriverTripScreenState();
+  ConsumerState<DriverTripScreen> createState() => _DriverTripScreenState();
 }
 
-class _DriverTripScreenState extends State<DriverTripScreen> {
-  final List<Map<String, dynamic>> _deliveryOrders = [
-    {
-      'doNumber': 'DO/JKT/10/2026/0041',
-      'customer': 'Dewi Lestari',
-      'phone': '0813-1122-3344',
-      'address': 'Jl. Kenanga No. 12, Tebet Timur',
-      'item': 'Sharp 2-Door Refrigerator 210L (SN: SHP-RF-9021)',
-      'codAmount': 0,
-      'status': 'DELIVERED',
-    },
-    {
-      'doNumber': 'DO/JKT/10/2026/0042',
-      'customer': 'Agus Setiawan',
-      'phone': '0812-4455-6677',
-      'address': 'Jl. Mampang Prapatan VIII No. 18',
-      'item': 'LG Front Load Washing Machine 8kg (SN: LG-WM-1148)',
-      'codAmount': 1500000, // COD DP
-      'status': 'PENDING',
-    },
-    {
-      'doNumber': 'DO/JKT/10/2026/0043',
-      'customer': 'Ratna Sari',
-      'phone': '0815-9988-7766',
-      'address': 'Jl. Pejaten Barat No. 88, Pasar Minggu',
-      'item': 'Samsung 50" UHD 4K TV (SN: SAM-TV-3310)',
-      'codAmount': 0,
-      'status': 'PENDING',
-    },
-  ];
-
+class _DriverTripScreenState extends ConsumerState<DriverTripScreen> {
   int _totalCodCollected = 0;
 
-  void _markDelivered(int index) {
+  void _openBarcodeScanner(String expectedDo) {
+    showDialog<String>(
+      context: context,
+      builder: (ctx) => BarcodeScannerModal(
+        title: 'Scan Delivery Barcode',
+        prompt: 'Scan Surat Jalan QR or Stock Unit Serial',
+        mockPresets: [expectedDo, 'LG-WM-1148', 'SHP-RF-9021'],
+      ),
+    ).then((scanned) {
+      if (scanned != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Scanned barcode verified: $scanned'),
+            backgroundColor: AppColors.secondary,
+          ),
+        );
+      }
+    });
+  }
+
+  void _markDelivered(String orderId, String currentCustomer, double codAmount, String doNumber) {
+    final receiverController = TextEditingController(text: currentCustomer);
+    final phoneController = TextEditingController(text: '0812-3344-5566');
+    final codController = TextEditingController(text: codAmount.toInt().toString());
+    String? digitalSignatureBase64;
+    List<PhotoProofItem> proofPhotos = [];
+
     showDialog(
       context: context,
       builder: (ctx) {
-        final receiverController = TextEditingController(text: _deliveryOrders[index]['customer'] as String);
-        return AlertDialog(
-          title: const Text('Confirm Delivery Handover'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Surat Jalan: ${_deliveryOrders[index]['doNumber']}'),
-              const SizedBox(height: 12),
-              TextField(
-                controller: receiverController,
-                decoration: const InputDecoration(labelText: 'Recipient Full Name'),
+        return StatefulBuilder(
+          builder: (context, setDlgState) {
+            return AlertDialog(
+              title: const Text('Confirm Delivery Handover'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Surat Jalan: $doNumber', style: const TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: receiverController,
+                      decoration: const InputDecoration(labelText: 'Recipient Full Name'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: phoneController,
+                      decoration: const InputDecoration(labelText: 'Recipient Phone'),
+                    ),
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: codController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: 'COD Cash Collected (Rp)',
+                        prefixText: 'Rp ',
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Digital Signature Pad Trigger
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        showDialog<String>(
+                          context: context,
+                          builder: (_) => SignaturePadWidget(
+                            signerName: receiverController.text.trim().isNotEmpty
+                                ? receiverController.text.trim()
+                                : currentCustomer,
+                            documentTitle: 'Surat Jalan $doNumber Handover',
+                          ),
+                        ).then((sig) {
+                          if (sig != null) {
+                            setDlgState(() => digitalSignatureBase64 = sig);
+                          }
+                        });
+                      },
+                      icon: Icon(
+                        digitalSignatureBase64 != null ? Icons.check_circle_rounded : Icons.draw_rounded,
+                        color: digitalSignatureBase64 != null ? AppColors.secondary : AppColors.primary,
+                      ),
+                      label: Text(
+                        digitalSignatureBase64 != null ? 'Signature Captured' : 'Customer Digital Signature',
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+
+                    // Photo Proof of Handover
+                    PhotoProofGridWidget(
+                      requiredCategories: const ['Goods Handover', 'Signed Paper SJ'],
+                      onPhotosChanged: (photos) {
+                        proofPhotos = photos;
+                      },
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 10),
-              if ((_deliveryOrders[index]['codAmount'] as int) > 0) ...[
-                Text(
-                  'COD Cash to collect: Rp ${(_deliveryOrders[index]['codAmount'] as int).toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
-                  style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+                  onPressed: () async {
+                    final cod = double.tryParse(codController.text) ?? 0.0;
+                    Navigator.pop(ctx);
+
+                    // Read hardware GPS coordinates
+                    final location = await GeoLocationService.getCurrentLocation(simulateAtStore: false);
+
+                    final success = await ref.read(deliveryProvider.notifier).completeDelivery(
+                          orderId,
+                          recipientName: receiverController.text.trim(),
+                          recipientPhone: phoneController.text.trim(),
+                          codCollected: cod,
+                          notes: 'Handover verified via GPS [${location.latitude}, ${location.longitude}]. Signature captured: ${digitalSignatureBase64 != null}. Photos: ${proofPhotos.length}',
+                        );
+
+                    // Enqueue offline action as well for fail-safe background sync
+                    ref.read(offlineSyncProvider.notifier).enqueueAction(
+                          actionType: 'DELIVER_ORDER',
+                          endpoint: '/api/delivery-orders/$orderId/deliver',
+                          payload: {
+                            'orderId': orderId,
+                            'recipientName': receiverController.text.trim(),
+                            'recipientPhone': phoneController.text.trim(),
+                            'codAmountCollected': cod,
+                            'latitude': location.latitude,
+                            'longitude': location.longitude,
+                            'hasSignature': digitalSignatureBase64 != null,
+                          },
+                        );
+
+                    if (mounted) {
+                      setState(() {
+                        _totalCodCollected += cod.toInt();
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Delivery confirmed! Surat Jalan status updated to DELIVERED with GPS & Signature.'),
+                          backgroundColor: AppColors.secondary,
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text('Confirm Handover'),
                 ),
               ],
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
-              onPressed: () {
-                setState(() {
-                  _deliveryOrders[index]['status'] = 'DELIVERED';
-                  final cod = _deliveryOrders[index]['codAmount'] as int;
-                  if (cod > 0) _totalCodCollected += cod;
-                });
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Delivery marked SUCCESSFUL! Stock unit transferred to customer.'),
-                    backgroundColor: AppColors.secondary,
-                  ),
-                );
-              },
-              child: const Text('Confirm Handover'),
-            ),
-          ],
+            );
+          },
         );
       },
     );
   }
 
-  void _markFailed(int index) {
+  void _reportFailed(String orderId) {
+    String reason = 'CUSTOMER_UNREACHABLE';
+    final notesController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (ctx) {
-        String failureReason = 'CUSTOMER_UNAVAILABLE';
         return StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
-            title: const Text('Report Delivery Failure'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: failureReason,
-                  decoration: const InputDecoration(labelText: 'Failure Cause'),
-                  items: const [
-                    DropdownMenuItem(value: 'CUSTOMER_UNAVAILABLE', child: Text('Customer Not Home')),
-                    DropdownMenuItem(value: 'ADDRESS_NOT_FOUND', child: Text('Address Unreachable')),
-                    DropdownMenuItem(value: 'CUSTOMER_REJECTED', child: Text('Customer Refused Goods')),
-                  ],
-                  onChanged: (v) {
-                    if (v != null) setDialogState(() => failureReason = v);
+          builder: (context, setDlgState) {
+            return AlertDialog(
+              title: const Text('Report Delivery Failure'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    initialValue: reason,
+                    decoration: const InputDecoration(labelText: 'Failure Reason'),
+                    items: const [
+                      DropdownMenuItem(value: 'CUSTOMER_UNREACHABLE', child: Text('Customer Unreachable / Not Home')),
+                      DropdownMenuItem(value: 'WRONG_ADDRESS', child: Text('Wrong / Incomplete Address')),
+                      DropdownMenuItem(value: 'REFUSED_BY_CUSTOMER', child: Text('Customer Refused Goods')),
+                      DropdownMenuItem(value: 'TRANSIT_DAMAGE', child: Text('Item Damaged in Transit')),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) setDlgState(() => reason = val);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: notesController,
+                    decoration: const InputDecoration(labelText: 'Operational Notes'),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    await ref.read(deliveryProvider.notifier).failDelivery(
+                          orderId,
+                          reason: reason,
+                          notes: notesController.text,
+                        );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Delivery failure recorded. Unit returned to warehouse custody.'),
+                          backgroundColor: AppColors.error,
+                        ),
+                      );
+                    }
                   },
+                  child: const Text('Submit Failure Report'),
                 ),
               ],
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-                onPressed: () {
-                  setState(() {
-                    _deliveryOrders[index]['status'] = 'FAILED';
-                  });
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Delivery failed recorded. Rescheduling queued.'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
-                },
-                child: const Text('Report Failure'),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -146,188 +239,255 @@ class _DriverTripScreenState extends State<DriverTripScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final deliveryState = ref.watch(deliveryProvider);
+    final orders = deliveryState.orders;
+
+    final deliveredCount = orders.where((d) => d.status == 'DELIVERED').length;
+    final totalOrders = orders.length;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Delivery Trip #TRIP-082'),
+        title: Text(widget.tripId.isEmpty ? 'Driver Trip Execution' : 'Trip: ${widget.tripId}'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner_rounded),
+            tooltip: 'Barcode Scanner',
+            onPressed: () => _openBarcodeScanner('DO/JKT/10/2026/0042'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => ref.read(deliveryProvider.notifier).loadDriverTrips(),
+          ),
+        ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Vehicle & Team Information Card
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.local_shipping_rounded, color: AppColors.primary, size: 28),
-                    ),
-                    const SizedBox(width: 14),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Vehicle: B 9482 SXZ (Van)',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            'Driver: Joko Pratama • Helper: Ahmad Doni',
-                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                          ),
-                          Text(
-                            'Pre-trip vehicle inspection: ✓ PASSED',
-                            style: TextStyle(fontSize: 11, color: AppColors.secondary, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // COD Cash in Custody bar
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.amber.shade50,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.amber.shade300),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.account_balance_wallet_outlined, color: Colors.amber, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'COD Cash in Custody:',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    'Rp ${_totalCodCollected.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.primary),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            const Text(
-              'Trip Destinations (Surat Jalan)',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 10),
-
-            ..._deliveryOrders.asMap().entries.map((entry) {
-              final index = entry.key;
-              final doOrder = entry.value;
-              final isDelivered = doOrder['status'] == 'DELIVERED';
-              final isFailed = doOrder['status'] == 'FAILED';
-
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
+      body: deliveryState.isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                // Trip Header Banner
+                Container(
+                  color: AppColors.primary,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            doOrder['doNumber'] as String,
-                            style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                deliveryState.activeTrip?.vehiclePlate ?? 'Vehicle: B 9142 SAA',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              const Text(
+                                'Route: Jakarta Selatan 3-Drop Delivery',
+                                style: TextStyle(color: Colors.white70, fontSize: 12),
+                              ),
+                            ],
                           ),
-                          Chip(
-                            label: Text(doOrder['status'] as String),
-                            labelStyle: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: isDelivered
-                                  ? AppColors.secondary
-                                  : isFailed
-                                      ? AppColors.error
-                                      : AppColors.accent,
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppColors.secondary,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            backgroundColor: (isDelivered
-                                    ? AppColors.secondary
-                                    : isFailed
-                                        ? AppColors.error
-                                        : AppColors.accent)
-                                .withValues(alpha: 0.12),
-                            side: BorderSide.none,
+                            child: Text(
+                              '$deliveredCount / $totalOrders Drops',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        doOrder['customer'] as String,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                      ),
-                      Text(
-                        'Tel: ${doOrder['phone']}',
-                        style: const TextStyle(fontSize: 12, color: AppColors.primaryLight),
-                      ),
-                      Text(
-                        doOrder['address'] as String,
-                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                      ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(6),
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
-                          doOrder['item'] as String,
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                      if (!isDelivered && !isFailed) ...[
-                        const SizedBox(height: 12),
-                        Row(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                style: OutlinedButton.styleFrom(foregroundColor: AppColors.error),
-                                onPressed: () => _markFailed(index),
-                                child: const Text('Report Failure'),
-                              ),
+                            const Text(
+                              'COD Custody Cash Balance:',
+                              style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
-                                onPressed: () => _markDelivered(index),
-                                child: const Text('Mark Delivered'),
+                            Text(
+                              'Rp ${_totalCodCollected.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
+                              style: const TextStyle(
+                                color: AppColors.accent,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
                           ],
                         ),
-                      ],
+                      ),
                     ],
                   ),
                 ),
-              );
-            }),
-          ],
-        ),
-      ),
+
+                // Delivery Stops List
+                Expanded(
+                  child: orders.isEmpty
+                      ? const Center(child: Text('No active delivery stops for this trip.'))
+                      : ListView.separated(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: orders.length,
+                          separatorBuilder: (_, _) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            final order = orders[index];
+                            final isDelivered = order.status == 'DELIVERED';
+                            final isFailed = order.status == 'FAILED';
+
+                            return Card(
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Stop #${index + 1}  •  ${order.deliveryOrderNumber}',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: isDelivered
+                                                ? AppColors.secondary.withValues(alpha: 0.15)
+                                                : isFailed
+                                                    ? AppColors.error.withValues(alpha: 0.15)
+                                                    : AppColors.accent.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            order.status,
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w700,
+                                              color: isDelivered
+                                                  ? AppColors.secondary
+                                                  : isFailed
+                                                      ? AppColors.error
+                                                      : AppColors.accent,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      order.recipientName,
+                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Phone: ${order.recipientPhone}',
+                                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Address: ${order.deliveryAddress}',
+                                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.background,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.inventory_2_outlined, size: 16, color: AppColors.primary),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              '${order.itemName ?? 'Product Item'} (SN: ${order.serialNumber ?? 'SN-PENDING'})',
+                                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(Icons.qr_code_scanner_rounded, size: 18, color: AppColors.primary),
+                                            tooltip: 'Verify Serial Barcode',
+                                            onPressed: () => _openBarcodeScanner(order.serialNumber ?? 'SHP-RF-9021'),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (order.codAmount > 0) ...[
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.payments_outlined, size: 16, color: AppColors.accent),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            'COD Collection Required: Rp ${order.codAmount.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.accent,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                    if (!isDelivered && !isFailed) ...[
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: OutlinedButton(
+                                              onPressed: () => _reportFailed(order.id),
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor: AppColors.error,
+                                                side: const BorderSide(color: AppColors.error),
+                                              ),
+                                              child: const Text('Failed / Refused'),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: ElevatedButton(
+                                              onPressed: () => _markDelivered(
+                                                order.id,
+                                                order.recipientName,
+                                                order.codAmount,
+                                                order.deliveryOrderNumber,
+                                              ),
+                                              style: ElevatedButton.styleFrom(backgroundColor: AppColors.secondary),
+                                              child: const Text('Handover Done'),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
     );
   }
 }

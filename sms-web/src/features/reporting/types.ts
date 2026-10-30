@@ -57,3 +57,43 @@ export interface OperationalExceptionItem {
   details: string;
   actionUrl: string;
 }
+
+// ── Comparative Analytics Types ─────────────────────────────────────────────
+
+export interface PeriodMetric {
+  periodLabel: string;
+  startDate: string;
+  endDate: string;
+  grossSales: number;
+  confirmedOrders: number;
+  cashCollected: number;
+  paymentsCount: number;
+  averageOrderValue: number;
+}
+
+export interface PeriodDelta {
+  salesDifference: number;
+  salesGrowthPercentage: number;
+  collectionDifference: number;
+  collectionGrowthPercentage: number;
+  ordersDifference: number;
+  ordersGrowthPercentage: number;
+}
+
+export interface DailyTrendItem {
+  day: string;
+  dayIndex: number;
+  primarySales: number;
+  comparisonSales: number;
+  primaryCollections: number;
+  comparisonCollections: number;
+}
+
+export interface PeriodComparisonResponse {
+  primary: PeriodMetric;
+  comparison: PeriodMetric;
+  delta: PeriodDelta;
+  dailyTrends: DailyTrendItem[];
+  primaryAging: CollectionAgingBucket[];
+  comparisonAging: CollectionAgingBucket[];
+}

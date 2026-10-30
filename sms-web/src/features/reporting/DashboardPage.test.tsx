@@ -11,6 +11,7 @@ vi.mock('./api', () => ({
   reportingApi: {
     exportReceivablesAging: vi.fn().mockResolvedValue('csv,content'),
     exportSalesSummary: vi.fn().mockResolvedValue('csv,content'),
+    getPeriodComparison: vi.fn().mockResolvedValue({}),
   },
 }));
 
@@ -35,6 +36,61 @@ vi.mock('./hooks', () => ({
       repairUnitsCount: 17,
       totalExpensesAmount: 12000000,
       totalOverrunExpensesCount: 2,
+    },
+    isLoading: false,
+  })),
+  usePeriodComparison: vi.fn(() => ({
+    data: {
+      primary: {
+        periodLabel: 'Primary Period',
+        startDate: '2026-09-30',
+        endDate: '2026-10-30',
+        grossSales: 80000000,
+        confirmedOrders: 28,
+        cashCollected: 38000000,
+        paymentsCount: 42,
+        averageOrderValue: 2857142,
+      },
+      comparison: {
+        periodLabel: 'Comparison Period',
+        startDate: '2026-08-30',
+        endDate: '2026-09-29',
+        grossSales: 70000000,
+        confirmedOrders: 24,
+        cashCollected: 32000000,
+        paymentsCount: 36,
+        averageOrderValue: 2916666,
+      },
+      delta: {
+        salesDifference: 10000000,
+        salesGrowthPercentage: 14.3,
+        collectionDifference: 6000000,
+        collectionGrowthPercentage: 18.8,
+        ordersDifference: 4,
+        ordersGrowthPercentage: 16.7,
+      },
+      dailyTrends: [
+        {
+          day: 'Day 1',
+          dayIndex: 1,
+          primarySales: 2500000,
+          comparisonSales: 2000000,
+          primaryCollections: 1200000,
+          comparisonCollections: 1000000,
+        },
+      ],
+      primaryAging: [
+        { bucketName: 'Current (0-30 days / upcoming)', installmentCount: 15, totalAmount: 22000000, percentage: 55.0 },
+        { bucketName: 'Past Due (1-30 days)', installmentCount: 4, totalAmount: 9000000, percentage: 22.5 },
+        { bucketName: 'Delinquent (31-60 days)', installmentCount: 2, totalAmount: 5000000, percentage: 12.5 },
+        { bucketName: 'Default Risk (60+ days)', installmentCount: 1, totalAmount: 4000000, percentage: 10.0 },
+      ],
+      comparisonAging: [
+        { bucketName: 'Current (0-30 days / upcoming)', installmentCount: 12, totalAmount: 20000000, percentage: 50.0 },
+        { bucketName: 'Past Due (1-30 days)', installmentCount: 5, totalAmount: 11000000, percentage: 27.5 },
+        { bucketName: 'Delinquent (31-60 days)', installmentCount: 2, totalAmount: 5000000, percentage: 12.5 },
+        { bucketName: 'Default Risk (60+ days)', installmentCount: 1, totalAmount: 4000000, percentage: 10.0 },
+      ],
     },
     isLoading: false,
   })),
@@ -127,7 +183,18 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Financial Position Summary')).toBeInTheDocument();
   });
 
-  it('switches tabs and displays leaderboard and exceptions', async () => {
+  it('switches to Comparative Analytics tab and displays period comparison metrics', async () => {
+    const user = userEvent.setup();
+    render(<DashboardPage />);
+
+    // Switch to Comparative Analytics tab
+    await user.click(screen.getByRole('tab', { name: /comparative analytics/i }));
+    expect(screen.getByText('Comparison Date Range')).toBeInTheDocument();
+    expect(screen.getByText('Day-by-Day Trajectory Overlay')).toBeInTheDocument();
+    expect(screen.getByText('Collection Debt Aging Shift Comparison')).toBeInTheDocument();
+  });
+
+  it('switches tabs and displays leaderboard, aging, exceptions, and export center', async () => {
     const user = userEvent.setup();
     render(<DashboardPage />);
 

@@ -1,35 +1,71 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/hardware/geo_location_service.dart';
+import '../../../core/hardware/photo_proof_widget.dart';
+import '../../../core/offline/offline_sync_queue.dart';
+import '../providers/survey_provider.dart';
 
-class SurveyorTaskScreen extends StatefulWidget {
+class SurveyorTaskScreen extends ConsumerStatefulWidget {
   final String surveyId;
   const SurveyorTaskScreen({super.key, required this.surveyId});
 
   @override
-  State<SurveyorTaskScreen> createState() => _SurveyorTaskScreenState();
+  ConsumerState<SurveyorTaskScreen> createState() => _SurveyorTaskScreenState();
 }
 
-class _SurveyorTaskScreenState extends State<SurveyorTaskScreen> {
+class _SurveyorTaskScreenState extends ConsumerState<SurveyorTaskScreen> {
   String _houseStatus = 'OWNED';
   final _incomeController = TextEditingController(text: '7500000');
-  final _assessmentNotes = TextEditingController();
+  final _expensesController = TextEditingController(text: '3500000');
+  final _obligationsController = TextEditingController(text: 'None');
+  final _assessmentNotes = TextEditingController(text: 'Eligible for 12 months installment credit.');
 
   bool _ktpVerified = true;
   bool _kkVerified = true;
   bool _utilityBillVerified = true;
   bool _incomeProofVerified = true;
+  bool _isSubmitting = false;
+
+  List<PhotoProofItem> _surveyPhotos = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSurveyData();
+  }
+
+  Future<void> _loadSurveyData() async {
+    final survey = await ref.read(surveyListProvider.notifier).getSurvey(widget.surveyId);
+    if (survey != null && mounted) {
+      if (survey.monthlyIncome != null) {
+        _incomeController.text = survey.monthlyIncome!.toInt().toString();
+      }
+      if (survey.monthlyExpenses != null) {
+        _expensesController.text = survey.monthlyExpenses!.toInt().toString();
+      }
+      if (survey.existingObligations != null) {
+        _obligationsController.text = survey.existingObligations!;
+      }
+      if (survey.abilityToPayAssessment != null) {
+        _assessmentNotes.text = survey.abilityToPayAssessment!;
+      }
+    }
+  }
 
   @override
   void dispose() {
     _incomeController.dispose();
+    _expensesController.dispose();
+    _obligationsController.dispose();
     _assessmentNotes.dispose();
     super.dispose();
   }
 
-  void _submitDecision(bool approved) {
+  Future<void> _submitDecision(bool approved) async {
     final decisionStr = approved ? 'APPROVED' : 'REJECTED';
-    showDialog(
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Confirm $decisionStr Survey?'),
@@ -40,28 +76,83 @@ class _SurveyorTaskScreenState extends State<SurveyorTaskScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: approved ? AppColors.secondary : AppColors.error,
             ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Credit survey decision recorded: $decisionStr'),
-                  backgroundColor: approved ? AppColors.secondary : AppColors.error,
-                ),
-              );
-              context.pop();
-            },
+            onPressed: () => Navigator.pop(ctx, true),
             child: Text(approved ? 'Confirm Approval' : 'Confirm Rejection'),
           ),
         ],
       ),
     );
+
+    if (confirm != true) return;
+
+    setState(() => _isSubmitting = true);
+
+    // Read GPS coordinates for field audit
+    final location = await GeoLocationService.getCurrentLocation(simulateAtStore: false);
+
+    final income = double.tryParse(_incomeController.text.replaceAll('.', '')) ?? 0.0;
+    final expenses = double.tryParse(_expensesController.text.replaceAll('.', '')) ?? 0.0;
+
+    // 1. Submit updated assessment fields
+    await ref.read(surveyListProvider.notifier).updateAssessment(
+          widget.surveyId,
+          monthlyIncome: income,
+          monthlyExpenses: expenses,
+          existingObligations: _obligationsController.text,
+          residenceNotes: 'House status: $_houseStatus. KTP: $_ktpVerified, KK: $_kkVerified, Utility: $_utilityBillVerified. Photos: ${_surveyPhotos.length}. GPS: [${location.latitude}, ${location.longitude}]',
+          employmentNotes: 'Income proof verified: $_incomeProofVerified',
+          referencesNotes: 'Field interview verified on-site by surveyor',
+          abilityToPayAssessment: _assessmentNotes.text,
+        );
+
+    // 2. Submit definitive decision
+    final success = await ref.read(surveyListProvider.notifier).decideSurvey(
+          widget.surveyId,
+          approve: approved,
+          notes: '${_assessmentNotes.text} (GPS: ${location.latitude}, ${location.longitude})',
+        );
+
+    // 3. Queue offline backup
+    ref.read(offlineSyncProvider.notifier).enqueueAction(
+          actionType: 'DECIDE_SURVEY',
+          endpoint: '/api/surveys/${widget.surveyId}/decide',
+          payload: {
+            'surveyId': widget.surveyId,
+            'approve': approved,
+            'notes': _assessmentNotes.text,
+            'latitude': location.latitude,
+            'longitude': location.longitude,
+            'photoCount': _surveyPhotos.length,
+          },
+        );
+
+    setState(() => _isSubmitting = false);
+
+    if (mounted) {
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Credit survey decision recorded: $decisionStr with GPS & ${_surveyPhotos.length} photos'),
+            backgroundColor: approved ? AppColors.secondary : AppColors.error,
+          ),
+        );
+        context.pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to submit survey decision'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -70,185 +161,236 @@ class _SurveyorTaskScreenState extends State<SurveyorTaskScreen> {
       appBar: AppBar(
         title: const Text('Credit Survey Assessment'),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Order and Customer Snapshot Card
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'SO/JKT/10/2026/0014',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primary,
+      body: _isSubmitting
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Customer Header Card
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Survey ID: ${widget.surveyId}',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accent.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  'ASSIGNED',
+                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.accent),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppColors.accent.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Bambang Pamungkas',
+                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
                           ),
-                          child: const Text(
-                            'CREDIT APPL',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.accent,
+                          const SizedBox(height: 4),
+                          const Text(
+                            'NIK: 3171021405880003  •  Phone: 0812-8899-7711',
+                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'Address: Jl. Tebet Barat Dalam VII No. 4, Jakarta Selatan',
+                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Residence & Financial Verification
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Residence & Financial Verification',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 14),
+                          DropdownButtonFormField<String>(
+                            initialValue: _houseStatus,
+                            decoration: const InputDecoration(labelText: 'Home Ownership Status'),
+                            items: const [
+                              DropdownMenuItem(value: 'OWNED', child: Text('Milik Sendiri (Owned)')),
+                              DropdownMenuItem(value: 'FAMILY', child: Text('Milik Keluarga (Family Owned)')),
+                              DropdownMenuItem(value: 'RENT_ANNUAL', child: Text('Sewa Tahunan (Contract)')),
+                              DropdownMenuItem(value: 'RENT_MONTHLY', child: Text('Kost / Sewa Bulanan')),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) setState(() => _houseStatus = val);
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _incomeController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Estimated Net Monthly Income (Rp)',
+                              prefixText: 'Rp ',
                             ),
                           ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _expensesController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Estimated Monthly Living Expenses (Rp)',
+                              prefixText: 'Rp ',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _obligationsController,
+                            decoration: const InputDecoration(
+                              labelText: 'Other Existing Installments / Obligations',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Field Physical Evidence & Photos
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: PhotoProofGridWidget(
+                        requiredCategories: const ['KTP Customer', 'Kartu Keluarga', 'Bukti Listrik / Air', 'Rumah & Pintu Depan'],
+                        onPhotosChanged: (photos) {
+                          _surveyPhotos = photos;
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Document Checks
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Field Physical Document Checks',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 8),
+                          CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Original KTP Verified on site'),
+                            value: _ktpVerified,
+                            onChanged: (v) => setState(() => _ktpVerified = v ?? false),
+                          ),
+                          CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Kartu Keluarga (KK) verified'),
+                            value: _kkVerified,
+                            onChanged: (v) => setState(() => _kkVerified = v ?? false),
+                          ),
+                          CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Recent Electricity / Water Utility Bill matches address'),
+                            value: _utilityBillVerified,
+                            onChanged: (v) => setState(() => _utilityBillVerified = v ?? false),
+                          ),
+                          CheckboxListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Proof of Income / Payslip / Bank Statement'),
+                            value: _incomeProofVerified,
+                            onChanged: (v) => setState(() => _incomeProofVerified = v ?? false),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Final Assessment Notes
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Surveyor Assessment & Justification',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _assessmentNotes,
+                            maxLines: 3,
+                            decoration: const InputDecoration(
+                              labelText: 'Assessment Notes',
+                              hintText: 'Provide detailed justification for credit viability...',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Decision Action Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => _submitDecision(false),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.error,
+                            side: const BorderSide(color: AppColors.error),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          icon: const Icon(Icons.cancel_outlined),
+                          label: const Text('Reject Credit'),
                         ),
-                      ],
-                    ),
-                    const Divider(height: 20),
-                    const Text(
-                      'Customer Details',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text('Bambang Pamungkas (NIK: 3174092801820001)'),
-                    const Text('Phone: 0812-9876-5432'),
-                    const Text('Address: Jl. Melati No. 42, RT 03/05, Kebayoran Baru'),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Purchase Details',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text('Items: Polytron 43" Smart TV (1 unit)'),
-                    const Text('Financed Amount: Rp 4,200,000 (12 Months)'),
-                    const Text('Estimated Installment: Rp 350,000 / month'),
-                  ],
-                ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _submitDecision(true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.secondary,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          icon: const Icon(Icons.check_circle_outline),
+                          label: const Text('Approve Credit'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-
-            // Structured Checklist Card
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Field Verification Checklist',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // House ownership
-                    DropdownButtonFormField<String>(
-                      initialValue: _houseStatus,
-                      decoration: const InputDecoration(labelText: 'Residence Ownership'),
-                      items: const [
-                        DropdownMenuItem(value: 'OWNED', child: Text('Self-Owned (Milik Sendiri)')),
-                        DropdownMenuItem(value: 'RENTED', child: Text('Rented / Contract (Kontrakan)')),
-                        DropdownMenuItem(value: 'FAMILY', child: Text('Family House (Rumah Orang Tua)')),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) setState(() => _houseStatus = val);
-                      },
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Monthly Income
-                    TextField(
-                      controller: _incomeController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Verified Monthly Income (Rp)',
-                        prefixText: 'Rp ',
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    const Text(
-                      'Document Verification Evidence',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Original KTP Match & Inspected', style: TextStyle(fontSize: 13)),
-                      value: _ktpVerified,
-                      onChanged: (v) => setState(() => _ktpVerified = v ?? false),
-                    ),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Family Card (Kartu Keluarga) Inspected', style: TextStyle(fontSize: 13)),
-                      value: _kkVerified,
-                      onChanged: (v) => setState(() => _kkVerified = v ?? false),
-                    ),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Electricity / Utility Bill Address Match', style: TextStyle(fontSize: 13)),
-                      value: _utilityBillVerified,
-                      onChanged: (v) => setState(() => _utilityBillVerified = v ?? false),
-                    ),
-                    CheckboxListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Income Slip / Bank Account Active', style: TextStyle(fontSize: 13)),
-                      value: _incomeProofVerified,
-                      onChanged: (v) => setState(() => _incomeProofVerified = v ?? false),
-                    ),
-                    const SizedBox(height: 12),
-
-                    TextField(
-                      controller: _assessmentNotes,
-                      maxLines: 3,
-                      decoration: const InputDecoration(
-                        labelText: 'Surveyor Field Assessment Notes',
-                        hintText: 'Describe house condition, neighbor references, and repayment risk',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Decisive Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      side: const BorderSide(color: AppColors.error),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    icon: const Icon(Icons.cancel_outlined),
-                    label: const Text('Reject Credit', style: TextStyle(fontWeight: FontWeight.w700)),
-                    onPressed: () => _submitDecision(false),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.secondary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    icon: const Icon(Icons.check_circle_outline),
-                    label: const Text('Approve Credit', style: TextStyle(fontWeight: FontWeight.w700)),
-                    onPressed: () => _submitDecision(true),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

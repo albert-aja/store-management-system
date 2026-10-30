@@ -6,6 +6,21 @@ export const reportingKeys = {
   salesPerformance: (storeId?: string, startDate?: string, endDate?: string) =>
     ['reporting-sales-performance', storeId, startDate, endDate] as const,
   collectionAging: (storeId?: string) => ['reporting-collection-aging', storeId] as const,
+  periodComparison: (
+    storeId?: string,
+    primaryStart?: string,
+    primaryEnd?: string,
+    compareStart?: string,
+    compareEnd?: string,
+  ) =>
+    [
+      'reporting-period-comparison',
+      storeId,
+      primaryStart,
+      primaryEnd,
+      compareStart,
+      compareEnd,
+    ] as const,
   inventoryDistribution: (storeId?: string) => ['reporting-inventory-distribution', storeId] as const,
   exceptions: (storeId?: string) => ['reporting-exceptions', storeId] as const,
 };
@@ -37,6 +52,35 @@ export function useCollectionAging(storeId?: string) {
       const res = await reportingApi.getCollectionAging(storeId);
       return res.data;
     },
+  });
+}
+
+export function usePeriodComparison(
+  storeId?: string,
+  primaryStart?: string,
+  primaryEnd?: string,
+  compareStart?: string,
+  compareEnd?: string,
+) {
+  return useQuery({
+    queryKey: reportingKeys.periodComparison(
+      storeId,
+      primaryStart,
+      primaryEnd,
+      compareStart,
+      compareEnd,
+    ),
+    queryFn: async () => {
+      const res = await reportingApi.getPeriodComparison(
+        storeId,
+        primaryStart,
+        primaryEnd,
+        compareStart,
+        compareEnd,
+      );
+      return res.data;
+    },
+    enabled: Boolean(primaryStart && primaryEnd && compareStart && compareEnd),
   });
 }
 

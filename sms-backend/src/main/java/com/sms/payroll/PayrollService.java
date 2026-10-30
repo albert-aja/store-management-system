@@ -364,4 +364,10 @@ public class PayrollService {
         List<PayrollSlip> slips = payrollSlipRepository.findByPayrollPeriodId(periodId);
         return slips.stream().map(PayrollSlipResponse::from).toList();
     }
+
+    @Transactional(readOnly = true)
+    public List<PayrollSlipResponse> getEmployeeSlips(UUID employeeId) {
+        List<PayrollSlip> slips = payrollSlipRepository.findByEmployeeId(employeeId);
+        return slips.stream().map(PayrollSlipResponse::from).toList();
+    }
 }

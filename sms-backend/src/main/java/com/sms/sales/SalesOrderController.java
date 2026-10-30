@@ -83,7 +83,14 @@ public class SalesOrderController {
 
     @PostMapping("/{id}/confirm")
     public SalesOrderResponse confirm(@PathVariable UUID id, @Valid @RequestBody ConfirmSalesOrderRequest request) {
-        return SalesOrderResponse.from(salesOrderService.confirm(id, request.dpReceived()));
+        return SalesOrderResponse.from(salesOrderService.confirm(
+                id,
+                request.dpReceived(),
+                request.dpAmount(),
+                request.paymentMethod(),
+                request.collectorEmployeeId(),
+                request.notes()
+        ));
     }
 
     @PostMapping("/{id}/cancel")

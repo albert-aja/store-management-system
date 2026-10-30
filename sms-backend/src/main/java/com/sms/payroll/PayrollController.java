@@ -71,4 +71,9 @@ public class PayrollController {
     public ResponseEntity<PayrollSlipResponse> paySlip(@PathVariable UUID id) {
         return ResponseEntity.ok(payrollService.paySlip(id));
     }
+
+    @GetMapping("/employees/{employeeId}/slips")
+    public ResponseEntity<List<PayrollSlipResponse>> getEmployeeSlips(@PathVariable UUID employeeId) {
+        return ResponseEntity.ok(payrollService.getEmployeeSlips(employeeId));
+    }
 }

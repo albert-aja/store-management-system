@@ -5,6 +5,7 @@ import type {
   CollectionAgingSummary,
   InventoryDistribution,
   OperationalExceptionItem,
+  PeriodComparisonResponse,
 } from './types';
 
 export const reportingApi = {
@@ -21,6 +22,17 @@ export const reportingApi = {
   getCollectionAging: (storeId?: string) =>
     apiClient.get<CollectionAgingSummary>('/api/v1/reporting/collection-aging', {
       params: { storeId },
+    }),
+
+  getPeriodComparison: (
+    storeId?: string,
+    primaryStart?: string,
+    primaryEnd?: string,
+    compareStart?: string,
+    compareEnd?: string,
+  ) =>
+    apiClient.get<PeriodComparisonResponse>('/api/v1/reporting/period-comparison', {
+      params: { storeId, primaryStart, primaryEnd, compareStart, compareEnd },
     }),
 
   getInventoryDistribution: (storeId?: string) =>

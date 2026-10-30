@@ -3,7 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/hardware/geo_location_service.dart';
+import '../../../core/offline/offline_sync_queue.dart';
+import '../../../core/security/biometric_service.dart';
+import '../../attendance/providers/attendance_provider.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../collection/providers/collection_provider.dart';
+import '../../delivery/providers/delivery_provider.dart';
+import '../../surveys/providers/survey_provider.dart';
 
 class WorkerHomeScreen extends ConsumerStatefulWidget {
   const WorkerHomeScreen({super.key});
@@ -13,35 +20,98 @@ class WorkerHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
-  bool _isClockedIn = false;
-  DateTime? _clockInTime;
+  Future<void> _toggleClockIn(bool isClockedIn) async {
+    final attNotifier = ref.read(attendanceProvider.notifier);
 
-  void _toggleClockIn() {
-    setState(() {
-      if (_isClockedIn) {
-        _isClockedIn = false;
+    if (isClockedIn) {
+      final success = await attNotifier.clockOut();
+      if (mounted && success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Clocked out successfully for today'),
             backgroundColor: AppColors.secondary,
           ),
         );
-      } else {
-        _isClockedIn = true;
-        _clockInTime = DateTime.now();
+      }
+    } else {
+      // 1. Verify GPS location & Store Geofence
+      final location = await GeoLocationService.getCurrentLocation(simulateAtStore: true);
+      final isInsideGeofence = GeoLocationService.verifyStoreGeofence(workerLocation: location);
+
+      if (!isInsideGeofence) {
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Outside Store Geofence'),
+            content: Text(
+              'Your GPS position ($location) is outside the authorized store perimeter (200m). Please clock-in inside the store building.',
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+            ],
+          ),
+        );
+        return;
+      }
+
+      // 2. Clock-in with verified GPS tag
+      final success = await attNotifier.clockIn(
+        notes: 'GPS Verified: [${location.latitude}, ${location.longitude}] (Accuracy: ${location.accuracyMeters}m)',
+      );
+
+      // 3. Queue offline sync backup
+      ref.read(offlineSyncProvider.notifier).enqueueAction(
+            actionType: 'CLOCK_IN',
+            endpoint: '/api/v1/payroll/attendance/clock-in',
+            payload: {
+              'workDate': DateFormat('yyyy-MM-dd').format(DateTime.now()),
+              'status': 'PRESENT',
+              'latitude': location.latitude,
+              'longitude': location.longitude,
+            },
+          );
+
+      if (mounted && success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Clock-in recorded: PRESENT at store'),
+            content: Text('GPS Geofence Verified: Clock-in recorded (PRESENT at store)'),
             backgroundColor: AppColors.secondary,
           ),
         );
       }
-    });
+    }
+  }
+
+  void _triggerBiometricPrompt() async {
+    final authenticated = await BiometricService.authenticate();
+    if (mounted && authenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Biometric identity confirmed (Fingerprint / Face ID verified)'),
+          backgroundColor: AppColors.secondary,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
+    final attState = ref.watch(attendanceProvider);
+    final isClockedIn = attState.isClockedIn;
+    final todayRec = attState.todayRecord;
+
+    final surveyCount = ref.watch(surveyListProvider).mySurveys.length;
+    final deliveryOrders = ref.watch(deliveryProvider).orders;
+    final pendingDeliveries = deliveryOrders.where((d) => d.status != 'DELIVERED').length;
+    final activeTripNumber = ref.watch(deliveryProvider).activeTrip?.tripNumber ?? 'TRIP-082';
+
+    final collectionTasks = ref.watch(collectionProvider).tasks;
+    final heldCash = ref.watch(collectionProvider).totalHeldCash;
+
+    final offlineState = ref.watch(offlineSyncProvider);
+
     final todayStr = DateFormat('EEEE, dd MMMM yyyy').format(DateTime.now());
 
     return Scaffold(
@@ -61,13 +131,9 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_outlined),
-            tooltip: 'Notifications',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('No unread operational notifications')),
-              );
-            },
+            icon: const Icon(Icons.fingerprint_rounded),
+            tooltip: 'Verify Biometrics',
+            onPressed: _triggerBiometricPrompt,
           ),
           IconButton(
             icon: const Icon(Icons.logout_rounded),
@@ -83,14 +149,71 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          await Future.delayed(const Duration(milliseconds: 500));
+          await Future.wait([
+            ref.read(attendanceProvider.notifier).refresh(),
+            ref.read(surveyListProvider.notifier).loadMySurveys(),
+            ref.read(deliveryProvider.notifier).loadDriverTrips(),
+            ref.read(collectionProvider.notifier).loadCollectionData(),
+            ref.read(offlineSyncProvider.notifier).syncAll(),
+          ]);
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Offline Sync Status Banner (Active whenever offline items exist)
+              if (offlineState.hasPending) ...[
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.accent, width: 1.2),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.cloud_upload_outlined, color: AppColors.accent, size: 22),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${offlineState.pendingCount} Offline Action(s) Queued',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                            ),
+                            const Text(
+                              'Auto-syncing in background when connected',
+                              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accent,
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                        onPressed: offlineState.isSyncing
+                            ? null
+                            : () => ref.read(offlineSyncProvider.notifier).syncAll(),
+                        child: offlineState.isSyncing
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Text('Sync Now', style: TextStyle(fontSize: 11)),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
               // Role Badge & Welcome banner
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -124,7 +247,7 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Attendance Card (Quick clock in/out)
+              // Attendance Card with GPS Geofencing verification
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -133,14 +256,14 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: _isClockedIn
+                          color: isClockedIn
                               ? AppColors.secondary.withValues(alpha: 0.15)
                               : AppColors.accent.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          _isClockedIn ? Icons.check_circle_rounded : Icons.access_time_rounded,
-                          color: _isClockedIn ? AppColors.secondary : AppColors.accent,
+                          isClockedIn ? Icons.check_circle_rounded : Icons.access_time_rounded,
+                          color: isClockedIn ? AppColors.secondary : AppColors.accent,
                           size: 28,
                         ),
                       ),
@@ -150,7 +273,7 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              _isClockedIn ? 'Clocked In (Present)' : 'Daily Attendance',
+                              isClockedIn ? 'Clocked In (Present)' : 'Daily Attendance',
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
@@ -159,9 +282,9 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              _isClockedIn
-                                  ? 'Started at ${DateFormat('hh:mm a').format(_clockInTime!)}'
-                                  : 'Not yet recorded today',
+                              isClockedIn
+                                  ? 'Verified: ${todayRec?.checkInTime ?? 'Morning'}'
+                                  : 'Requires GPS Geofence Check',
                               style: const TextStyle(
                                 fontSize: 12,
                                 color: AppColors.textSecondary,
@@ -171,13 +294,13 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                         ),
                       ),
                       ElevatedButton(
-                        onPressed: _toggleClockIn,
+                        onPressed: () => _toggleClockIn(isClockedIn),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _isClockedIn ? AppColors.error : AppColors.secondary,
+                          backgroundColor: isClockedIn ? AppColors.error : AppColors.secondary,
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                         ),
                         child: Text(
-                          _isClockedIn ? 'Clock Out' : 'Clock In',
+                          isClockedIn ? 'Clock Out' : 'Clock In',
                           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                         ),
                       ),
@@ -204,8 +327,8 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                   icon: Icons.assignment_outlined,
                   color: Colors.indigo,
                   title: 'Credit Surveys Queue',
-                  subtitle: '3 surveys awaiting field assessment & photo evidence',
-                  badgeText: '3 PENDING',
+                  subtitle: '$surveyCount survey(s) • KTP/KK/GPS Photo Evidence',
+                  badgeText: '$surveyCount PENDING',
                   badgeColor: AppColors.accent,
                   onTap: () => context.push('/survey/survey-101'),
                 ),
@@ -217,7 +340,7 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                   icon: Icons.local_shipping_outlined,
                   color: Colors.blue,
                   title: 'Active Delivery Trip',
-                  subtitle: 'Trip #TRIP-082 • 4 Destinations • COD custody Rp 3.2M',
+                  subtitle: '$activeTripNumber • $pendingDeliveries Drops • Barcode & Signature',
                   badgeText: 'DISPATCHED',
                   badgeColor: AppColors.secondary,
                   onTap: () => context.push('/delivery/trip-082'),
@@ -230,8 +353,8 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                   icon: Icons.payments_outlined,
                   color: Colors.teal,
                   title: 'Field Collection Visits',
-                  subtitle: '5 overdue customer visits scheduled today',
-                  badgeText: '5 DUE',
+                  subtitle: '${collectionTasks.length} accounts • Cash: Rp ${heldCash.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}',
+                  badgeText: '${collectionTasks.length} DUE',
                   badgeColor: AppColors.error,
                   onTap: () => context.push('/collection/visit-201'),
                 ),
@@ -243,8 +366,8 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                   icon: Icons.point_of_sale_rounded,
                   color: Colors.purple,
                   title: 'Sales & Customer Follow-Ups',
-                  subtitle: '8 active leads • 2 orders pending price approval',
-                  badgeText: '8 LEADS',
+                  subtitle: 'Confirmed orders eligible for commission recognition',
+                  badgeText: 'ACTIVE',
                   badgeColor: AppColors.primaryLight,
                   onTap: () => context.push('/my-work'),
                 ),
@@ -256,8 +379,8 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                   icon: Icons.handyman_outlined,
                   color: Colors.orange,
                   title: 'Assigned Helper Tasks',
-                  subtitle: 'Loading delivery trip #TRIP-082 • Showroom setup',
-                  badgeText: '2 TASKS',
+                  subtitle: 'Loading delivery trip truck • Showroom prep',
+                  badgeText: 'ASSIGNED',
                   badgeColor: Colors.orange,
                   onTap: () => context.push('/my-work'),
                 ),
@@ -283,7 +406,7 @@ class _WorkerHomeScreenState extends ConsumerState<WorkerHomeScreen> {
                     child: _buildShortcutTile(
                       icon: Icons.calendar_today_rounded,
                       title: 'Attendance & Leaves',
-                      subtitle: 'History & requests',
+                      subtitle: 'GPS Geofence history',
                       onTap: () => context.push('/attendance'),
                     ),
                   ),

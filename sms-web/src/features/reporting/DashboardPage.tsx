@@ -29,8 +29,11 @@ import PriceCheckIcon from '@mui/icons-material/PriceCheck';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import DownloadIcon from '@mui/icons-material/Download';
+import TableChartIcon from '@mui/icons-material/TableChart';
+import { exportFinancialAgingToExcel, exportStockBalanceToExcel, exportToExcel } from '../../lib/exportExcel';
 import LeaderboardIcon from '@mui/icons-material/Leaderboard';
 import AssessmentIcon from '@mui/icons-material/Assessment';
+import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import { useNavigate } from 'react-router-dom';
 import { useStores } from '../stores/hooks';
 import {
@@ -41,6 +44,7 @@ import {
   useOperationalExceptions,
 } from './hooks';
 import { reportingApi } from './api';
+import PeriodComparisonPanel from './PeriodComparisonPanel';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -77,6 +81,111 @@ export default function DashboardPage() {
     } catch {
       // handled
     }
+  };
+
+  const handleExportAgingExcel = async () => {
+    try {
+      const csv = await reportingApi.exportReceivablesAging(storeFilter || undefined);
+      const lines = csv.trim().split('\n');
+      const dataRows = lines.slice(1);
+      const parsedReceivables = dataRows.map((line) => {
+        const parts = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+        const clean = (val?: string) => (val ? val.replace(/^"|"$/g, '').replace(/""/g, '"') : '');
+        return {
+          receivableNumber: clean(parts[0]),
+          customerName: clean(parts[1]),
+          customerPhone: clean(parts[2]),
+          storeName: clean(parts[3]),
+          financedAmount: Number(clean(parts[4])) || 0,
+          remainingBalance: Number(clean(parts[5])) || 0,
+          totalPaid: (Number(clean(parts[4])) || 0) - (Number(clean(parts[5])) || 0),
+          paymentTermMonths: Number(clean(parts[6])) || 0,
+          status: clean(parts[7]),
+          firstDueDate: clean(parts[8]),
+        };
+      });
+
+      const storeObj = stores.find((s) => s.id === storeFilter);
+      exportFinancialAgingToExcel({
+        storeName: storeObj ? storeObj.name : 'Company Wide (All Stores)',
+        summary: {
+          totalReceivableBalance: Number(aging?.totalReceivableBalance ?? 0),
+          totalOverdueBalance: Number(aging?.totalOverdueBalance ?? 0),
+          totalCollectedCash: Number(aging?.totalCollectedCash ?? 0),
+          custodyDiscrepanciesCount: aging?.custodyDiscrepanciesCount ?? 0,
+        },
+        buckets: aging?.buckets || [],
+        receivables: parsedReceivables,
+      });
+    } catch {
+      if (aging) {
+        exportFinancialAgingToExcel({
+          storeName: stores.find((s) => s.id === storeFilter)?.name || 'Company Wide (All Stores)',
+          summary: {
+            totalReceivableBalance: Number(aging.totalReceivableBalance ?? 0),
+            totalOverdueBalance: Number(aging.totalOverdueBalance ?? 0),
+            totalCollectedCash: Number(aging.totalCollectedCash ?? 0),
+            custodyDiscrepanciesCount: aging.custodyDiscrepanciesCount ?? 0,
+          },
+          buckets: aging.buckets || [],
+          receivables: [],
+        });
+      }
+    }
+  };
+
+  const handleExportSalesExcel = async () => {
+    try {
+      const csv = await reportingApi.exportSalesSummary(
+        storeFilter || undefined,
+        startDate || undefined,
+        endDate || undefined
+      );
+      const lines = csv.trim().split('\n');
+      const dataRows = lines.slice(1);
+      const parsedSales = dataRows.map((line) => {
+        const parts = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+        const clean = (val?: string) => (val ? val.replace(/^"|"$/g, '').replace(/""/g, '"') : '');
+        return {
+          orderNumber: clean(parts[0]),
+          date: clean(parts[1]),
+          storeName: clean(parts[2]),
+          customerName: clean(parts[3]),
+          salesperson: clean(parts[4]),
+          status: clean(parts[5]),
+          totalAmount: Number(clean(parts[6])) || 0,
+          deliveryAddress: clean(parts[7]),
+        };
+      });
+
+      exportToExcel({
+        filename: `sales_summary_${new Date().toISOString().substring(0, 10)}`,
+        sheetName: 'Sales Orders',
+        title: 'STORE MANAGEMENT SYSTEM — SALES ORDERS & REVENUE SUMMARY',
+        subtitle: `Transactions between ${startDate || 'beginning'} and ${endDate || 'current'}`,
+        columns: [
+          { key: 'orderNumber', label: 'Order Number', width: 22 },
+          { key: 'date', label: 'Date', width: 14 },
+          { key: 'storeName', label: 'Store Branch', width: 20 },
+          { key: 'customerName', label: 'Customer Name', width: 24 },
+          { key: 'salesperson', label: 'Salesperson', width: 22 },
+          { key: 'status', label: 'Order Status', width: 16 },
+          { key: 'totalAmount', label: 'Total Amount (IDR)', width: 22, format: (v) => Number(v ?? 0) },
+          { key: 'deliveryAddress', label: 'Delivery Address', width: 35 },
+        ],
+        data: parsedSales,
+      });
+    } catch {
+      // handled
+    }
+  };
+
+  const handleExportStockExcel = () => {
+    exportStockBalanceToExcel({
+      storeName: stores.find((s) => s.id === storeFilter)?.name || 'Company Wide (All Stores)',
+      stockUnits: [],
+      distribution: inventory,
+    });
   };
 
   const handleDownloadSales = async () => {
@@ -213,8 +322,11 @@ export default function DashboardPage() {
           onChange={(_, val) => setActiveTab(val)}
           indicatorColor="primary"
           textColor="primary"
+          variant="scrollable"
+          scrollButtons="auto"
         >
           <Tab label="Executive Insights" icon={<AssessmentIcon />} iconPosition="start" />
+          <Tab label="Comparative Analytics" icon={<CompareArrowsIcon />} iconPosition="start" />
           <Tab label="Sales Leaderboard" icon={<LeaderboardIcon />} iconPosition="start" />
           <Tab label="Collection & Aging" icon={<PriceCheckIcon />} iconPosition="start" />
           <Tab
@@ -229,7 +341,7 @@ export default function DashboardPage() {
       {/* TAB 0: Executive Insights */}
       {activeTab === 0 && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
             {/* Financial Overview Card */}
             <Card variant="outlined" sx={{ borderRadius: 2 }}>
               <CardContent>
@@ -321,12 +433,36 @@ export default function DashboardPage() {
                 </Table>
               </CardContent>
             </Card>
+
+            <Card variant="outlined" sx={{ borderRadius: 2 }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
+                  Stock Balance & Inventory Audit
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Multi-sheet Excel workbook detailing physical unit distribution across warehouses, showrooms, in-transit fleet, and itemized serial unit statuses.
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="success"
+                  startIcon={<TableChartIcon />}
+                  onClick={handleExportStockExcel}
+                >
+                  Download Stock Balance Excel (.xlsx)
+                </Button>
+              </CardContent>
+            </Card>
           </Box>
         </Box>
       )}
 
-      {/* TAB 1: Sales Leaderboard */}
+      {/* TAB 1: Comparative Analytics */}
       {activeTab === 1 && (
+        <PeriodComparisonPanel storeId={storeFilter || undefined} />
+      )}
+
+      {/* TAB 2: Sales Leaderboard */}
+      {activeTab === 2 && (
         <Box>
           <Box sx={{ display: 'flex', gap: 2, mb: 2, flexWrap: 'wrap' }}>
             <TextField
@@ -405,16 +541,28 @@ export default function DashboardPage() {
         </Box>
       )}
 
-      {/* TAB 2: Collection & Aging */}
-      {activeTab === 2 && (
+      {/* TAB 3: Collection & Aging */}
+      {activeTab === 3 && (
         <Box>
           <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-              Credit Portfolio Aging Breakdown
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Installment debts grouped by delinquency duration. Total active portfolio: Rp {Number(aging?.totalReceivableBalance ?? 0).toLocaleString()}.
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                  Credit Portfolio Aging Breakdown
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Installment debts grouped by delinquency duration. Total active portfolio: Rp {Number(aging?.totalReceivableBalance ?? 0).toLocaleString()}.
+                </Typography>
+              </Box>
+              <Button
+                variant="outlined"
+                color="success"
+                startIcon={<TableChartIcon />}
+                onClick={handleExportAgingExcel}
+              >
+                Export Aging Excel (.xlsx)
+              </Button>
+            </Box>
 
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' }, gap: 2, mb: 3 }}>
               {aging?.buckets?.map((bucket) => {
@@ -452,8 +600,8 @@ export default function DashboardPage() {
         </Box>
       )}
 
-      {/* TAB 3: Operational Exceptions Center */}
-      {activeTab === 3 && (
+      {/* TAB 4: Operational Exceptions Center */}
+      {activeTab === 4 && (
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
             High-Priority Operational Exceptions
@@ -504,8 +652,8 @@ export default function DashboardPage() {
         </Box>
       )}
 
-      {/* TAB 4: Export Center */}
-      {activeTab === 4 && (
+      {/* TAB 5: Export Center */}
+      {activeTab === 5 && (
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
             Download Operational & Audit Reports
@@ -523,14 +671,24 @@ export default function DashboardPage() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                   Complete CSV ledger containing customer accounts, telephone numbers, total contract values, current remaining balances, repayment terms, and contract statuses.
                 </Typography>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<DownloadIcon />}
-                  onClick={handleDownloadReceivables}
-                >
-                  Download Receivables CSV
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<DownloadIcon />}
+                    onClick={handleDownloadReceivables}
+                  >
+                    Download Receivables CSV
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="success"
+                    startIcon={<TableChartIcon />}
+                    onClick={handleExportAgingExcel}
+                  >
+                    Download Aging Excel (.xlsx)
+                  </Button>
+                </Box>
               </CardContent>
             </Card>
 
@@ -542,14 +700,24 @@ export default function DashboardPage() {
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                   Itemized sales summary with order numbers, transaction dates, assigned salespersons, customer names, confirmed order values, and delivery address snapshots.
                 </Typography>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  startIcon={<DownloadIcon />}
-                  onClick={handleDownloadSales}
-                >
-                  Download Sales Summary CSV
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<DownloadIcon />}
+                    onClick={handleDownloadSales}
+                  >
+                    Download Sales Summary CSV
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="success"
+                    startIcon={<TableChartIcon />}
+                    onClick={handleExportSalesExcel}
+                  >
+                    Download Sales Excel (.xlsx)
+                  </Button>
+                </Box>
               </CardContent>
             </Card>
           </Box>

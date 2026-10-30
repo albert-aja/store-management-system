@@ -10,6 +10,7 @@ import com.sms.sales.SalesOrderItemRepository;
 import com.sms.sales.SalesOrderRepository;
 import com.sms.sales.SalesOrderStatus;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,24 @@ public class SurveyService {
     public Survey getBySalesOrder(UUID salesOrderId) {
         return surveyRepository.findBySalesOrderId(salesOrderId)
                 .orElseThrow(() -> new NotFoundException("No survey for Sales Order: " + salesOrderId));
+    }
+
+    @Transactional(readOnly = true)
+    public Survey getSurvey(UUID surveyId) {
+        return surveyRepository.findById(surveyId)
+                .orElseThrow(() -> new NotFoundException("Survey not found: " + surveyId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<Survey> searchSurveys(UUID surveyorId, SurveyStatus status) {
+        if (surveyorId != null && status != null) {
+            return surveyRepository.findBySurveyorIdAndStatus(surveyorId, status);
+        } else if (surveyorId != null) {
+            return surveyRepository.findBySurveyorId(surveyorId);
+        } else if (status != null) {
+            return surveyRepository.findByStatus(status);
+        }
+        return surveyRepository.findAll();
     }
 
     /** Only credit SOs (any item with a non-cash term) require a survey; cash-only SOs skip straight to confirmation. */

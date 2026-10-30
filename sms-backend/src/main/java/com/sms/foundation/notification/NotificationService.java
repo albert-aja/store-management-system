@@ -18,6 +18,7 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationRecipientRepository recipientRepository;
     private final EmployeeRepository employeeRepository;
+    private final PushNotificationDispatcher pushNotificationDispatcher;
 
     public Notification create(String referenceType, UUID referenceId, String title, String body,
                                 List<UUID> recipientEmployeeIds) {
@@ -36,6 +37,12 @@ public class NotificationService {
             recipient.setEmployee(employee);
             recipientRepository.save(recipient);
         }
+
+        // D.4: Realtime push notification dispatch to mobile devices and active web sessions
+        if (pushNotificationDispatcher != null && recipientEmployeeIds != null && !recipientEmployeeIds.isEmpty()) {
+            pushNotificationDispatcher.dispatchPush(referenceType, referenceId, title, body, recipientEmployeeIds);
+        }
+
         return notification;
     }
 

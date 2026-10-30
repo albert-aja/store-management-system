@@ -4,6 +4,7 @@ import type {
   ReceiveStockUnitInput,
   StockAvailability,
   StockLocationType,
+  StockUnit,
 } from "./types";
 
 const STOCK_UNITS_KEY = ["stock-units"];
@@ -66,8 +67,9 @@ export function useTransferStockUnit() {
 }
 
 export function useAdjustAvailability() {
-  return useInvalidatingMutation(
-    ({
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
       id,
       status,
       reason,
@@ -76,8 +78,37 @@ export function useAdjustAvailability() {
       status: StockAvailability;
       reason?: string;
     }) => inventoryApi.adjustAvailability(id, status, reason),
-    [STOCK_UNITS_KEY],
-  );
+    // Optimistic Update: instantly update matching stock unit in cache
+    onMutate: async ({ id, status }) => {
+      await queryClient.cancelQueries({ queryKey: STOCK_UNITS_KEY });
+      const previousQueries = queryClient.getQueriesData<StockUnit[]>({
+        queryKey: STOCK_UNITS_KEY,
+      });
+
+      queryClient.setQueriesData<StockUnit[]>(
+        { queryKey: STOCK_UNITS_KEY },
+        (old) =>
+          old
+            ? old.map((unit) =>
+                unit.id === id ? { ...unit, availabilityStatus: status } : unit,
+              )
+            : [],
+      );
+
+      return { previousQueries };
+    },
+    onError: (_err, _vars, context) => {
+      // Rollback on network failure
+      if (context?.previousQueries) {
+        context.previousQueries.forEach(([key, oldData]) => {
+          queryClient.setQueryData(key, oldData);
+        });
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: STOCK_UNITS_KEY });
+    },
+  });
 }
 
 export function useComponentStock(storeId: string | null) {
@@ -109,27 +140,25 @@ export function useAdjustComponentStock(storeId: string) {
   );
 }
 
-const allocationsKey = (itemId: string) => ["allocations", itemId];
-
-export function useAllocations(itemId: string | null) {
+export function useAllocations(soItemId: string | null) {
   return useQuery({
-    queryKey: allocationsKey(itemId ?? ""),
-    queryFn: () => inventoryApi.listAllocations(itemId as string),
-    enabled: !!itemId,
+    queryKey: ["allocations", soItemId],
+    queryFn: () => inventoryApi.listAllocations(soItemId as string),
+    enabled: !!soItemId,
   });
 }
 
-export function useAllocate(itemId: string) {
+export function useAllocate(soItemId: string) {
   return useInvalidatingMutation(
-    (stockUnitId: string) => inventoryApi.allocate(itemId, stockUnitId),
-    [allocationsKey(itemId), STOCK_UNITS_KEY],
+    (stockUnitId: string) => inventoryApi.allocate(soItemId, stockUnitId),
+    [["allocations", soItemId], STOCK_UNITS_KEY],
   );
 }
 
-export function useReleaseAllocation(itemId: string) {
+export function useReleaseAllocation(soItemId: string) {
   return useInvalidatingMutation(
     (allocationId: string) =>
-      inventoryApi.releaseAllocation(itemId, allocationId),
-    [allocationsKey(itemId), STOCK_UNITS_KEY],
+      inventoryApi.releaseAllocation(soItemId, allocationId),
+    [["allocations", soItemId], STOCK_UNITS_KEY],
   );
 }

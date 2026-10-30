@@ -48,7 +48,7 @@ public class SalesOrderService {
     private final ApprovalRequestRepository approvalRequestRepository;
     private final DocumentNumberingService numberingService;
     private final com.sms.survey.SurveyRepository surveyRepository;
-    private final com.sms.inventory.ReservationService reservationService;
+    private final com.sms.inventory.ReservationService reservationService;`r`n    private final com.sms.finance.FinanceService financeService;
 
     @Transactional(readOnly = true)
     public List<SalesOrder> search(UUID storeId, UUID customerId, SalesOrderStatus status) {
@@ -229,7 +229,7 @@ public class SalesOrderService {
      * explicit Open Decision (README 21) — this only records the attestation for now; real DP payment
      * capture arrives with the Finance/Payment module.
      */
-    public SalesOrder confirm(UUID id, boolean dpReceived) {
+    public SalesOrder confirm(UUID id, boolean dpReceived, BigDecimal dpAmount, String paymentMethod, UUID collectorEmployeeId, String notes) {
         SalesOrder salesOrder = requireStatus(id, SalesOrderStatus.RELEASED);
         boolean isCredit = itemRepository.findBySalesOrderId(id).stream().anyMatch(i -> i.getPaymentTermMonths() > 0);
         if (isCredit) {
@@ -242,8 +242,29 @@ public class SalesOrderService {
         if (!dpReceived) {
             throw new BusinessRuleException("DP must be received before confirmation");
         }
+
+        // D.2: If DP payment amount is specified, automatically record official customer_payment and cash custody in Finance
+        if (dpAmount != null && dpAmount.compareTo(BigDecimal.ZERO) > 0 && financeService != null) {
+            com.sms.finance.dto.RecordPaymentRequest payReq = new com.sms.finance.dto.RecordPaymentRequest();
+            payReq.setStoreId(salesOrder.getStore().getId());
+            payReq.setCustomerId(salesOrder.getCustomer().getId());
+            payReq.setSalesOrderId(salesOrder.getId());
+            payReq.setAmount(dpAmount);
+            payReq.setPaymentType(com.sms.finance.PaymentType.DOWN_PAYMENT);
+            payReq.setPaymentMethod(paymentMethod != null && paymentMethod.equalsIgnoreCase("TRANSFER")
+                    ? com.sms.finance.PaymentMethod.TRANSFER
+                    : com.sms.finance.PaymentMethod.CASH);
+            payReq.setCollectedById(collectorEmployeeId);
+            payReq.setNotes(notes != null ? notes : "DP for SO " + salesOrder.getSalesOrderNumber());
+            financeService.recordPayment(payReq);
+        }
+
         salesOrder.setStatus(SalesOrderStatus.CONFIRMED);
         return salesOrder;
+    }
+
+    public SalesOrder confirm(UUID id, boolean dpReceived) {
+        return confirm(id, dpReceived, null, null, null, null);
     }
 
     private SalesOrder requireStatus(UUID id, SalesOrderStatus expected) {

@@ -4,6 +4,7 @@ import com.sms.reporting.dto.CollectionAgingSummaryResponse;
 import com.sms.reporting.dto.ExecutiveOverviewResponse;
 import com.sms.reporting.dto.InventoryDistributionResponse;
 import com.sms.reporting.dto.OperationalExceptionItem;
+import com.sms.reporting.dto.PeriodComparisonResponse;
 import com.sms.reporting.dto.SalesPerformanceItem;
 import java.time.LocalDate;
 import java.util.List;
@@ -47,6 +48,17 @@ public class ReportingController {
     public ResponseEntity<CollectionAgingSummaryResponse> getCollectionAging(
             @RequestParam(name = "storeId", required = false) UUID storeId) {
         return ResponseEntity.ok(reportingService.getCollectionAging(storeId));
+    }
+
+    @GetMapping("/period-comparison")
+    @PreAuthorize("hasAuthority('REPORTING_VIEW') or hasRole('OWNER') or hasRole('MANAGER') or hasRole('ADMIN') or hasRole('AR')")
+    public ResponseEntity<PeriodComparisonResponse> getPeriodComparison(
+            @RequestParam(name = "storeId", required = false) UUID storeId,
+            @RequestParam(name = "primaryStart", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate primaryStart,
+            @RequestParam(name = "primaryEnd", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate primaryEnd,
+            @RequestParam(name = "compareStart", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate compareStart,
+            @RequestParam(name = "compareEnd", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate compareEnd) {
+        return ResponseEntity.ok(reportingService.getPeriodComparison(storeId, primaryStart, primaryEnd, compareStart, compareEnd));
     }
 
     @GetMapping("/inventory-distribution")
