@@ -31,6 +31,7 @@ import {
 } from "./hooks";
 import ReceivingPanel from "./ReceivingPanel";
 import SupplierPaymentPanel from "./SupplierPaymentPanel";
+import { t , formatNumber, localizeDisplayCode} from "../../lib/locale";
 
 export default function PurchaseOrderDetailPage() {
   const { id = "" } = useParams();
@@ -64,17 +65,17 @@ export default function PurchaseOrderDetailPage() {
   const notify = (message: string) => ({
     onSuccess: () => enqueueSnackbar(message, { variant: "success" }),
     onError: () =>
-      enqueueSnackbar("Action not allowed in the current state", {
+      enqueueSnackbar(t("Action not allowed in the current state"), {
         variant: "error",
       }),
   });
 
   return (
     <Box>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1, flexWrap: "wrap" }}>
         <Typography variant="h5">{po.number ?? "Draft Purchase Order"}</Typography>
         <Chip
-          label={po.status}
+          label={localizeDisplayCode(po.status)}
           color={
             po.status === "ISSUED"
               ? "success"
@@ -85,13 +86,13 @@ export default function PurchaseOrderDetailPage() {
         />
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Supplier: {po.supplierName}
+        {t("Supplier:")} {po.supplierName}
         {po.notes ? ` · ${po.notes}` : ""}
       </Typography>
 
       <Paper sx={{ p: 2, mb: 3 }}>
         <Typography variant="subtitle1" sx={{ mb: 1 }}>
-          Items — total {total.toLocaleString()}
+          {t("Items — total")} {formatNumber(total)}
         </Typography>
         <List dense>
           {(items ?? []).map((item) => (
@@ -101,7 +102,7 @@ export default function PurchaseOrderDetailPage() {
                 canManage &&
                 isDraft && (
                   <Button size="small" onClick={() => removeItem.mutate(item.id)}>
-                    Remove
+                    {t("Remove")}
                   </Button>
                 )
               }
@@ -125,14 +126,14 @@ export default function PurchaseOrderDetailPage() {
             }}
           >
             <TextField
-              label="Search product"
+              label={t("Search product")}
               size="small"
               value={productQuery}
               onChange={(e) => setProductQuery(e.target.value)}
             />
             <TextField
               select
-              label="Product"
+              label={t("Product")}
               size="small"
               sx={{ width: 200 }}
               value={productId}
@@ -149,7 +150,7 @@ export default function PurchaseOrderDetailPage() {
             </TextField>
             <TextField
               select
-              label="Kind"
+              label={t("Kind")}
               size="small"
               sx={{ width: 140 }}
               value={kind}
@@ -158,12 +159,12 @@ export default function PurchaseOrderDetailPage() {
                 setSubjectId("");
               }}
             >
-              <MenuItem value="VARIANT">Unit (variant)</MenuItem>
-              <MenuItem value="COMPONENT">Spare component</MenuItem>
+              <MenuItem value="VARIANT">{t("Unit (variant)")}</MenuItem>
+              <MenuItem value="COMPONENT">{t("Spare component")}</MenuItem>
             </TextField>
             <TextField
               select
-              label={kind === "VARIANT" ? "Variant" : "Component"}
+              label={kind === "VARIANT" ? t("Variant") : t("Component")}
               size="small"
               sx={{ width: 200 }}
               value={subjectId}
@@ -183,7 +184,7 @@ export default function PurchaseOrderDetailPage() {
                   ))}
             </TextField>
             <TextField
-              label="Qty"
+              label={t("Qty")}
               size="small"
               type="number"
               sx={{ width: 80 }}
@@ -191,7 +192,7 @@ export default function PurchaseOrderDetailPage() {
               onChange={(e) => setQuantity(Number(e.target.value))}
             />
             <TextField
-              label="Unit cost"
+              label={t("Unit cost")}
               size="small"
               type="number"
               sx={{ width: 140 }}
@@ -215,7 +216,7 @@ export default function PurchaseOrderDetailPage() {
                 )
               }
             >
-              Add Item
+              {t("Add Item")}
             </Button>
           </Box>
         )}
@@ -226,7 +227,7 @@ export default function PurchaseOrderDetailPage() {
           {isDraft && (
             <>
               <TextField
-                label="Approval workflow code"
+                label={t("Approval workflow code")}
                 size="small"
                 value={workflowCode}
                 onChange={(e) => setWorkflowCode(e.target.value)}
@@ -237,7 +238,7 @@ export default function PurchaseOrderDetailPage() {
                   submit.mutate(workflowCode, notify("Submitted for approval"))
                 }
               >
-                Submit for Approval
+                {t("Submit for Approval")}
               </Button>
             </>
           )}
@@ -246,7 +247,7 @@ export default function PurchaseOrderDetailPage() {
               variant="contained"
               onClick={() => issue.mutate(undefined, notify("PO issued"))}
             >
-              Issue (after approval)
+              {t("Issue (after approval)")}
             </Button>
           )}
           {po.status === "REJECTED" && (
@@ -256,14 +257,14 @@ export default function PurchaseOrderDetailPage() {
                 revise.mutate(undefined, notify("PO moved to draft for revision"))
               }
             >
-              Revise
+              {t("Revise")}
             </Button>
           )}
           {po.status !== "CANCELLED" && (
             <Button
               color="error"
               onClick={() => {
-                const reason = window.prompt("Cancellation reason?");
+                const reason = window.prompt(t("Cancellation reason?"));
                 if (reason !== null) {
                   cancel.mutate(
                     reason || undefined,
@@ -272,8 +273,7 @@ export default function PurchaseOrderDetailPage() {
                 }
               }}
             >
-              Cancel
-            </Button>
+              {t("Cancel")}</Button>
           )}
         </Box>
       )}

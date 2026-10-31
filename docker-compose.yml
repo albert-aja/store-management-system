@@ -1,0 +1,127 @@
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Authoritative Relational Database (PostgreSQL 16 + PostGIS Spatial Engine)
+  # ----------------------------------------------------------------------------
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: sms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-sms}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - sms-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-sms}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ----------------------------------------------------------------------------
+  # 2. High-Concurrency Atomic Sequence Counters & GPS Cache (Redis 7 Alpine)
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: sms-redis
+    restart: unless-stopped
+    command: >
+      redis-server 
+      --requirepass ${REDIS_PASSWORD:-sms_redis_secret_password_2026}
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy volatile-lru
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - sms-redis-data:/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "redis-cli",
+          "-a",
+          "${REDIS_PASSWORD:-sms_redis_secret_password_2026}",
+          "ping",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ----------------------------------------------------------------------------
+  # 3. Authoritative Modular Monolith Backend (Spring Boot 4.1 / Java 21)
+  # ----------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./core-backend
+      dockerfile: Dockerfile
+    container_name: core-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      SUPABASE_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-sms}
+      SUPABASE_DB_USER: ${POSTGRES_USER:-postgres}
+      SUPABASE_DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-sms_redis_secret_password_2026}
+      SUPABASE_URL: ${SUPABASE_URL:-https://mock.supabase.co}
+      SUPABASE_JWKS_URI: ${SUPABASE_JWKS_URI:-https://mock.supabase.co/auth/v1/.well-known/jwks.json}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-placeholder}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-${SUPABASE_ANON_KEY:-}}
+      SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-sms-documents}
+
+  # ----------------------------------------------------------------------------
+  # 4. Management System Web SPA (React 19 • Material UI • Vite)
+  # ----------------------------------------------------------------------------
+  management-web:
+    build:
+      context: ./sms-web
+      dockerfile: Dockerfile
+      args:
+        VITE_MAP_STYLE_URL: ${MANAGEMENT_MAP_STYLE_URL:-}
+    container_name: sms-management-web
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    environment:
+      VITE_API_BASE_URL: ${MANAGEMENT_API_URL:-http://localhost:8080}
+      VITE_WS_BASE_URL: ${MANAGEMENT_WS_URL:-ws://localhost:8080/ws}
+      VITE_SUPABASE_URL: ${SUPABASE_URL:-https://mock.supabase.co}
+      VITE_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY:-placeholder}
+
+  # ----------------------------------------------------------------------------
+  # 5. E-commerce Storefront Website (React 19 / Vite)
+  # ----------------------------------------------------------------------------
+  ecommerce-web:
+    build:
+      context: ./ecommerce-web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${ECOMMERCE_API_URL:-http://localhost:8080/api/v1/storefront}
+        VITE_SUPABASE_URL: ${SUPABASE_URL:-}
+        VITE_SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-${SUPABASE_ANON_KEY:-}}
+        VITE_PUBLIC_STOREFRONT_URL: ${PUBLIC_STOREFRONT_URL:-}
+    container_name: sms-ecommerce-web
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+
+volumes:
+  sms-postgres-data:
+    name: sms-postgres-data
+  sms-redis-data:
+    name: sms-redis-data

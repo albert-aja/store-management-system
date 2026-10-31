@@ -9,6 +9,7 @@ import {
   DialogTitle,
   TextField,
 } from "@mui/material";
+import { t } from "../../lib/locale";
 
 const schema = z.object({
   code: z.string().min(1, "Code is required"),
@@ -36,26 +37,26 @@ export default function RoleFormDialog({ open, onClose, onSubmit }: Props) {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogTitle>New Role</DialogTitle>
+        <DialogTitle>{t("New Role")}</DialogTitle>
         <DialogContent
           sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}
         >
           <TextField
-            label="Code"
+            label={t("Code")}
             fullWidth
             {...register("code")}
             error={!!errors.code}
             helperText={errors.code?.message}
           />
           <TextField
-            label="Name"
+            label={t("Name")}
             fullWidth
             {...register("name")}
             error={!!errors.name}
             helperText={errors.name?.message}
           />
           <TextField
-            label="Description"
+            label={t("Description")}
             fullWidth
             multiline
             rows={2}
@@ -63,10 +64,9 @@ export default function RoleFormDialog({ open, onClose, onSubmit }: Props) {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t("Cancel")}</Button>
           <Button type="submit" variant="contained">
-            Save
-          </Button>
+            {t("Save")}</Button>
         </DialogActions>
       </form>
     </Dialog>

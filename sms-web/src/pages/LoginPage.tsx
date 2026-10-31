@@ -1,9 +1,13 @@
 import { useState } from "react";
-import { Box, Button, Paper, TextField, Typography } from "@mui/material";
+import { Alert, Avatar, Box, Button, Paper, Stack, TextField, Typography } from "@mui/material";
+import StorefrontIcon from "@mui/icons-material/Storefront";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import LanguageSwitcher from "../components/LanguageSwitcher";
+import { t, translateKnownBackendMessage, useLanguage } from "../lib/locale";
 
 export default function LoginPage() {
+  const language = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -14,16 +18,19 @@ export default function LoginPage() {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    setSubmitting(false);
-    if (error) {
-      setError(error.message);
-      return;
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setError(translateKnownBackendMessage(error.message));
+        return;
+      }
+      navigate("/", { replace: true });
+    } catch (cause) {
+      console.error("Management sign-in failed:", cause);
+      setError(t("Unable to sign in. Check your connection and try again.", language));
+    } finally {
+      setSubmitting(false);
     }
-    navigate("/", { replace: true });
   };
 
   return (
@@ -33,45 +40,57 @@ export default function LoginPage() {
         justifyContent: "center",
         alignItems: "center",
         minHeight: "100vh",
-        bgcolor: "grey.100",
+        bgcolor: "background.default",
+        p: 2,
       }}
     >
-      <Paper sx={{ p: 4, width: 360 }} component="form" onSubmit={handleSubmit}>
-        <Typography variant="h5" sx={{ mb: 2 }}>
-          Store Management System
+      <Box sx={{ position: "fixed", top: 16, right: 16, zIndex: 1 }}>
+        <LanguageSwitcher />
+      </Box>
+      <Paper variant="outlined" sx={{ p: { xs: 3, sm: 5 }, width: "100%", maxWidth: 448, borderRadius: 2 }} component="form" onSubmit={handleSubmit}>
+        <Avatar variant="rounded" sx={{ bgcolor: "primary.main", width: 48, height: 48, borderRadius: 1.5, mb: 3 }}>
+          <StorefrontIcon />
+        </Avatar>
+        <Typography variant="caption" color="primary" sx={{ fontWeight: 600, letterSpacing: 1 }}>
+          {t("SMS WORKSPACE")}
         </Typography>
+        <Typography variant="h5" sx={{ mt: 1, mb: 1 }}>
+          {t("Welcome back", language)}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>{t("Sign in to manage your stores, teams, and operations.", language)}</Typography>
+        <Stack spacing={2.5}>
         <TextField
-          label="Email"
+          label={t("Email", language)}
           type="email"
           fullWidth
-          margin="normal"
+          autoComplete="username"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
         />
         <TextField
-          label="Password"
+          label={t("Password", language)}
           type="password"
           fullWidth
-          margin="normal"
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
         {error && (
-          <Typography color="error" variant="body2" sx={{ mt: 1 }}>
-            {error}
-          </Typography>
+          <Alert severity="error">{error}</Alert>
         )}
         <Button
           type="submit"
           variant="contained"
           fullWidth
-          sx={{ mt: 2 }}
+          sx={{ minHeight: 44 }}
           disabled={submitting}
         >
-          {submitting ? "Signing in..." : "Sign in"}
+          {t(submitting ? "Signing in..." : "Sign in", language)}
         </Button>
+        </Stack>
+        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 3 }}>{t("Staff access only. Contact your administrator for an account.", language)}</Typography>
       </Paper>
     </Box>
   );

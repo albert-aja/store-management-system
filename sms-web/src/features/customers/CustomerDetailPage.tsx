@@ -82,22 +82,23 @@ import type {
   PtpStatus,
   StoreCreditInput,
 } from "./types";
+import { t , formatDate, formatNumber, localizeDisplayCode} from "../../lib/locale";
 
 function formatRupiah(amount: number | undefined | null): string {
   if (amount == null) return "Rp 0";
-  return "Rp " + amount.toLocaleString("id-ID");
+  return "Rp " + formatNumber(amount);
 }
 
 function getSegmentChipProps(segment: string | undefined) {
   switch (segment) {
     case "VIP_CASH":
-      return { label: "VIP Cash Buyer", color: "warning" as const, variant: "filled" as const };
+      return { label: t("VIP Cash Buyer"), color: "warning" as const, variant: "filled" as const };
     case "STAR_CREDIT":
-      return { label: "Star Credit Customer", color: "secondary" as const, variant: "filled" as const };
+      return { label: t("Star Credit Customer"), color: "secondary" as const, variant: "filled" as const };
     case "HIGH_DELINQUENCY_RISK":
-      return { label: "High Delinquency Risk", color: "error" as const, variant: "filled" as const };
+      return { label: t("High Delinquency Risk"), color: "error" as const, variant: "filled" as const };
     default:
-      return { label: "Standard Account", color: "default" as const, variant: "outlined" as const };
+      return { label: t("Standard Account"), color: "default" as const, variant: "outlined" as const };
   }
 }
 
@@ -220,33 +221,35 @@ export default function CustomerDetailPage() {
   return (
     <Box sx={{ pb: 6 }}>
       {/* 360 Header Profile & Key Metrics */}
-      <Paper sx={{ p: 3, mb: 3, borderRadius: 2, bgcolor: "#0f172a", color: "#f8fafc" }}>
+      <Paper variant="outlined" sx={{ p: 3, mb: 3, borderRadius: 2 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
-          <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-            <Avatar sx={{ width: 64, height: 64, bgcolor: "#2563eb", fontSize: "1.75rem", fontWeight: 700 }}>
+          <Box sx={{ display: "flex", gap: 2, alignItems: "center", minWidth: 0 }}>
+            <Avatar sx={{ width: 56, height: 56, bgcolor: "primary.main", fontSize: "1.5rem", fontWeight: 600 }}>
               {customer.fullName.charAt(0).toUpperCase()}
             </Avatar>
-            <Box>
+            <Box sx={{ minWidth: 0, overflowWrap: "anywhere" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                <Typography variant="h5" sx={{ fontWeight: 800 }}>
+                <Typography variant="h5" sx={{ fontWeight: 600 }}>
                   {customer.fullName}
                 </Typography>
                 <Chip {...getSegmentChipProps(summary?.segment)} size="small" />
                 <Chip
                   icon={<StarIcon sx={{ "&&": { color: "#facc15" } }} />}
-                  label={`Credit Score: ${summary?.creditScoreGrade ?? "B"} (${summary?.creditScorePoints ?? 80}/100)`}
+                  label={t("Credit Score: {grade} ({points}/100)", undefined, {
+                    grade: summary?.creditScoreGrade ?? "B",
+                    points: formatNumber(summary?.creditScorePoints ?? 80),
+                  })}
                   color={getCreditGradeColor(summary?.creditScoreGrade)}
                   size="small"
                   variant="outlined"
-                  sx={{ borderColor: "rgba(255,255,255,0.3)", color: "#fff" }}
                 />
               </Box>
-              <Typography variant="body2" sx={{ color: "#94a3b8", mt: 0.5 }}>
-                NIK: <strong>{customer.nik ?? "—"}</strong> • Telp: <strong>{customer.primaryPhone ?? "—"}</strong> • Email: {customer.primaryEmail ?? "—"}
+              <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
+                {t("NIK:")} <strong>{customer.nik ?? "—"}</strong> {t("• Telp:")} <strong>{customer.primaryPhone ?? "—"}</strong> {t("• Email:")} {customer.primaryEmail ?? "—"}
               </Typography>
               {customer.motherMaidenName && (
                 <Typography variant="caption" sx={{ color: "#64748b", display: "block" }}>
-                  Nama Ibu Kandung: •••••••• (Terverifikasi PDP) • Lahir: {customer.birthPlace ?? "—"}, {customer.birthDate ?? "—"}
+                  {t("Nama Ibu Kandung: •••••••• (Terverifikasi PDP) • Lahir:")} {customer.birthPlace ?? "—"}, {customer.birthDate ?? "—"}
                 </Typography>
               )}
             </Box>
@@ -259,27 +262,25 @@ export default function CustomerDetailPage() {
               size="small"
               startIcon={<CallIcon />}
               onClick={() => setShowInteractionDialog(true)}
-              sx={{ bgcolor: "#2563eb", "&:hover": { bgcolor: "#1d4ed8" } }}
             >
-              Log Interaksi
+              {t("Log Interaksi")}
             </Button>
             <Button
-              variant="contained"
+              variant="outlined"
+              color="success"
               size="small"
               startIcon={<MonetizationOnIcon />}
               onClick={() => setShowPtpDialog(true)}
-              sx={{ bgcolor: "#059669", "&:hover": { bgcolor: "#047857" } }}
             >
-              Janji Bayar (PTP)
+              {t("Janji Bayar (PTP)")}
             </Button>
             <Button
-              variant="contained"
+              variant="outlined"
               size="small"
               startIcon={<EventNoteIcon />}
               onClick={() => setShowFollowUpDialog(true)}
-              sx={{ bgcolor: "#7c3aed", "&:hover": { bgcolor: "#6d28d9" } }}
             >
-              Pengingat
+              {t("Pengingat")}
             </Button>
             <Button
               variant="outlined"
@@ -289,17 +290,16 @@ export default function CustomerDetailPage() {
                 setStoreCreditMode("GRANT");
                 setShowStoreCreditDialog(true);
               }}
-              sx={{ color: "#38bdf8", borderColor: "#38bdf8", "&:hover": { borderColor: "#7dd3fc" } }}
             >
-              Store Credit
+              {t("Store Credit")}
             </Button>
           </Box>
         </Box>
 
         {/* Demographic & Behavioral Tags Strip */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 2, flexWrap: "wrap" }}>
-          <Typography variant="caption" sx={{ color: "#94a3b8", fontWeight: 600 }}>
-            Tags:
+          <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
+            {t("Tags:")}
           </Typography>
           {(summary?.tags ?? []).map((t) => (
             <Chip
@@ -313,12 +313,11 @@ export default function CustomerDetailPage() {
           {canManage && (
             <Chip
               icon={<AddIcon />}
-              label="Tambah Tag"
+              label={t("Tambah Tag")}
               size="small"
               clickable
               onClick={() => setShowTagDialog(true)}
               variant="outlined"
-              sx={{ color: "#94a3b8", borderColor: "#475569" }}
             />
           )}
         </Box>
@@ -326,57 +325,57 @@ export default function CustomerDetailPage() {
         {/* 4 KPI Summary Cards */}
         <Grid container spacing={2} sx={{ mt: 2 }}>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Box sx={{ p: 1.5, borderRadius: 1.5, bgcolor: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <Typography variant="caption" sx={{ color: "#94a3b8", fontWeight: 600, display: "block" }}>
-                CUSTOMER LIFETIME VALUE (CLV)
+            <Box sx={{ p: 1.5, borderRadius: 1.5, bgcolor: "background.default", border: 1, borderColor: "divider" }}>
+              <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500, display: "block" }}>
+                {t("CUSTOMER LIFETIME VALUE (CLV)")}
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: "#38bdf8" }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: "primary.main" }}>
                 {formatRupiah(summary?.clvAmount)}
               </Typography>
               <Typography variant="caption" sx={{ color: "#64748b" }}>
-                Total Transaksi: {summary?.totalOrdersCount ?? 0} Pesanan
+                {t("Total Transaksi:")} {summary?.totalOrdersCount ?? 0} {t("Pesanan")}
               </Typography>
             </Box>
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Box sx={{ p: 1.5, borderRadius: 1.5, bgcolor: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <Typography variant="caption" sx={{ color: "#94a3b8", fontWeight: 600, display: "block" }}>
-                SALDO STORE CREDIT (UANG MUKA/REFUND)
+            <Box sx={{ p: 1.5, borderRadius: 1.5, bgcolor: "background.default", border: 1, borderColor: "divider" }}>
+              <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500, display: "block" }}>
+                {t("SALDO STORE CREDIT (UANG MUKA/REFUND)")}
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: "#34d399" }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, color: "success.main" }}>
                 {formatRupiah(summary?.storeCreditBalance)}
               </Typography>
               <Typography variant="caption" sx={{ color: "#64748b" }}>
-                Voucher Aktif: {summary?.activeVouchersCount ?? 0} Kupon
+                {t("Voucher Aktif:")} {summary?.activeVouchersCount ?? 0} {t("Kupon")}
               </Typography>
             </Box>
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Box sx={{ p: 1.5, borderRadius: 1.5, bgcolor: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <Typography variant="caption" sx={{ color: "#94a3b8", fontWeight: 600, display: "block" }}>
-                JANJI BAYAR (PTP) PENDING
+            <Box sx={{ p: 1.5, borderRadius: 1.5, bgcolor: "background.default", border: 1, borderColor: "divider" }}>
+              <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500, display: "block" }}>
+                {t("JANJI BAYAR (PTP) PENDING")}
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: (summary?.pendingPtpCount ?? 0) > 0 ? "#f43f5e" : "#e2e8f0" }}>
-                {summary?.pendingPtpCount ?? 0} Komitmen
+              <Typography variant="h6" sx={{ fontWeight: 600, color: (summary?.pendingPtpCount ?? 0) > 0 ? "error.main" : "text.primary" }}>
+                {summary?.pendingPtpCount ?? 0} {t("Komitmen")}
               </Typography>
               <Typography variant="caption" sx={{ color: "#64748b" }}>
-                Target Penagihan Aktif
+                {t("Target Penagihan Aktif")}
               </Typography>
             </Box>
           </Grid>
 
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Box sx={{ p: 1.5, borderRadius: 1.5, bgcolor: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <Typography variant="caption" sx={{ color: "#94a3b8", fontWeight: 600, display: "block" }}>
-                PENGINGAT & TINDAK LANJUT
+            <Box sx={{ p: 1.5, borderRadius: 1.5, bgcolor: "background.default", border: 1, borderColor: "divider" }}>
+              <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500, display: "block" }}>
+                {t("PENGINGAT & TINDAK LANJUT")}
               </Typography>
-              <Typography variant="h6" sx={{ fontWeight: 800, color: (summary?.pendingFollowUpsCount ?? 0) > 0 ? "#fbbf24" : "#e2e8f0" }}>
-                {summary?.pendingFollowUpsCount ?? 0} Jadwal
+              <Typography variant="h6" sx={{ fontWeight: 600, color: (summary?.pendingFollowUpsCount ?? 0) > 0 ? "warning.main" : "text.primary" }}>
+                {summary?.pendingFollowUpsCount ?? 0} {t("Jadwal")}
               </Typography>
               <Typography variant="caption" sx={{ color: "#64748b" }}>
-                Sales Lead & Payment Alert
+                {t("Sales Lead & Payment Alert")}
               </Typography>
             </Box>
           </Grid>
@@ -386,13 +385,13 @@ export default function CustomerDetailPage() {
       {/* Main Tabs Navigation */}
       <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
         <Tabs value={activeTab} onChange={(_, val) => setActiveTab(val)}>
-          <Tab icon={<HistoryIcon />} iconPosition="start" label="Timeline 360 (J.1)" />
-          <Tab icon={<CallIcon />} iconPosition="start" label={`Omnichannel Log (${interactions?.length ?? 0}) (J.6)`} />
-          <Tab icon={<MonetizationOnIcon />} iconPosition="start" label={`Janji Bayar (${ptps?.length ?? 0}) (J.3)`} />
-          <Tab icon={<EventNoteIcon />} iconPosition="start" label={`Pengingat (${followUps?.length ?? 0}) (J.7)`} />
-          <Tab icon={<LocalOfferIcon />} iconPosition="start" label="Store Credit & Voucher (J.5)" />
-          <Tab icon={<PersonIcon />} iconPosition="start" label="Kontak & Alamat" />
-          <Tab icon={<AssignmentTurnedInIcon />} iconPosition="start" label="Dokumen" />
+          <Tab icon={<HistoryIcon />} iconPosition="start" label={t("Timeline 360 (J.1)")} />
+          <Tab icon={<CallIcon />} iconPosition="start" label={t("Omnichannel Log ({count}) (J.6)", undefined, { count: formatNumber(interactions?.length ?? 0) })} />
+          <Tab icon={<MonetizationOnIcon />} iconPosition="start" label={t("Promise to Pay ({count}) (J.3)", undefined, { count: formatNumber(ptps?.length ?? 0) })} />
+          <Tab icon={<EventNoteIcon />} iconPosition="start" label={t("Reminders ({count}) (J.7)", undefined, { count: formatNumber(followUps?.length ?? 0) })} />
+          <Tab icon={<LocalOfferIcon />} iconPosition="start" label={t("Store Credit & Voucher (J.5)")} />
+          <Tab icon={<PersonIcon />} iconPosition="start" label={t("Kontak & Alamat")} />
+          <Tab icon={<AssignmentTurnedInIcon />} iconPosition="start" label={t("Dokumen")} />
         </Tabs>
       </Box>
 
@@ -401,32 +400,32 @@ export default function CustomerDetailPage() {
         <Box>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Riwayat Aktivitas 360 Terpadu (Unified Chronological Feed)
+              {t("Riwayat Aktivitas 360 Terpadu (Unified Chronological Feed)")}
             </Typography>
             <Box sx={{ display: "flex", gap: 1 }}>
               <Chip
-                label="Semua"
+                label={t("Semua")}
                 clickable
                 color={timelineFilter === "ALL" ? "primary" : "default"}
                 onClick={() => setTimelineFilter("ALL")}
                 size="small"
               />
               <Chip
-                label="Pesanan & Surat Jalan"
+                label={t("Pesanan & Surat Jalan")}
                 clickable
                 color={timelineFilter === "ORDERS" ? "primary" : "default"}
                 onClick={() => setTimelineFilter("ORDERS")}
                 size="small"
               />
               <Chip
-                label="Pembayaran & Keuangan"
+                label={t("Pembayaran & Keuangan")}
                 clickable
                 color={timelineFilter === "PAYMENTS" ? "primary" : "default"}
                 onClick={() => setTimelineFilter("PAYMENTS")}
                 size="small"
               />
               <Chip
-                label="CRM & Komunikasi"
+                label={t("CRM & Komunikasi")}
                 clickable
                 color={timelineFilter === "CRM" ? "primary" : "default"}
                 onClick={() => setTimelineFilter("CRM")}
@@ -437,7 +436,7 @@ export default function CustomerDetailPage() {
 
           {timelineEvents.length === 0 ? (
             <Paper sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
-              Belum ada riwayat aktivitas yang tercatat untuk filter ini.
+              {t("Belum ada riwayat aktivitas yang tercatat untuk filter ini.")}
             </Paper>
           ) : (
             <Box sx={{ position: "relative", pl: 3, borderLeft: "2px solid #cbd5e1", ml: 2 }}>
@@ -468,7 +467,7 @@ export default function CustomerDetailPage() {
                             sx={{ bgcolor: `${evt.badgeColor}20`, color: evt.badgeColor, fontWeight: 700, fontSize: "0.7rem" }}
                           />
                           {evt.status && (
-                            <Chip label={evt.status} size="small" variant="outlined" />
+                            <Chip label={localizeDisplayCode(evt.status)} size="small" variant="outlined" />
                           )}
                         </Box>
                         <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
@@ -476,7 +475,7 @@ export default function CustomerDetailPage() {
                         </Typography>
                       </Box>
                       <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600 }}>
-                        {new Date(evt.timestamp).toLocaleString("id-ID", {
+                        {formatDate(new Date(evt.timestamp), undefined, {
                           dateStyle: "medium",
                           timeStyle: "short",
                         })}
@@ -495,14 +494,14 @@ export default function CustomerDetailPage() {
         <Box>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Log Komunikasi Omnichannel (WhatsApp, Telepon, SMS, Kunjungan)
+              {t("Log Komunikasi Omnichannel (WhatsApp, Telepon, SMS, Kunjungan)")}
             </Typography>
             <Button
               variant="contained"
               startIcon={<CallIcon />}
               onClick={() => setShowInteractionDialog(true)}
             >
-              Catat Interaksi Baru
+              {t("Catat Interaksi Baru")}
             </Button>
           </Box>
 
@@ -510,7 +509,7 @@ export default function CustomerDetailPage() {
             {(interactions ?? []).map((item) => (
               <Grid size={{ xs: 12 }} key={item.id}>
                 <Paper sx={{ p: 2, display: "flex", gap: 2, alignItems: "flex-start", borderRadius: 2 }}>
-                  <Avatar sx={{ bgcolor: "#f1f5f9" }}>
+                  <Avatar sx={{ bgcolor: "background.default" }}>
                     {getChannelIcon(item.channel)}
                   </Avatar>
                   <Box sx={{ flexGrow: 1 }}>
@@ -527,7 +526,9 @@ export default function CustomerDetailPage() {
                           variant="outlined"
                         />
                         <Chip
-                          label={`Hasil: ${item.outcome}`}
+                          label={t("Outcome: {outcome}", undefined, {
+                            outcome: item.outcome,
+                          })}
                           size="small"
                           color={
                             item.outcome === "POSITIVE"
@@ -539,7 +540,7 @@ export default function CustomerDetailPage() {
                         />
                       </Box>
                       <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                        {new Date(item.createdAt).toLocaleString("id-ID")}
+                        {formatDate(new Date(item.createdAt), undefined, { dateStyle: "medium", timeStyle: "short" })}
                       </Typography>
                     </Box>
                     {item.details && (
@@ -548,7 +549,7 @@ export default function CustomerDetailPage() {
                       </Typography>
                     )}
                     <Typography variant="caption" sx={{ display: "block", mt: 1, color: "#64748b" }}>
-                      Dicatat oleh: <strong>{item.recordedByName}</strong>
+                      {t("Dicatat oleh:")} <strong>{item.recordedByName}</strong>
                     </Typography>
                   </Box>
                 </Paper>
@@ -557,7 +558,7 @@ export default function CustomerDetailPage() {
             {(interactions ?? []).length === 0 && (
               <Grid size={{ xs: 12 }}>
                 <Paper sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
-                  Belum ada log interaksi telepon, WhatsApp, atau kunjungan langsung.
+                  {t("Belum ada log interaksi telepon, WhatsApp, atau kunjungan langsung.")}
                 </Paper>
               </Grid>
             )}
@@ -570,7 +571,7 @@ export default function CustomerDetailPage() {
         <Box>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Daftar Janji Bayar (Promise-to-Pay / PTP)
+              {t("Daftar Janji Bayar (Promise-to-Pay / PTP)")}
             </Typography>
             <Button
               variant="contained"
@@ -578,7 +579,7 @@ export default function CustomerDetailPage() {
               onClick={() => setShowPtpDialog(true)}
               color="success"
             >
-              Catat Janji Bayar Baru
+              {t("Catat Janji Bayar Baru")}
             </Button>
           </Box>
 
@@ -593,16 +594,16 @@ export default function CustomerDetailPage() {
                           {formatRupiah(ptp.promisedAmount)}
                         </Typography>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          Tanggal Dijanjikan: {ptp.promisedDate}
+                          {t("Tanggal Dijanjikan:")} {formatDate(ptp.promisedDate)}
                         </Typography>
                         {ptp.salesOrderNumber && (
                           <Typography variant="caption" color="text.secondary">
-                            Ref SO: {ptp.salesOrderNumber}
+                            {t("Ref SO:")} {ptp.salesOrderNumber}
                           </Typography>
                         )}
                       </Box>
                       <Chip
-                        label={ptp.status}
+                        label={localizeDisplayCode(ptp.status)}
                         color={
                           ptp.status === "KEPT"
                             ? "success"
@@ -615,14 +616,14 @@ export default function CustomerDetailPage() {
                     </Box>
 
                     {ptp.notes && (
-                      <Typography variant="body2" sx={{ mt: 1, bgcolor: "#f8fafc", p: 1, borderRadius: 1 }}>
+                      <Typography variant="body2" sx={{ mt: 1, bgcolor: "background.default", p: 1, borderRadius: 1 }}>
                         {ptp.notes}
                       </Typography>
                     )}
 
                     <Box sx={{ mt: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <Typography variant="caption" color="text.secondary">
-                        Petugas: {ptp.recordedByName}
+                        {t("Petugas:")} {ptp.recordedByName}
                       </Typography>
                       {canManage && ptp.status === "PENDING" && (
                         <Box sx={{ display: "flex", gap: 1 }}>
@@ -637,7 +638,7 @@ export default function CustomerDetailPage() {
                               setResolutionNotes("");
                             }}
                           >
-                            Kept (Ditepati)
+                            {t("Kept (Ditepati)")}
                           </Button>
                           <Button
                             size="small"
@@ -650,7 +651,7 @@ export default function CustomerDetailPage() {
                               setResolutionNotes("");
                             }}
                           >
-                            Broken (Ingkar)
+                            {t("Broken (Ingkar)")}
                           </Button>
                         </Box>
                       )}
@@ -662,7 +663,7 @@ export default function CustomerDetailPage() {
             {(ptps ?? []).length === 0 && (
               <Grid size={{ xs: 12 }}>
                 <Paper sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
-                  Belum ada janji bayar yang dicatat untuk pelanggan ini.
+                  {t("Belum ada janji bayar yang dicatat untuk pelanggan ini.")}
                 </Paper>
               </Grid>
             )}
@@ -675,14 +676,14 @@ export default function CustomerDetailPage() {
         <Box>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
-              Jadwal Pengingat & Tindak Lanjut (Follow-Up Scheduler)
+              {t("Jadwal Pengingat & Tindak Lanjut (Follow-Up Scheduler)")}
             </Typography>
             <Button
               variant="contained"
               startIcon={<EventNoteIcon />}
               onClick={() => setShowFollowUpDialog(true)}
             >
-              Jadwalkan Pengingat Baru
+              {t("Jadwalkan Pengingat Baru")}
             </Button>
           </Box>
 
@@ -699,22 +700,22 @@ export default function CustomerDetailPage() {
                         <Chip label={item.followUpType} size="small" sx={{ mt: 0.5 }} />
                       </Box>
                       <Chip
-                        label={item.status}
+                        label={localizeDisplayCode(item.status)}
                         color={item.status === "COMPLETED" ? "success" : item.status === "CANCELLED" ? "default" : "warning"}
                         size="small"
                       />
                     </Box>
                     <Typography variant="body2" sx={{ mt: 1, color: "text.secondary" }}>
-                      Jadwal: {new Date(item.scheduledAt).toLocaleString("id-ID")}
+                      {t("Jadwal:")} {formatDate(new Date(item.scheduledAt), undefined, { dateStyle: "medium", timeStyle: "short" })}
                     </Typography>
                     {item.notes && (
-                      <Typography variant="body2" sx={{ mt: 1, bgcolor: "#f8fafc", p: 1, borderRadius: 1 }}>
+                      <Typography variant="body2" sx={{ mt: 1, bgcolor: "background.default", p: 1, borderRadius: 1 }}>
                         {item.notes}
                       </Typography>
                     )}
                     <Box sx={{ mt: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <Typography variant="caption" color="text.secondary">
-                        PIC: {item.assignedEmployeeName}
+                        {t("PIC:")} {item.assignedEmployeeName}
                       </Typography>
                       {canManage && item.status === "SCHEDULED" && (
                         <Box sx={{ display: "flex", gap: 1 }}>
@@ -724,14 +725,14 @@ export default function CustomerDetailPage() {
                             color="success"
                             onClick={() => completeFollowUp.mutate({ followUpId: item.id, notes: "Follow up berhasil dijalankan" })}
                           >
-                            Selesai
+                            {t("Selesai")}
                           </Button>
                           <Button
                             size="small"
                             variant="outlined"
                             onClick={() => cancelFollowUp.mutate(item.id)}
                           >
-                            Batal
+                            {t("Batal")}
                           </Button>
                         </Box>
                       )}
@@ -743,7 +744,7 @@ export default function CustomerDetailPage() {
             {(followUps ?? []).length === 0 && (
               <Grid size={{ xs: 12 }}>
                 <Paper sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
-                  Belum ada jadwal pengingat untuk pelanggan ini.
+                  {t("Belum ada jadwal pengingat untuk pelanggan ini.")}
                 </Paper>
               </Grid>
             )}
@@ -757,10 +758,10 @@ export default function CustomerDetailPage() {
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                Store Credit Ledger & Kupon Promo (Money Management Ritel)
+                {t("Store Credit Ledger & Kupon Promo (Money Management Ritel)")}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Saldo kredit toko resmi untuk penyesuaian diskon, uang muka, dan garansi (Bukan aktivitas perbankan).
+                {t("Saldo kredit toko resmi untuk penyesuaian diskon, uang muka, dan garansi (Bukan aktivitas perbankan).")}
               </Typography>
             </Box>
             {canManage && (
@@ -773,7 +774,7 @@ export default function CustomerDetailPage() {
                     setShowStoreCreditDialog(true);
                   }}
                 >
-                  Tambah Saldo (Grant)
+                  {t("Tambah Saldo (Grant)")}
                 </Button>
                 <Button
                   variant="outlined"
@@ -783,7 +784,7 @@ export default function CustomerDetailPage() {
                     setShowStoreCreditDialog(true);
                   }}
                 >
-                  Gunakan Saldo (Redeem)
+                  {t("Gunakan Saldo (Redeem)")}
                 </Button>
               </Box>
             )}
@@ -794,7 +795,7 @@ export default function CustomerDetailPage() {
             <Grid size={{ xs: 12, md: 7 }}>
               <Paper sx={{ p: 2 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                  Buku Catatan Saldo Kredit Toko (Store Credit Ledger)
+                  {t("Buku Catatan Saldo Kredit Toko (Store Credit Ledger)")}
                 </Typography>
                 <List dense>
                   {(storeCreditEntries ?? []).map((entry) => (
@@ -806,7 +807,7 @@ export default function CustomerDetailPage() {
                               {entry.entryType === "GRANT" ? "+ " : "- "} {formatRupiah(entry.amount)}
                             </Typography>
                             <Typography variant="caption" sx={{ fontWeight: 600, color: "#059669" }}>
-                              Saldo Akhir: {formatRupiah(entry.balanceAfter)}
+                              {t("Saldo Akhir:")} {formatRupiah(entry.balanceAfter)}
                             </Typography>
                           </Box>
                         }
@@ -816,7 +817,7 @@ export default function CustomerDetailPage() {
                               {entry.notes ?? "Transaksi Store Credit"} • {entry.referenceType ?? "MANUAL"}
                             </Typography>
                             <Typography component="span" variant="caption" color="text.secondary">
-                              {new Date(entry.createdAt).toLocaleDateString("id-ID")}
+                              {formatDate(new Date(entry.createdAt), undefined, { dateStyle: "medium" })}
                             </Typography>
                           </Box>
                         }
@@ -825,7 +826,7 @@ export default function CustomerDetailPage() {
                   ))}
                   {(storeCreditEntries ?? []).length === 0 && (
                     <Typography variant="body2" sx={{ p: 2, textAlign: "center", color: "text.secondary" }}>
-                      Belum ada mutasi store credit.
+                      {t("Belum ada mutasi store credit.")}
                     </Typography>
                   )}
                 </List>
@@ -836,16 +837,16 @@ export default function CustomerDetailPage() {
             <Grid size={{ xs: 12, md: 5 }}>
               <Paper sx={{ p: 2 }}>
                 <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
-                  Kupon Promo & Gift Voucher Pelanggan
+                  {t("Kupon Promo & Gift Voucher Pelanggan")}
                 </Typography>
                 {(vouchers ?? []).map((v) => (
-                  <Card key={v.id} sx={{ mb: 1.5, border: "1px dashed #0284c7", bgcolor: "#f0f9ff" }}>
+                  <Card key={v.id} sx={{ mb: 1.5, border: "1px dashed", borderColor: "primary.main", bgcolor: "background.paper" }}>
                     <CardContent sx={{ p: 1.5, "&:last-child": { pb: 1.5 } }}>
                       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#0369a1" }}>
                           {v.code}
                         </Typography>
-                        <Tooltip title="Salin Kode Voucher">
+                        <Tooltip title={t("Salin Kode Voucher")}>
                           <IconButton size="small" onClick={() => navigator.clipboard.writeText(v.code)}>
                             <ContentCopyIcon fontSize="small" />
                           </IconButton>
@@ -855,18 +856,22 @@ export default function CustomerDetailPage() {
                         {v.title}
                       </Typography>
                       <Typography variant="caption" sx={{ display: "block", color: "text.secondary" }}>
-                        Diskon: {v.voucherType === "PERCENTAGE" ? `${v.discountValue}%` : formatRupiah(v.discountValue)}
-                        {v.minOrderAmount ? ` • Min Belanja: ${formatRupiah(v.minOrderAmount)}` : ""}
+                        {t("Diskon:")} {v.voucherType === "PERCENTAGE" ? `${v.discountValue}%` : formatRupiah(v.discountValue)}
+                        {v.minOrderAmount
+                          ? ` • ${t("Minimum purchase: {amount}", undefined, {
+                              amount: formatRupiah(v.minOrderAmount),
+                            })}`
+                          : ""}
                       </Typography>
                       <Typography variant="caption" sx={{ display: "block", color: "#0369a1", mt: 0.5 }}>
-                        Berlaku: {v.validFrom} s/d {v.validUntil} • Kuota: {v.timesUsed}/{v.maxUses}
+                        {t("Berlaku:")} {v.validFrom} {t("s/d")} {v.validUntil} {t("• Kuota:")} {v.timesUsed}/{v.maxUses}
                       </Typography>
                     </CardContent>
                   </Card>
                 ))}
                 {(vouchers ?? []).length === 0 && (
                   <Typography variant="body2" sx={{ p: 2, textAlign: "center", color: "text.secondary" }}>
-                    Tidak ada voucher khusus yang ditautkan ke akun ini.
+                    {t("Tidak ada voucher khusus yang ditautkan ke akun ini.")}
                   </Typography>
                 )}
               </Paper>
@@ -880,7 +885,7 @@ export default function CustomerDetailPage() {
         <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
           <Paper sx={{ p: 2, width: 360 }}>
             <Typography variant="subtitle1" sx={{ mb: 1 }}>
-              Contacts
+              {t("Contacts")}
             </Typography>
             <List dense>
               {(contacts ?? []).map((contact) => (
@@ -892,7 +897,7 @@ export default function CustomerDetailPage() {
                         size="small"
                         onClick={() => deactivateContact.mutate(contact.id)}
                       >
-                        Remove
+                        {t("Remove")}
                       </Button>
                     )
                   }
@@ -917,39 +922,39 @@ export default function CustomerDetailPage() {
                 >
                   <TextField
                     select
-                    label="Type"
+                    label={t("Type")}
                     size="small"
                     {...contactForm.register("contactType")}
                   >
-                    <MenuItem value="PHONE">Phone</MenuItem>
-                    <MenuItem value="EMAIL">Email</MenuItem>
-                    <MenuItem value="OTHER">Other</MenuItem>
+                    <MenuItem value="PHONE">{t("Phone")}</MenuItem>
+                    <MenuItem value="EMAIL">{t("Email")}</MenuItem>
+                    <MenuItem value="OTHER">{t("Other")}</MenuItem>
                   </TextField>
                   <TextField
-                    label="Label"
+                    label={t("Label")}
                     size="small"
                     {...contactForm.register("label")}
                   />
                   <TextField
-                    label="Value"
+                    label={t("Value")}
                     size="small"
                     required
                     {...contactForm.register("value", { required: true })}
                   />
                   <Button type="submit" variant="contained" size="small">
-                    Add Contact
+                    {t("Add Contact")}
                   </Button>
                 </Box>
               ) : (
                 <Button size="small" onClick={() => setShowContactForm(true)}>
-                  Add Contact
+                  {t("Add Contact")}
                 </Button>
               ))}
           </Paper>
 
           <Paper sx={{ p: 2, width: 360 }}>
             <Typography variant="subtitle1" sx={{ mb: 1 }}>
-              Addresses
+              {t("Addresses")}
             </Typography>
             <List dense>
               {(addresses ?? []).map((address) => (
@@ -963,14 +968,14 @@ export default function CustomerDetailPage() {
                             size="small"
                             onClick={() => setPrimaryAddress.mutate(address.id)}
                           >
-                            Set Primary
+                            {t("Set Primary")}
                           </Button>
                         )}
                         <Button
                           size="small"
                           onClick={() => deactivateAddress.mutate(address.id)}
                         >
-                          Remove
+                          {t("Remove")}
                         </Button>
                       </>
                     )
@@ -981,7 +986,7 @@ export default function CustomerDetailPage() {
                       <>
                         {address.label ?? "Address"}{" "}
                         {address.primary && (
-                          <Chip label="Primary" size="small" color="primary" />
+                          <Chip label={t("Primary")} size="small" color="primary" />
                         )}
                       </>
                     }
@@ -1002,12 +1007,12 @@ export default function CustomerDetailPage() {
                   })}
                 >
                   <TextField
-                    label="Label"
+                    label={t("Label")}
                     size="small"
                     {...addressForm.register("label")}
                   />
                   <TextField
-                    label="Address"
+                    label={t("Address")}
                     size="small"
                     multiline
                     rows={2}
@@ -1016,15 +1021,15 @@ export default function CustomerDetailPage() {
                   />
                   <FormControlLabel
                     control={<Checkbox {...addressForm.register("primary")} />}
-                    label="Set as primary"
+                    label={t("Set as primary")}
                   />
                   <Button type="submit" variant="contained" size="small">
-                    Add Address
+                    {t("Add Address")}
                   </Button>
                 </Box>
               ) : (
                 <Button size="small" onClick={() => setShowAddressForm(true)}>
-                  Add Address
+                  {t("Add Address")}
                 </Button>
               ))}
           </Paper>
@@ -1047,62 +1052,62 @@ export default function CustomerDetailPage() {
             setShowInteractionDialog(false);
           })}
         >
-          <DialogTitle>Catat Interaksi Pelanggan (Omnichannel)</DialogTitle>
+          <DialogTitle>{t("Catat Interaksi Pelanggan (Omnichannel)")}</DialogTitle>
           <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
             <Box sx={{ display: "flex", gap: 2 }}>
               <FormControl fullWidth size="small">
-                <InputLabel>Saluran (Channel)</InputLabel>
-                <Select label="Saluran (Channel)" {...interactionForm.register("channel")}>
-                  <MenuItem value="WHATSAPP">WhatsApp</MenuItem>
-                  <MenuItem value="PHONE_CALL">Telepon Resmi</MenuItem>
-                  <MenuItem value="IN_PERSON">Kunjungan Showroom</MenuItem>
-                  <MenuItem value="SMS">SMS</MenuItem>
-                  <MenuItem value="EMAIL">Email</MenuItem>
+                <InputLabel>{t("Saluran (Channel)")}</InputLabel>
+                <Select label={t("Saluran (Channel)")} {...interactionForm.register("channel")}>
+                  <MenuItem value="WHATSAPP">{t("WhatsApp")}</MenuItem>
+                  <MenuItem value="PHONE_CALL">{t("Telepon Resmi")}</MenuItem>
+                  <MenuItem value="IN_PERSON">{t("Kunjungan Showroom")}</MenuItem>
+                  <MenuItem value="SMS">{t("SMS")}</MenuItem>
+                  <MenuItem value="EMAIL">{t("Email")}</MenuItem>
                 </Select>
               </FormControl>
               <FormControl fullWidth size="small">
-                <InputLabel>Arah (Direction)</InputLabel>
-                <Select label="Arah (Direction)" {...interactionForm.register("direction")}>
-                  <MenuItem value="OUTBOUND">Outbound (Toko Menghubungi)</MenuItem>
-                  <MenuItem value="INBOUND">Inbound (Pelanggan Menghubungi)</MenuItem>
+                <InputLabel>{t("Arah (Direction)")}</InputLabel>
+                <Select label={t("Arah (Direction)")} {...interactionForm.register("direction")}>
+                  <MenuItem value="OUTBOUND">{t("Outbound (Toko Menghubungi)")}</MenuItem>
+                  <MenuItem value="INBOUND">{t("Inbound (Pelanggan Menghubungi)")}</MenuItem>
                 </Select>
               </FormControl>
             </Box>
 
             <TextField
-              label="Ringkasan Percakapan"
+              label={t("Ringkasan Percakapan")}
               fullWidth
               required
               size="small"
-              placeholder="Contoh: Konfirmasi ketersediaan stok mesin cuci"
+              placeholder={t("Contoh: Konfirmasi ketersediaan stok mesin cuci")}
               {...interactionForm.register("summary", { required: true })}
             />
 
             <TextField
-              label="Rincian Lengkap / Catatan"
+              label={t("Rincian Lengkap / Catatan")}
               fullWidth
               multiline
               rows={3}
               size="small"
-              placeholder="Pelanggan menanyakan opsi cicilan 6 bulan..."
+              placeholder={t("Pelanggan menanyakan opsi cicilan 6 bulan...")}
               {...interactionForm.register("details")}
             />
 
             <FormControl fullWidth size="small">
-              <InputLabel>Hasil Interaksi (Outcome)</InputLabel>
-              <Select label="Hasil Interaksi (Outcome)" {...interactionForm.register("outcome")}>
-                <MenuItem value="POSITIVE">Positif (Tertarik / Bersedia Membayar)</MenuItem>
-                <MenuItem value="NEUTRAL">Netral (Menimbang / Minta Waktu)</MenuItem>
-                <MenuItem value="NEGATIVE">Negatif (Menolak / Komplain)</MenuItem>
-                <MenuItem value="NO_ANSWER">Tidak Diangkat / Tidak Aktif</MenuItem>
-                <MenuItem value="FOLLOW_UP_REQUIRED">Perlu Tindak Lanjut</MenuItem>
+              <InputLabel>{t("Hasil Interaksi (Outcome)")}</InputLabel>
+              <Select label={t("Hasil Interaksi (Outcome)")} {...interactionForm.register("outcome")}>
+                <MenuItem value="POSITIVE">{t("Positif (Tertarik / Bersedia Membayar)")}</MenuItem>
+                <MenuItem value="NEUTRAL">{t("Netral (Menimbang / Minta Waktu)")}</MenuItem>
+                <MenuItem value="NEGATIVE">{t("Negatif (Menolak / Komplain)")}</MenuItem>
+                <MenuItem value="NO_ANSWER">{t("Tidak Diangkat / Tidak Aktif")}</MenuItem>
+                <MenuItem value="FOLLOW_UP_REQUIRED">{t("Perlu Tindak Lanjut")}</MenuItem>
               </Select>
             </FormControl>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setShowInteractionDialog(false)}>Batal</Button>
+            <Button onClick={() => setShowInteractionDialog(false)}>{t("Batal")}</Button>
             <Button type="submit" variant="contained">
-              Simpan Interaksi
+              {t("Simpan Interaksi")}
             </Button>
           </DialogActions>
         </form>
@@ -1120,17 +1125,17 @@ export default function CustomerDetailPage() {
             setShowPtpDialog(false);
           })}
         >
-          <DialogTitle>Catat Janji Bayar (Promise-to-Pay)</DialogTitle>
+          <DialogTitle>{t("Catat Janji Bayar (Promise-to-Pay)")}</DialogTitle>
           <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
             <TextField
-              label="Nominal yang Dijanjikan (Rp)"
+              label={t("Nominal yang Dijanjikan (Rp)")}
               type="number"
               fullWidth
               required
               {...ptpForm.register("promisedAmount", { required: true, valueAsNumber: true })}
             />
             <TextField
-              label="Tanggal Janji Bayar"
+              label={t("Tanggal Janji Bayar")}
               type="date"
               fullWidth
               required
@@ -1138,18 +1143,18 @@ export default function CustomerDetailPage() {
               {...ptpForm.register("promisedDate", { required: true })}
             />
             <TextField
-              label="Catatan Komitmen Debitur"
+              label={t("Catatan Komitmen Debitur")}
               fullWidth
               multiline
               rows={2}
-              placeholder="Pelanggan berjanji melunasi setelah gajian tanggal 5..."
+              placeholder={t("Pelanggan berjanji melunasi setelah gajian tanggal 5...")}
               {...ptpForm.register("notes")}
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setShowPtpDialog(false)}>Batal</Button>
+            <Button onClick={() => setShowPtpDialog(false)}>{t("Batal")}</Button>
             <Button type="submit" variant="contained" color="success">
-              Simpan Janji Bayar
+              {t("Simpan Janji Bayar")}
             </Button>
           </DialogActions>
         </form>
@@ -1164,26 +1169,26 @@ export default function CustomerDetailPage() {
             setShowFollowUpDialog(false);
           })}
         >
-          <DialogTitle>Jadwalkan Pengingat Tindak Lanjut</DialogTitle>
+          <DialogTitle>{t("Jadwalkan Pengingat Tindak Lanjut")}</DialogTitle>
           <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
             <TextField
-              label="Judul Pengingat"
+              label={t("Judul Pengingat")}
               fullWidth
               required
-              placeholder="Contoh: Telepon penawaran upgrade kulkas dua pintu"
+              placeholder={t("Contoh: Telepon penawaran upgrade kulkas dua pintu")}
               {...followUpForm.register("title", { required: true })}
             />
             <FormControl fullWidth size="small">
-              <InputLabel>Tipe Pengingat</InputLabel>
-              <Select label="Tipe Pengingat" {...followUpForm.register("followUpType")}>
-                <MenuItem value="SALES_LEAD">Penjualan (Sales Lead)</MenuItem>
-                <MenuItem value="PAYMENT_REMINDER">Pengingat Pembayaran Angsuran</MenuItem>
-                <MenuItem value="SERVICE_CHECKIN">Purna Jual & Servis</MenuItem>
-                <MenuItem value="GENERAL">Umum</MenuItem>
+              <InputLabel>{t("Tipe Pengingat")}</InputLabel>
+              <Select label={t("Tipe Pengingat")} {...followUpForm.register("followUpType")}>
+                <MenuItem value="SALES_LEAD">{t("Penjualan (Sales Lead)")}</MenuItem>
+                <MenuItem value="PAYMENT_REMINDER">{t("Pengingat Pembayaran Angsuran")}</MenuItem>
+                <MenuItem value="SERVICE_CHECKIN">{t("Purna Jual & Servis")}</MenuItem>
+                <MenuItem value="GENERAL">{t("Umum")}</MenuItem>
               </Select>
             </FormControl>
             <TextField
-              label="Waktu Tindak Lanjut (ISO/Tanggal)"
+              label={t("Waktu Tindak Lanjut (ISO/Tanggal)")}
               type="datetime-local"
               fullWidth
               required
@@ -1191,7 +1196,7 @@ export default function CustomerDetailPage() {
               {...followUpForm.register("scheduledAt", { required: true })}
             />
             <TextField
-              label="Catatan Internal"
+              label={t("Catatan Internal")}
               fullWidth
               multiline
               rows={2}
@@ -1199,9 +1204,9 @@ export default function CustomerDetailPage() {
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setShowFollowUpDialog(false)}>Batal</Button>
+            <Button onClick={() => setShowFollowUpDialog(false)}>{t("Batal")}</Button>
             <Button type="submit" variant="contained">
-              Jadwalkan
+              {t("Jadwalkan")}
             </Button>
           </DialogActions>
         </form>
@@ -1225,28 +1230,34 @@ export default function CustomerDetailPage() {
           })}
         >
           <DialogTitle>
-            {storeCreditMode === "GRANT" ? "Tambah Saldo Store Credit (Grant)" : "Gunakan Saldo Store Credit (Redeem)"}
+            {storeCreditMode === "GRANT"
+              ? t("Tambah Saldo Store Credit (Grant)")
+              : t("Gunakan Saldo Store Credit (Redeem)")}
           </DialogTitle>
           <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
             <TextField
-              label="Nominal (Rp)"
+              label={t("Nominal (Rp)")}
               type="number"
               fullWidth
               required
               {...storeCreditForm.register("amount", { required: true, valueAsNumber: true })}
             />
             <TextField
-              label="Alasan / Referensi"
+              label={t("Alasan / Referensi")}
               fullWidth
               required
-              placeholder={storeCreditMode === "GRANT" ? "Contoh: Kompensasi keterlambatan kirim / Uang muka" : "Potongan pesanan penjualan"}
+              placeholder={
+                storeCreditMode === "GRANT"
+                  ? t("Contoh: Kompensasi keterlambatan kirim / Uang muka")
+                  : t("Potongan pesanan penjualan")
+              }
               {...storeCreditForm.register("reason", { required: true })}
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setShowStoreCreditDialog(false)}>Batal</Button>
+            <Button onClick={() => setShowStoreCreditDialog(false)}>{t("Batal")}</Button>
             <Button type="submit" variant="contained">
-              Konfirmasi Mutasi Saldo
+              {t("Konfirmasi Mutasi Saldo")}
             </Button>
           </DialogActions>
         </form>
@@ -1255,21 +1266,22 @@ export default function CustomerDetailPage() {
       {/* DIALOG 5: RESOLVE PTP (KEPT / BROKEN) */}
       <Dialog open={!!resolutionPtpId} onClose={() => setResolutionPtpId(null)} fullWidth maxWidth="xs">
         <DialogTitle>
-          Resolusi Janji Bayar ({resolutionStatus === "KEPT" ? "Ditepati" : "Ingkar / Macet"})
+          {t("Resolusi Janji Bayar (")}
+          {resolutionStatus === "KEPT" ? t("Ditepati") : t("Ingkar / Macet")})
         </DialogTitle>
         <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
           <TextField
-            label="Catatan Hasil Penagihan"
+            label={t("Catatan Hasil Penagihan")}
             fullWidth
             multiline
             rows={2}
             value={resolutionNotes}
             onChange={(e) => setResolutionNotes(e.target.value)}
-            placeholder="Kolektor menerima pembayaran tunai via kasir..."
+            placeholder={t("Kolektor menerima pembayaran tunai via kasir...")}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setResolutionPtpId(null)}>Batal</Button>
+          <Button onClick={() => setResolutionPtpId(null)}>{t("Batal")}</Button>
           <Button
             variant="contained"
             color={resolutionStatus === "KEPT" ? "success" : "error"}
@@ -1284,27 +1296,27 @@ export default function CustomerDetailPage() {
               }
             }}
           >
-            Simpan Resolusi
+            {t("Simpan Resolusi")}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* DIALOG 6: ADD TAG */}
       <Dialog open={showTagDialog} onClose={() => setShowTagDialog(false)}>
-        <DialogTitle>Tambah Demographic / Behavioral Tag</DialogTitle>
+        <DialogTitle>{t("Tambah Demographic / Behavioral Tag")}</DialogTitle>
         <DialogContent sx={{ pt: 1 }}>
           <TextField
-            label="Nama Tag"
+            label={t("Nama Tag")}
             fullWidth
             size="small"
             value={newTagName}
             onChange={(e) => setNewTagName(e.target.value)}
-            placeholder="Contoh: VIP_CASH, PROMO_HUNTER, REPEAT_BUYER"
+            placeholder={t("Contoh: VIP_CASH, PROMO_HUNTER, REPEAT_BUYER")}
             sx={{ mt: 1 }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowTagDialog(false)}>Batal</Button>
+          <Button onClick={() => setShowTagDialog(false)}>{t("Batal")}</Button>
           <Button
             variant="contained"
             onClick={() => {
@@ -1315,7 +1327,7 @@ export default function CustomerDetailPage() {
               }
             }}
           >
-            Simpan Tag
+            {t("Simpan Tag")}
           </Button>
         </DialogActions>
       </Dialog>

@@ -203,9 +203,9 @@ describe("CustomerDetailPage (Customer 360 & CRM)", () => {
 
     // Check KPI Cards
     expect(screen.getByText(/CUSTOMER LIFETIME VALUE/i)).toBeInTheDocument();
-    expect(screen.getByText(/SALDO STORE CREDIT/i)).toBeInTheDocument();
-    expect(screen.getByText(/JANJI BAYAR \(PTP\) PENDING/i)).toBeInTheDocument();
-    expect(screen.getByText(/PENGINGAT & TINDAK LANJUT/i)).toBeInTheDocument();
+    expect(screen.getByText(/STORE CREDIT BALANCE/i)).toBeInTheDocument();
+    expect(screen.getByText(/PENDING PROMISE TO PAY \(PTP\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/REMINDERS & FOLLOW-UP/i)).toBeInTheDocument();
 
     // Check 360 timeline item
     expect(screen.getByText(/Pesanan Penjualan #SO-202610-001/i)).toBeInTheDocument();
@@ -218,25 +218,25 @@ describe("CustomerDetailPage (Customer 360 & CRM)", () => {
     // Switch to Omnichannel tab
     const omnichannelTab = screen.getByRole("tab", { name: /Omnichannel Log/i });
     await user.click(omnichannelTab);
-    expect(screen.getByText(/Log Komunikasi Omnichannel/i)).toBeInTheDocument();
+    expect(screen.getByText(/Omnichannel Communication Log/i)).toBeInTheDocument();
     expect(screen.getByText(/Konfirmasi jadwal pengiriman kulkas/i)).toBeInTheDocument();
 
     // Switch to PTP tab
-    const ptpTab = screen.getByRole("tab", { name: /Janji Bayar/i });
+    const ptpTab = screen.getByRole("tab", { name: /Promise to Pay/i });
     await user.click(ptpTab);
-    expect(screen.getByText(/Daftar Janji Bayar \(Promise-to-Pay \/ PTP\)/i)).toBeInTheDocument();
-    expect(screen.getByText(/Rp 750\.000/i)).toBeInTheDocument();
+    expect(screen.getByText(/Promise-to-Pay \(PTP\) List/i)).toBeInTheDocument();
+    expect(screen.getByText(/Rp\s*750,000/i)).toBeInTheDocument();
 
     // Switch to Follow-Up tab
-    const followUpTab = screen.getByRole("tab", { name: /Pengingat/i });
+    const followUpTab = screen.getByRole("tab", { name: /Reminders/i });
     await user.click(followUpTab);
-    expect(screen.getByText(/Jadwal Pengingat & Tindak Lanjut/i)).toBeInTheDocument();
+    expect(screen.getByText(/Reminder & Follow-Up Schedule/i)).toBeInTheDocument();
     expect(screen.getByText(/Telepon penawaran mesin cuci promo/i)).toBeInTheDocument();
 
     // Switch to Store Credit tab
     const storeCreditTab = screen.getByRole("tab", { name: /Store Credit/i });
     await user.click(storeCreditTab);
-    expect(screen.getByText(/Store Credit Ledger & Kupon Promo/i)).toBeInTheDocument();
+    expect(screen.getByText(/Store Credit Ledger & Promotional Vouchers/i)).toBeInTheDocument();
     expect(screen.getByText(/DISC50K/i)).toBeInTheDocument();
   });
 });

@@ -7,6 +7,17 @@ import type {
   SalesOrderStatus,
 } from "./types";
 
+export interface BulkOperationResultDto {
+  totalRequested: number;
+  successCount: number;
+  failureCount: number;
+  results?: Array<{
+    id: string;
+    success: boolean;
+    message: string;
+  }>;
+}
+
 export const salesOrdersApi = {
   search: (params: {
     storeId?: string;
@@ -60,5 +71,9 @@ export const salesOrdersApi = {
   cancel: (id: string, reason?: string) =>
     apiClient
       .post<SalesOrder>(`/api/sales-orders/${id}/cancel`, { reason })
+      .then((r) => r.data),
+  bulkUpdateStatus: (input: { ids: string[]; action: string; reason?: string }) =>
+    apiClient
+      .post<BulkOperationResultDto>("/api/sales-orders/bulk-status", input)
       .then((r) => r.data),
 };

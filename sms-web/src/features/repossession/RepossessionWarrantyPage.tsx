@@ -55,6 +55,7 @@ import type {
   RepairStatus,
   StockDisposal,
 } from './types';
+import { t , formatDate, formatNumber, localizeDisplayCode} from "../../lib/locale";
 
 export default function RepossessionWarrantyPage() {
   const [activeTab, setActiveTab] = useState(0);
@@ -189,23 +190,23 @@ export default function RepossessionWarrantyPage() {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 3, mb: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+    <Container maxWidth={false} disableGutters>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary' }}>
-            Warranty, Returns & Disposal
+          <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
+            {t("Warranty, Returns & Disposal")}
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-            Manage customer returns, repossessions, warranty processing, repair tickets, and salvage disposals
+            {t("Manage customer returns, repossessions, warranty processing, repair tickets, and salvage disposals")}
           </Typography>
         </Box>
         <Box sx={{ minWidth: 200 }}>
           <FormControl fullWidth size="small">
-            <InputLabel id="store-select-label">Store</InputLabel>
+            <InputLabel id="store-select-label">{t("Store")}</InputLabel>
             <Select
               labelId="store-select-label"
               value={selectedStoreId}
-              label="Store"
+              label={t("Store")}
               onChange={(e) => setStoreFilter(e.target.value)}
             >
               {stores.map((s) => (
@@ -224,10 +225,10 @@ export default function RepossessionWarrantyPage() {
           onChange={(_, val) => setActiveTab(val)}
           sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}
         >
-          <Tab icon={<AssignmentReturnIcon />} iconPosition="start" label={`Returns & Repossessions (${returns.length})`} />
-          <Tab icon={<VerifiedIcon />} iconPosition="start" label={`Warranty Claims (${warrantyClaims.length})`} />
-          <Tab icon={<BuildIcon />} iconPosition="start" label={`Repair Tickets (${repairTickets.length})`} />
-          <Tab icon={<DeleteSweepIcon />} iconPosition="start" label={`Scrap Disposals (${disposals.length})`} />
+          <Tab icon={<AssignmentReturnIcon />} iconPosition="start" label={t("Returns & Repossessions ({count})", undefined, { count: formatNumber(returns.length) })} />
+          <Tab icon={<VerifiedIcon />} iconPosition="start" label={t("Warranty Claims ({count})", undefined, { count: formatNumber(warrantyClaims.length) })} />
+          <Tab icon={<BuildIcon />} iconPosition="start" label={t("Repair Tickets ({count})", undefined, { count: formatNumber(repairTickets.length) })} />
+          <Tab icon={<DeleteSweepIcon />} iconPosition="start" label={t("Scrap Disposals ({count})", undefined, { count: formatNumber(disposals.length) })} />
         </Tabs>
 
         <CardContent sx={{ p: 0 }}>
@@ -239,21 +240,21 @@ export default function RepossessionWarrantyPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={{ bgcolor: 'action.hover' }}>
-                      <TableCell sx={{ fontWeight: 600 }}>Return #</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Customer</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Serial / Item</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Disposition</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Scheduled Date</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Return #")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Type")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Customer")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Serial / Item")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Status")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Disposition")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Scheduled Date")}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600 }}>{t("Actions")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {returns.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} align="center" sx={{ py: 3, color: 'text.secondary' }}>
-                          No returns or repossession records found for this store.
+                          {t("No returns or repossession records found for this store.")}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -263,7 +264,11 @@ export default function RepossessionWarrantyPage() {
                           <TableCell>
                             <Chip
                               size="small"
-                              label={r.returnType === 'REPOSSESSION' ? 'Repossession' : 'Customer Return'}
+                              label={
+                                r.returnType === "REPOSSESSION"
+                                  ? t("Repossession")
+                                  : t("Customer Return")
+                              }
                               color={r.returnType === 'REPOSSESSION' ? 'warning' : 'info'}
                               variant="outlined"
                             />
@@ -274,13 +279,13 @@ export default function RepossessionWarrantyPage() {
                               {r.productVariantName || 'Item'}
                             </Typography>
                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              SN: {r.manufacturerSerial || 'N/A'}
+                              {t("SN:")} {r.manufacturerSerial || 'N/A'}
                             </Typography>
                           </TableCell>
                           <TableCell>
                             <Chip
                               size="small"
-                              label={r.status}
+                              label={localizeDisplayCode(r.status)}
                               color={
                                 r.status === 'RECEIVED'
                                   ? 'success'
@@ -299,14 +304,14 @@ export default function RepossessionWarrantyPage() {
                               />
                             ) : (
                               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                Not inspected
+                                {t("Not inspected")}
                               </Typography>
                             )}
                           </TableCell>
                           <TableCell>{r.scheduledDate || '-'}</TableCell>
                           <TableCell align="right">
                             {r.returnType === 'REPOSSESSION' && (
-                              <Tooltip title="Print Formal Repossession Notice (Berita Acara Penarikan)">
+                              <Tooltip title={t("Print Formal Repossession Notice (Berita Acara Penarikan)")}>
                                 <IconButton
                                   size="small"
                                   color="warning"
@@ -328,7 +333,7 @@ export default function RepossessionWarrantyPage() {
                                 onClick={() => handleOpenCompleteReturn(r)}
                                 sx={{ mr: 1 }}
                               >
-                                Inbound Complete
+                                {t("Inbound Complete")}
                               </Button>
                             )}
                             {r.status === 'RECEIVED' && !r.disposition && (
@@ -338,7 +343,7 @@ export default function RepossessionWarrantyPage() {
                                 color="secondary"
                                 onClick={() => handleOpenDisposition(r)}
                               >
-                                Inspect & Dispose
+                                {t("Inspect & Dispose")}
                               </Button>
                             )}
                           </TableCell>
@@ -359,21 +364,21 @@ export default function RepossessionWarrantyPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={{ bgcolor: 'action.hover' }}>
-                      <TableCell sx={{ fontWeight: 600 }}>Claim #</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Customer</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Serial / Item</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Distributor</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Defect Description</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Decision</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Claim #")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Customer")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Serial / Item")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Distributor")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Defect Description")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Decision")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Status")}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600 }}>{t("Actions")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {warrantyClaims.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} align="center" sx={{ py: 3, color: 'text.secondary' }}>
-                          No warranty claims found for this store.
+                          {t("No warranty claims found for this store.")}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -386,7 +391,7 @@ export default function RepossessionWarrantyPage() {
                               {c.productVariantName || 'Item'}
                             </Typography>
                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              SN: {c.manufacturerSerial || 'N/A'}
+                              {t("SN:")} {c.manufacturerSerial || 'N/A'}
                             </Typography>
                           </TableCell>
                           <TableCell>{c.distributorName || '-'}</TableCell>
@@ -407,7 +412,7 @@ export default function RepossessionWarrantyPage() {
                             />
                           </TableCell>
                           <TableCell>
-                            <Chip size="small" label={c.status} />
+                            <Chip size="small" label={localizeDisplayCode(c.status)} />
                           </TableCell>
                           <TableCell align="right">
                             {c.coverageDecision === 'PENDING' && (
@@ -416,7 +421,7 @@ export default function RepossessionWarrantyPage() {
                                 variant="outlined"
                                 onClick={() => handleOpenDecideClaim(c)}
                               >
-                                Record Decision
+                                {t("Record Decision")}
                               </Button>
                             )}
                           </TableCell>
@@ -437,61 +442,61 @@ export default function RepossessionWarrantyPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={{ bgcolor: 'action.hover' }}>
-                      <TableCell sx={{ fontWeight: 600 }}>Ticket #</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Serial / Item</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Vendor / Tech</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Problem</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Repair Cost</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Ticket #")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Serial / Item")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Vendor / Tech")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Problem")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Repair Cost")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Status")}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600 }}>{t("Actions")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {repairTickets.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} align="center" sx={{ py: 3, color: 'text.secondary' }}>
-                          No repair tickets recorded for this store.
+                          {t("No repair tickets recorded for this store.")}
                         </TableCell>
                       </TableRow>
                     ) : (
-                      repairTickets.map((t) => (
-                        <TableRow key={t.id} hover>
-                          <TableCell sx={{ fontWeight: 600 }}>{t.ticketNumber}</TableCell>
+                      repairTickets.map((ticket) => (
+                        <TableRow key={ticket.id} hover>
+                          <TableCell sx={{ fontWeight: 600 }}>{ticket.ticketNumber}</TableCell>
                           <TableCell>
                             <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {t.productVariantName || 'Item'}
+                              {ticket.productVariantName || 'Item'}
                             </Typography>
                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              SN: {t.manufacturerSerial || 'N/A'}
+                              {t("SN:")} {ticket.manufacturerSerial || 'N/A'}
                             </Typography>
                           </TableCell>
-                          <TableCell>{t.vendorName}</TableCell>
-                          <TableCell>{t.problemDescription || '-'}</TableCell>
+                          <TableCell>{ticket.vendorName}</TableCell>
+                          <TableCell>{ticket.problemDescription || '-'}</TableCell>
                           <TableCell>
-                            {t.repairCost != null ? `IDR ${t.repairCost.toLocaleString()}` : '-'}
+                            {ticket.repairCost != null ? `IDR ${formatNumber(ticket.repairCost)}` : '-'}
                           </TableCell>
                           <TableCell>
                             <Chip
                               size="small"
-                              label={t.status.replace(/_/g, ' ')}
+                              label={localizeDisplayCode(ticket.status)}
                               color={
-                                t.status === 'REPAIRED'
+                                ticket.status === 'REPAIRED'
                                   ? 'success'
-                                  : t.status === 'UNREPAIRABLE'
+                                  : ticket.status === 'UNREPAIRABLE'
                                   ? 'error'
                                   : 'warning'
                               }
                             />
                           </TableCell>
                           <TableCell align="right">
-                            {t.status === 'SENT_TO_VENDOR' && (
+                            {ticket.status === 'SENT_TO_VENDOR' && (
                               <Button
                                 size="small"
                                 variant="contained"
                                 color="success"
-                                onClick={() => handleOpenCompleteRepair(t)}
+                                onClick={() => handleOpenCompleteRepair(ticket)}
                               >
-                                Complete Repair
+                                {t("Complete Repair")}
                               </Button>
                             )}
                           </TableCell>
@@ -512,20 +517,20 @@ export default function RepossessionWarrantyPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={{ bgcolor: 'action.hover' }}>
-                      <TableCell sx={{ fontWeight: 600 }}>Disposal #</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Serial / Item</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Reason</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Buyer</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Proceeds (IDR)</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Authorized By</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Disposed Date</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Disposal #")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Serial / Item")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Reason")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Buyer")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Proceeds (IDR)")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Authorized By")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Disposed Date")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {disposals.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={7} align="center" sx={{ py: 3, color: 'text.secondary' }}>
-                          No scrap disposal records found for this store.
+                          {t("No scrap disposal records found for this store.")}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -537,17 +542,17 @@ export default function RepossessionWarrantyPage() {
                               {d.productVariantName || 'Item'}
                             </Typography>
                             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              SN: {d.manufacturerSerial || 'N/A'}
+                              {t("SN:")} {d.manufacturerSerial || 'N/A'}
                             </Typography>
                           </TableCell>
                           <TableCell>{d.reason}</TableCell>
                           <TableCell>{d.buyerName || '-'}</TableCell>
                           <TableCell sx={{ fontWeight: 600 }}>
-                            IDR {(d.scrapProceeds || 0).toLocaleString()}
+                            {t("IDR")} {formatNumber((d.scrapProceeds || 0))}
                           </TableCell>
                           <TableCell>{d.authorizedByName}</TableCell>
                           <TableCell>
-                            {d.disposedAt ? new Date(d.disposedAt).toLocaleDateString() : '-'}
+                            {d.disposedAt ? formatDate(new Date(d.disposedAt), undefined, { dateStyle: "medium" }) : '-'}
                           </TableCell>
                         </TableRow>
                       ))
@@ -562,33 +567,33 @@ export default function RepossessionWarrantyPage() {
 
       {/* Complete Return Dialog */}
       <Dialog open={Boolean(completeReturnTarget)} onClose={() => setCompleteReturnTarget(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Complete Return Inbound</DialogTitle>
+        <DialogTitle>{t("Complete Return Inbound")}</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            Confirm physical inbound reception for Return <strong>{completeReturnTarget?.returnNumber}</strong>.
+            {t("Confirm physical inbound reception for Return")} <strong>{completeReturnTarget?.returnNumber}</strong>.
             {completeReturnTarget?.returnType === 'REPOSSESSION' && (
               <Box component="span" sx={{ display: 'block', mt: 1, color: 'warning.main' }}>
-                Note: Repossession settlement will automatically zero remaining installment balance.
+                {t("Note: Repossession settlement will automatically zero remaining installment balance.")}
               </Box>
             )}
           </Typography>
           <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-            <InputLabel id="recovery-status-label">Unit Status</InputLabel>
+            <InputLabel id="recovery-status-label">{t("Unit Status")}</InputLabel>
             <Select
               labelId="recovery-status-label"
               value={recovered ? 'recovered' : 'refused'}
-              label="Unit Status"
+              label={t("Unit Status")}
               onChange={(e) => setRecovered(e.target.value === 'recovered')}
             >
-              <MenuItem value="recovered">Successfully Recovered & Inbounded</MenuItem>
-              <MenuItem value="refused">Customer Refusal / Not Recovered</MenuItem>
+              <MenuItem value="recovered">{t("Successfully Recovered & Inbounded")}</MenuItem>
+              <MenuItem value="refused">{t("Customer Refusal / Not Recovered")}</MenuItem>
             </Select>
           </FormControl>
           {!recovered && (
             <TextField
               fullWidth
               size="small"
-              label="Refusal Reason"
+              label={t("Refusal Reason")}
               value={refusalReason}
               onChange={(e) => setRefusalReason(e.target.value)}
               sx={{ mb: 2 }}
@@ -598,7 +603,7 @@ export default function RepossessionWarrantyPage() {
           <TextField
             fullWidth
             size="small"
-            label="Inbound / Condition Notes"
+            label={t("Inbound / Condition Notes")}
             multiline
             rows={2}
             value={completeNotes}
@@ -606,42 +611,42 @@ export default function RepossessionWarrantyPage() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCompleteReturnTarget(null)}>Cancel</Button>
+          <Button onClick={() => setCompleteReturnTarget(null)}>{t("Cancel")}</Button>
           <Button
             variant="contained"
             color="primary"
             onClick={handleConfirmCompleteReturn}
             disabled={completeReturnMutation.isPending || (!recovered && !refusalReason.trim())}
           >
-            Confirm Inbound
+            {t("Confirm Inbound")}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Record Disposition Dialog */}
       <Dialog open={Boolean(dispositionTarget)} onClose={() => setDispositionTarget(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Record Inspection & Disposition</DialogTitle>
+        <DialogTitle>{t("Record Inspection & Disposition")}</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            Inspecting Return <strong>{dispositionTarget?.returnNumber}</strong> (Serial: {dispositionTarget?.manufacturerSerial}).
+            {t("Inspecting Return")} <strong>{dispositionTarget?.returnNumber}</strong> {t("(Serial:")} {dispositionTarget?.manufacturerSerial}).
           </Typography>
           <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-            <InputLabel id="disposition-label">Disposition Decision</InputLabel>
+            <InputLabel id="disposition-label">{t("Disposition Decision")}</InputLabel>
             <Select
               labelId="disposition-label"
               value={selectedDisposition}
-              label="Disposition Decision"
+              label={t("Disposition Decision")}
               onChange={(e) => setSelectedDisposition(e.target.value as ReturnDisposition)}
             >
-              <MenuItem value="SELL_AS_IS">Sell As-Is (Restores unit to available inventory)</MenuItem>
-              <MenuItem value="REPAIR_THEN_SELL">Repair Then Sell (Initiates repair ticket)</MenuItem>
-              <MenuItem value="SCRAP_DISPOSAL">Scrap Disposal (Marked for permanent salvage)</MenuItem>
+              <MenuItem value="SELL_AS_IS">{t("Sell As-Is (Restores unit to available inventory)")}</MenuItem>
+              <MenuItem value="REPAIR_THEN_SELL">{t("Repair Then Sell (Initiates repair ticket)")}</MenuItem>
+              <MenuItem value="SCRAP_DISPOSAL">{t("Scrap Disposal (Marked for permanent salvage)")}</MenuItem>
             </Select>
           </FormControl>
           <TextField
             fullWidth
             size="small"
-            label="Technical Inspection Notes"
+            label={t("Technical Inspection Notes")}
             multiline
             rows={3}
             value={conditionNotes}
@@ -649,42 +654,42 @@ export default function RepossessionWarrantyPage() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDispositionTarget(null)}>Cancel</Button>
+          <Button onClick={() => setDispositionTarget(null)}>{t("Cancel")}</Button>
           <Button
             variant="contained"
             color="primary"
             onClick={handleConfirmDisposition}
             disabled={recordDispositionMutation.isPending}
           >
-            Record Disposition
+            {t("Record Disposition")}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Decide Warranty Claim Dialog */}
       <Dialog open={Boolean(claimTarget)} onClose={() => setClaimTarget(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Distributor Warranty Decision</DialogTitle>
+        <DialogTitle>{t("Distributor Warranty Decision")}</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            Claim <strong>{claimTarget?.claimNumber}</strong> for {claimTarget?.productVariantName} (SN: {claimTarget?.manufacturerSerial}).
+            {t("Claim")} <strong>{claimTarget?.claimNumber}</strong> {t("for")} {claimTarget?.productVariantName} {t("(SN:")} {claimTarget?.manufacturerSerial}).
           </Typography>
           <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-            <InputLabel id="decision-label">Coverage Decision</InputLabel>
+            <InputLabel id="decision-label">{t("Coverage Decision")}</InputLabel>
             <Select
               labelId="decision-label"
               value={coverageDecision}
-              label="Coverage Decision"
+              label={t("Coverage Decision")}
               onChange={(e) => setCoverageDecision(e.target.value as WarrantyCoverageDecision)}
             >
-              <MenuItem value="COVERED_REPAIR">Covered - Vendor Repair</MenuItem>
-              <MenuItem value="COVERED_REPLACE">Covered - Unit Replacement</MenuItem>
-              <MenuItem value="REJECTED">Warranty Rejected</MenuItem>
+              <MenuItem value="COVERED_REPAIR">{t("Covered - Vendor Repair")}</MenuItem>
+              <MenuItem value="COVERED_REPLACE">{t("Covered - Unit Replacement")}</MenuItem>
+              <MenuItem value="REJECTED">{t("Warranty Rejected")}</MenuItem>
             </Select>
           </FormControl>
           <TextField
             fullWidth
             size="small"
-            label="Decision Notes / Manufacturer Ref"
+            label={t("Decision Notes / Manufacturer Ref")}
             multiline
             rows={3}
             value={decisionNotes}
@@ -692,41 +697,41 @@ export default function RepossessionWarrantyPage() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setClaimTarget(null)}>Cancel</Button>
+          <Button onClick={() => setClaimTarget(null)}>{t("Cancel")}</Button>
           <Button
             variant="contained"
             color="primary"
             onClick={handleConfirmDecideClaim}
             disabled={decideClaimMutation.isPending}
           >
-            Save Decision
+            {t("Save Decision")}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Complete Repair Dialog */}
       <Dialog open={Boolean(repairTarget)} onClose={() => setRepairTarget(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Complete Repair Ticket</DialogTitle>
+        <DialogTitle>{t("Complete Repair Ticket")}</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            Repair Ticket <strong>{repairTarget?.ticketNumber}</strong> ({repairTarget?.vendorName}).
+            {t("Repair Ticket")} <strong>{repairTarget?.ticketNumber}</strong> ({repairTarget?.vendorName}).
           </Typography>
           <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-            <InputLabel id="repair-status-label">Final Status</InputLabel>
+            <InputLabel id="repair-status-label">{t("Final Status")}</InputLabel>
             <Select
               labelId="repair-status-label"
               value={repairFinalStatus}
-              label="Final Status"
+              label={t("Final Status")}
               onChange={(e) => setRepairFinalStatus(e.target.value as RepairStatus)}
             >
-              <MenuItem value="REPAIRED">Repaired (Returns unit to Warehouse Available)</MenuItem>
-              <MenuItem value="UNREPAIRABLE">Unrepairable (Scrap disposal needed)</MenuItem>
+              <MenuItem value="REPAIRED">{t("Repaired (Returns unit to Warehouse Available)")}</MenuItem>
+              <MenuItem value="UNREPAIRABLE">{t("Unrepairable (Scrap disposal needed)")}</MenuItem>
             </Select>
           </FormControl>
           <TextField
             fullWidth
             size="small"
-            label="Diagnosis"
+            label={t("Diagnosis")}
             value={diagnosis}
             onChange={(e) => setDiagnosis(e.target.value)}
             sx={{ mb: 2 }}
@@ -734,7 +739,7 @@ export default function RepossessionWarrantyPage() {
           <TextField
             fullWidth
             size="small"
-            label="Action Taken"
+            label={t("Action Taken")}
             value={actionTaken}
             onChange={(e) => setActionTaken(e.target.value)}
             sx={{ mb: 2 }}
@@ -742,21 +747,21 @@ export default function RepossessionWarrantyPage() {
           <TextField
             fullWidth
             size="small"
-            label="Repair Cost (IDR)"
+            label={t("Repair Cost (IDR)")}
             type="number"
             value={repairCost}
             onChange={(e) => setRepairCost(e.target.value)}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRepairTarget(null)}>Cancel</Button>
+          <Button onClick={() => setRepairTarget(null)}>{t("Cancel")}</Button>
           <Button
             variant="contained"
             color="primary"
             onClick={handleConfirmCompleteRepair}
             disabled={completeRepairMutation.isPending}
           >
-            Complete Ticket
+            {t("Complete Ticket")}
           </Button>
         </DialogActions>
       </Dialog>

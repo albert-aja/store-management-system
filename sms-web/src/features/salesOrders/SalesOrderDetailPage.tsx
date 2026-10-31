@@ -32,6 +32,7 @@ import {
   useSalesOrderItems,
   useSubmitForPriceApproval,
 } from "./hooks";
+import { t , localizeDisplayCode} from "../../lib/locale";
 
 export default function SalesOrderDetailPage() {
   const { id = "" } = useParams();
@@ -73,10 +74,10 @@ export default function SalesOrderDetailPage() {
   return (
     <Box>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1, flexWrap: "wrap", gap: 1 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
           <Typography variant="h5">{so.number ?? "Draft Sales Order"}</Typography>
           <Chip
-            label={so.status}
+            label={localizeDisplayCode(so.status)}
             color={
               so.status === "RELEASED" || so.status === "CONFIRMED"
                 ? "success"
@@ -86,7 +87,7 @@ export default function SalesOrderDetailPage() {
             }
           />
           {so.requiresPriceApproval && (
-            <Chip label="Negotiated price" color="warning" size="small" />
+            <Chip label={t("Negotiated price")} color="warning" size="small" />
           )}
         </Box>
         {(so.status === "RELEASED" || so.status === "CONFIRMED") && (
@@ -98,18 +99,18 @@ export default function SalesOrderDetailPage() {
               window.open(`/api/documents/print/credit-agreement/${so.id}`, "_blank")
             }
           >
-            Print Credit Agreement
+            {t("Print Credit Agreement")}
           </Button>
         )}
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Customer: {so.customerName} · Delivery:{" "}
+        {t("Customer:")} {so.customerName} {t("· Delivery:")}{" "}
         {so.deliveryAddressSnapshot ?? "—"}
       </Typography>
 
       <Paper sx={{ p: 2, mb: 3 }}>
         <Typography variant="subtitle1" sx={{ mb: 1 }}>
-          Items
+          {t("Items")}
         </Typography>
         <List dense>
           {(items ?? []).map((item) => (
@@ -128,8 +129,8 @@ export default function SalesOrderDetailPage() {
                         }
                       >
                         {expandedItemId === item.id
-                          ? "Hide Allocation"
-                          : "Allocation"}
+                          ? t("Hide Allocation")
+                          : t("Allocation")}
                       </Button>
                     )}
                     {canManage && isDraft && (
@@ -137,7 +138,7 @@ export default function SalesOrderDetailPage() {
                         size="small"
                         onClick={() => removeItem.mutate(item.id)}
                       >
-                        Remove
+                        {t("Remove")}
                       </Button>
                     )}
                   </>
@@ -174,14 +175,14 @@ export default function SalesOrderDetailPage() {
             }}
           >
             <TextField
-              label="Search product"
+              label={t("Search product")}
               size="small"
               value={productQuery}
               onChange={(e) => setProductQuery(e.target.value)}
             />
             <TextField
               select
-              label="Product"
+              label={t("Product")}
               size="small"
               sx={{ width: 200 }}
               value={productId}
@@ -198,7 +199,7 @@ export default function SalesOrderDetailPage() {
             </TextField>
             <TextField
               select
-              label="Variant"
+              label={t("Variant")}
               size="small"
               sx={{ width: 200 }}
               value={variantId}
@@ -213,22 +214,22 @@ export default function SalesOrderDetailPage() {
             </TextField>
             <TextField
               select
-              label="Term"
+              label={t("Term")}
               size="small"
               sx={{ width: 140 }}
               value={termMonths}
               onChange={(e) => setTermMonths(Number(e.target.value))}
               disabled={!variantId}
             >
-              <MenuItem value={0}>Cash</MenuItem>
+              <MenuItem value={0}>{t("Cash")}</MenuItem>
               {(plans ?? []).map((p) => (
                 <MenuItem key={p.id} value={p.termMonths}>
-                  {p.termMonths} months
+                  {p.termMonths} {t("months")}
                 </MenuItem>
               ))}
             </TextField>
             <TextField
-              label="Qty"
+              label={t("Qty")}
               size="small"
               type="number"
               sx={{ width: 80 }}
@@ -236,7 +237,7 @@ export default function SalesOrderDetailPage() {
               onChange={(e) => setQuantity(Number(e.target.value))}
             />
             <TextField
-              label="Final price"
+              label={t("Final price")}
               size="small"
               type="number"
               sx={{ width: 140 }}
@@ -260,7 +261,7 @@ export default function SalesOrderDetailPage() {
                 );
               }}
             >
-              Add Item
+              {t("Add Item")}
             </Button>
           </Box>
         )}
@@ -279,7 +280,7 @@ export default function SalesOrderDetailPage() {
           {isDraft && so.requiresPriceApproval && (
             <>
               <TextField
-                label="Approval workflow code"
+                label={t("Approval workflow code")}
                 size="small"
                 value={workflowCode}
                 onChange={(e) => setWorkflowCode(e.target.value)}
@@ -289,13 +290,13 @@ export default function SalesOrderDetailPage() {
                 onClick={() =>
                   submitApproval.mutate(workflowCode, {
                     onSuccess: () =>
-                      enqueueSnackbar("Submitted for price approval", {
+                      enqueueSnackbar(t("Submitted for price approval"), {
                         variant: "success",
                       }),
                   })
                 }
               >
-                Submit for Price Approval
+                {t("Submit for Price Approval")}
               </Button>
             </>
           )}
@@ -305,13 +306,13 @@ export default function SalesOrderDetailPage() {
               onClick={() =>
                 release.mutate(undefined, {
                   onSuccess: () =>
-                    enqueueSnackbar("Sales Order released", {
+                    enqueueSnackbar(t("Sales Order released"), {
                       variant: "success",
                     }),
                 })
               }
             >
-              Release
+              {t("Release")}
             </Button>
           )}
           {so.status === "PENDING_PRICE_APPROVAL" && (
@@ -320,13 +321,13 @@ export default function SalesOrderDetailPage() {
               onClick={() =>
                 release.mutate(undefined, {
                   onSuccess: () =>
-                    enqueueSnackbar("Sales Order released", {
+                    enqueueSnackbar(t("Sales Order released"), {
                       variant: "success",
                     }),
                 })
               }
             >
-              Release (after approval)
+              {t("Release (after approval)")}
             </Button>
           )}
           {so.status === "RELEASED" && (
@@ -335,23 +336,23 @@ export default function SalesOrderDetailPage() {
               onClick={() =>
                 confirm.mutate(true, {
                   onSuccess: () =>
-                    enqueueSnackbar("Sales Order confirmed", {
+                    enqueueSnackbar(t("Sales Order confirmed"), {
                       variant: "success",
                     }),
                   onError: () =>
                     enqueueSnackbar(
-                      "Confirmation blocked (survey may still be pending)",
+                      t("Confirmation blocked (survey may still be pending)"),
                       { variant: "error" },
                     ),
                 })
               }
             >
-              Confirm (DP received)
+              {t("Confirm (DP received)")}
             </Button>
           )}
           {so.status === "REJECTED" && (
             <Button variant="contained" onClick={() => revise.mutate()}>
-              Revise
+              {t("Revise")}
             </Button>
           )}
           {(isDraft || so.status === "RELEASED") && (
@@ -359,12 +360,11 @@ export default function SalesOrderDetailPage() {
               color="error"
               onClick={() =>
                 cancel.mutate(
-                  window.prompt("Cancellation reason?") ?? undefined,
+                  window.prompt(t("Cancellation reason?")) ?? undefined,
                 )
               }
             >
-              Cancel
-            </Button>
+              {t("Cancel")}</Button>
           )}
         </Box>
       )}

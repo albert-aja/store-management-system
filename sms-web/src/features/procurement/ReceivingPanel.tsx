@@ -24,6 +24,7 @@ import {
   usePurchaseReceipts,
   useUpsertReceiptItem,
 } from "./hooks";
+import { t , formatDate, localizeDisplayCode} from "../../lib/locale";
 
 interface ReceivingPanelProps {
   purchaseOrderId: string;
@@ -49,7 +50,7 @@ export default function ReceivingPanel({
   const notify = (msg: string) => ({
     onSuccess: () => enqueueSnackbar(msg, { variant: "success" }),
     onError: () =>
-      enqueueSnackbar("Action failed — check business rules", {
+      enqueueSnackbar(t("Action failed — check business rules"), {
         variant: "error",
       }),
   });
@@ -60,7 +61,8 @@ export default function ReceivingPanel({
         sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}
       >
         <Typography variant="subtitle1">
-          Receiving ({receipts.length} document{receipts.length !== 1 ? "s" : ""})
+          {t("Receiving (")}{receipts.length}{" "}
+          {t(receipts.length === 1 ? "document" : "documents")})
         </Typography>
         {isIssued && (
           <Button
@@ -74,14 +76,14 @@ export default function ReceivingPanel({
               )
             }
           >
-            + New Receipt
+            {t("+ New Receipt")}
           </Button>
         )}
       </Box>
 
       {receipts.length === 0 && (
         <Typography color="text.secondary" variant="body2">
-          No receiving documents yet.
+          {t("No receiving documents yet.")}
         </Typography>
       )}
 
@@ -151,13 +153,13 @@ function ReceiptCard({
       <AccordionSummary expandIcon={<ExpandMoreIcon />} id={`receipt-${receiptId}-summary`}>
         <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
           <Chip
-            label={status}
+            label={localizeDisplayCode(status)}
             size="small"
             color={status === "FINALIZED" ? "success" : "default"}
           />
           {receivedAt && (
             <Typography variant="caption" color="text.secondary">
-              Received {new Date(receivedAt).toLocaleDateString()}
+              {t("Received")} {formatDate(new Date(receivedAt), undefined, { dateStyle: "medium" })}
             </Typography>
           )}
         </Box>
@@ -174,7 +176,7 @@ function ReceiptCard({
                   <ListItemText
                     primary={
                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {poItem.itemName} (ordered: {poItem.quantity})
+                        {poItem.itemName} {t("(ordered:")} {poItem.quantity})
                       </Typography>
                     }
                   />
@@ -182,7 +184,7 @@ function ReceiptCard({
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1, pl: 1 }}>
                   <TextField
                     id={`receipt-${receiptId}-item-${poItem.id}-accepted`}
-                    label="Accepted"
+                    label={t("Accepted")}
                     type="number"
                     size="small"
                     sx={{ width: 100 }}
@@ -195,7 +197,7 @@ function ReceiptCard({
                   />
                   <TextField
                     id={`receipt-${receiptId}-item-${poItem.id}-rejected`}
-                    label="Rejected"
+                    label={t("Rejected")}
                     type="number"
                     size="small"
                     sx={{ width: 100 }}
@@ -209,7 +211,7 @@ function ReceiptCard({
                   {e.rejected > 0 && (
                     <TextField
                       id={`receipt-${receiptId}-item-${poItem.id}-reason`}
-                      label="Rejection reason"
+                      label={t("Rejection reason")}
                       size="small"
                       sx={{ width: 220 }}
                       disabled={!isDraft}
@@ -237,12 +239,11 @@ function ReceiptCard({
                         )
                       }
                     >
-                      Save
-                    </Button>
+                      {t("Save")}</Button>
                   )}
                   {existing && (
                     <Typography variant="caption" color="text.secondary" sx={{ alignSelf: "center" }}>
-                      ✓ saved: {existing.acceptedQuantity} ✓ / {existing.rejectedQuantity} ✗
+                      {t("✓ saved:")} {existing.acceptedQuantity} ✓ / {existing.rejectedQuantity} ✗
                     </Typography>
                   )}
                 </Box>
@@ -261,7 +262,7 @@ function ReceiptCard({
               size="small"
               onClick={() => finalizeReceipt.mutate(undefined, notify("Receipt finalized — stock updated"))}
             >
-              Finalize Receipt
+              {t("Finalize Receipt")}
             </Button>
           </Box>
         )}

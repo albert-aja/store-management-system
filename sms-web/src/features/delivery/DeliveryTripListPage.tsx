@@ -11,7 +11,8 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { DataGrid, type GridColDef } from "@mui/x-data-grid";
+import { DataGrid, type GridColDef, type GridRowSelectionModel } from "@mui/x-data-grid";
+import BulkActionBar from "../../components/BulkActionBar";
 import { useSnackbar } from "notistack";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
@@ -19,6 +20,10 @@ import { useEmployees } from "../employees/hooks";
 import { useStores } from "../stores/hooks";
 import { useCreateDeliveryTrip, useDeliveryTrips } from "./hooks";
 import type { DeliveryTrip, DeliveryTripStatus } from "./types";
+import { DeliveryReschedulePanel } from "./DeliveryReschedulePanel";
+import { formatDate, localizeDisplayCode, t, useLanguage } from "../../lib/locale";
+
+const INITIAL_SELECTION: GridRowSelectionModel = { type: "include", ids: new Set() };
 
 const STATUSES: DeliveryTripStatus[] = [
   "PLANNED",
@@ -28,6 +33,7 @@ const STATUSES: DeliveryTripStatus[] = [
 ];
 
 function NewTripDialog({ onClose }: { onClose: () => void }) {
+  const language = useLanguage();
   const { data: stores } = useStores();
   const { data: employees } = useEmployees();
   const [storeId, setStoreId] = useState("");
@@ -38,6 +44,7 @@ function NewTripDialog({ onClose }: { onClose: () => void }) {
     new Date().toISOString().split("T")[0],
   );
   const [notes, setNotes] = useState("");
+  const [dispatchTime, setDispatchTime] = useState("");
 
   const createTrip = useCreateDeliveryTrip();
   const navigate = useNavigate();
@@ -51,13 +58,14 @@ function NewTripDialog({ onClose }: { onClose: () => void }) {
         helperEmployeeId: helperId || undefined,
         vehiclePlate: vehiclePlate || undefined,
         scheduledDate,
+        plannedDispatchAt: dispatchTime ? `${scheduledDate}T${dispatchTime}:00+07:00` : undefined,
         notes: notes || undefined,
       });
-      enqueueSnackbar("Delivery trip planned", { variant: "success" });
+      enqueueSnackbar(t("Delivery trip planned", language), { variant: "success" });
       onClose();
       navigate(`/delivery-trips/${trip.id}`);
     } catch {
-      enqueueSnackbar("Failed to create delivery trip", { variant: "error" });
+      enqueueSnackbar(t("Failed to create delivery trip", language), { variant: "error" });
     }
   };
 
@@ -67,11 +75,11 @@ function NewTripDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog open onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>New Delivery Trip (Picking / Dispatch)</DialogTitle>
+      <DialogTitle>{t("New Delivery Trip (Picking / Dispatch)", language)}</DialogTitle>
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
         <TextField
           select
-          label="Store"
+          label={t("Store", language)}
           size="small"
           required
           fullWidth
@@ -87,7 +95,7 @@ function NewTripDialog({ onClose }: { onClose: () => void }) {
 
         <TextField
           select
-          label="Driver"
+          label={t("Driver", language)}
           size="small"
           required
           fullWidth
@@ -103,13 +111,13 @@ function NewTripDialog({ onClose }: { onClose: () => void }) {
 
         <TextField
           select
-          label="Helper (Optional)"
+          label={t("Helper (Optional)", language)}
           size="small"
           fullWidth
           value={helperId}
           onChange={(e) => setHelperId(e.target.value)}
         >
-          <MenuItem value="">None</MenuItem>
+          <MenuItem value="">{t("None", language)}</MenuItem>
           {activeEmployees
             .filter((e) => e.id !== driverId)
             .map((e) => (
@@ -120,16 +128,16 @@ function NewTripDialog({ onClose }: { onClose: () => void }) {
         </TextField>
 
         <TextField
-          label="Vehicle Plate / Details"
+          label={t("Vehicle Plate / Details", language)}
           size="small"
           fullWidth
-          placeholder="e.g. B 1234 CD (Pickup)"
+          placeholder={t("e.g. B 1234 CD (Pickup)", language)}
           value={vehiclePlate}
           onChange={(e) => setVehiclePlate(e.target.value)}
         />
 
         <TextField
-          label="Scheduled Date"
+          label={t("Scheduled Date", language)}
           type="date"
           size="small"
           fullWidth
@@ -139,7 +147,16 @@ function NewTripDialog({ onClose }: { onClose: () => void }) {
         />
 
         <TextField
-          label="Notes"
+          label={t("Planned dispatch time (WIB, optional)", language)}
+          type="time"
+          size="small"
+          value={dispatchTime}
+          onChange={(event) => setDispatchTime(event.target.value)}
+          helperText={t("Set actual departure time to enable the customer 24-hour reschedule cutoff.", language)}
+          slotProps={{ inputLabel: { shrink: true } }}
+        />
+        <TextField
+          label={t("Notes", language)}
           size="small"
           fullWidth
           multiline
@@ -149,13 +166,13 @@ function NewTripDialog({ onClose }: { onClose: () => void }) {
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t("Cancel", language)}</Button>
         <Button
           variant="contained"
           disabled={!storeId || !driverId}
           onClick={handleCreate}
         >
-          Plan Trip
+          {t("Plan Trip", language)}
         </Button>
       </DialogActions>
     </Dialog>
@@ -163,9 +180,11 @@ function NewTripDialog({ onClose }: { onClose: () => void }) {
 }
 
 export default function DeliveryTripListPage() {
+  const language = useLanguage();
   const { data: stores } = useStores();
   const [storeId, setStoreId] = useState("");
   const [status, setStatus] = useState<DeliveryTripStatus | "">("");
+  const [selectedRowIds, setSelectedRowIds] = useState<GridRowSelectionModel>(INITIAL_SELECTION);
   const { data, isLoading } = useDeliveryTrips({
     storeId: storeId || undefined,
     status: status || undefined,
@@ -176,21 +195,22 @@ export default function DeliveryTripListPage() {
   );
   const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const canReschedule = useAuthStore((s) => s.hasPermission("DELIVERY_MANAGE"));
 
   const columns: GridColDef<DeliveryTrip>[] = [
-    { field: "tripNumber", headerName: "Trip #", width: 180 },
-    { field: "storeName", headerName: "Store", width: 140 },
-    { field: "driverName", headerName: "Driver", width: 150 },
-    { field: "helperName", headerName: "Helper", width: 140, valueGetter: (_, row) => row.helperName ?? "—" },
-    { field: "vehiclePlate", headerName: "Vehicle", width: 130, valueGetter: (_, row) => row.vehiclePlate ?? "—" },
-    { field: "scheduledDate", headerName: "Date", width: 120 },
+    { field: "tripNumber", headerName: t("Trip #", language), width: 180 },
+    { field: "storeName", headerName: t("Store", language), width: 140 },
+    { field: "driverName", headerName: t("Driver", language), width: 150 },
+    { field: "helperName", headerName: t("Helper", language), width: 140, valueGetter: (_, row) => row.helperName ?? "—" },
+    { field: "vehiclePlate", headerName: t("Vehicle", language), width: 130, valueGetter: (_, row) => row.vehiclePlate ?? "—" },
+    { field: "scheduledDate", headerName: t("Date", language), width: 120, valueFormatter: (value: string | null) => value ? formatDate(value, language, { dateStyle: "medium", timeZone: "UTC" }) : "" },
     {
       field: "status",
-      headerName: "Status",
+      headerName: t("Status", language),
       width: 140,
       renderCell: (params) => (
         <Chip
-          label={params.row.status}
+          label={localizeDisplayCode(params.row.status, language)}
           size="small"
           color={
             params.row.status === "COMPLETED"
@@ -213,7 +233,7 @@ export default function DeliveryTripListPage() {
           size="small"
           onClick={() => navigate(`/delivery-trips/${params.row.id}`)}
         >
-          Open
+          {t("Open", language)}
         </Button>
       ),
     },
@@ -226,13 +246,15 @@ export default function DeliveryTripListPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          mb: 2,
+          flexWrap: "wrap",
+          gap: 2,
+          mb: 3,
         }}
       >
-        <Typography variant="h5">Deliveries & Trips</Typography>
+        <Typography variant="h5">{t("Deliveries & Trips", language)}</Typography>
         {canManage && (
           <Button variant="contained" onClick={() => setDialogOpen(true)}>
-            + New Trip
+            + {t("New Trip", language)}
           </Button>
         )}
       </Box>
@@ -240,13 +262,13 @@ export default function DeliveryTripListPage() {
       <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
         <TextField
           select
-          label="Store"
+          label={t("Store", language)}
           size="small"
           sx={{ width: 200 }}
           value={storeId}
           onChange={(e) => setStoreId(e.target.value)}
         >
-          <MenuItem value="">All Stores</MenuItem>
+          <MenuItem value="">{t("All Stores", language)}</MenuItem>
           {(stores ?? []).map((s) => (
             <MenuItem key={s.id} value={s.id}>
               {s.name}
@@ -256,16 +278,16 @@ export default function DeliveryTripListPage() {
 
         <TextField
           select
-          label="Status"
+          label={t("Status", language)}
           size="small"
           sx={{ width: 180 }}
           value={status}
           onChange={(e) => setStatus(e.target.value as DeliveryTripStatus | "")}
         >
-          <MenuItem value="">All Statuses</MenuItem>
+          <MenuItem value="">{t("All Statuses", language)}</MenuItem>
           {STATUSES.map((s) => (
             <MenuItem key={s} value={s}>
-              {s}
+              {localizeDisplayCode(s, language)}
             </MenuItem>
           ))}
         </TextField>
@@ -277,10 +299,24 @@ export default function DeliveryTripListPage() {
         loading={isLoading}
         getRowId={(row) => row.id}
         autoHeight
+        checkboxSelection
+        rowSelectionModel={selectedRowIds}
+        onRowSelectionModelChange={(newModel) => setSelectedRowIds(newModel)}
         disableRowSelectionOnClick
       />
 
+      <BulkActionBar
+        selectedRowIds={selectedRowIds}
+        totalCount={data?.length ?? 0}
+        onClearSelection={() => setSelectedRowIds(INITIAL_SELECTION)}
+        columns={columns}
+        rows={data ?? []}
+        exportFilename="delivery_trips"
+        exportTitle={t("Delivery schedule and fleet manifest", language)}
+      />
+
       {dialogOpen && <NewTripDialog onClose={() => setDialogOpen(false)} />}
+      {canReschedule && <DeliveryReschedulePanel />}
     </Box>
   );
 }

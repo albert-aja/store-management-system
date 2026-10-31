@@ -27,6 +27,9 @@ export const deliveryTripsApi = {
   create: (input: CreateDeliveryTripInput) =>
     apiClient.post<DeliveryTrip>("/api/delivery-trips", input).then((r) => r.data),
 
+  schedule: (id: string, plannedDispatchAt: string) =>
+    apiClient.post<DeliveryTrip>(`/api/delivery-trips/${id}/schedule`, { plannedDispatchAt }).then((r) => r.data),
+
   dispatch: (id: string) =>
     apiClient
       .post<DeliveryTrip>(`/api/delivery-trips/${id}/dispatch`)

@@ -45,6 +45,8 @@ import {
 } from './hooks';
 import { reportingApi } from './api';
 import PeriodComparisonPanel from './PeriodComparisonPanel';
+import OverviewCharts from './OverviewCharts';
+import { formatDate, formatNumber, t } from "../../lib/locale";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -56,14 +58,14 @@ export default function DashboardPage() {
   const { data: stores = [] } = useStores();
 
   // Queries
-  const { data: overview } = useExecutiveOverview(storeFilter || undefined);
+  const { data: overview, isLoading: loadingOverview, isError: overviewFailed } = useExecutiveOverview(storeFilter || undefined);
   const { data: salesRanking = [], isLoading: loadingSales } = useSalesPerformance(
     storeFilter || undefined,
     startDate || undefined,
     endDate || undefined
   );
   const { data: aging } = useCollectionAging(storeFilter || undefined);
-  const { data: inventory } = useInventoryDistribution(storeFilter || undefined);
+  const { data: inventory, isLoading: loadingInventory, isError: inventoryFailed } = useInventoryDistribution(storeFilter || undefined);
   const { data: exceptions = [], isLoading: loadingExceptions } = useOperationalExceptions(storeFilter || undefined);
 
   // CSV download handlers
@@ -120,7 +122,7 @@ export default function DashboardPage() {
     } catch {
       if (aging) {
         exportFinancialAgingToExcel({
-          storeName: stores.find((s) => s.id === storeFilter)?.name || 'Company Wide (All Stores)',
+          storeName: stores.find((s) => s.id === storeFilter)?.name || t("Company Wide (All Stores)"),
           summary: {
             totalReceivableBalance: Number(aging.totalReceivableBalance ?? 0),
             totalOverdueBalance: Number(aging.totalOverdueBalance ?? 0),
@@ -148,7 +150,7 @@ export default function DashboardPage() {
         const clean = (val?: string) => (val ? val.replace(/^"|"$/g, '').replace(/""/g, '"') : '');
         return {
           orderNumber: clean(parts[0]),
-          date: clean(parts[1]),
+          date: clean(parts[1]) ? formatDate(clean(parts[1])) : "",
           storeName: clean(parts[2]),
           customerName: clean(parts[3]),
           salesperson: clean(parts[4]),
@@ -160,18 +162,21 @@ export default function DashboardPage() {
 
       exportToExcel({
         filename: `sales_summary_${new Date().toISOString().substring(0, 10)}`,
-        sheetName: 'Sales Orders',
-        title: 'STORE MANAGEMENT SYSTEM — SALES ORDERS & REVENUE SUMMARY',
-        subtitle: `Transactions between ${startDate || 'beginning'} and ${endDate || 'current'}`,
+        sheetName: t("Sales Orders"),
+        title: t("STORE MANAGEMENT SYSTEM — SALES ORDERS & REVENUE SUMMARY"),
+        subtitle: t("Transactions between {start} and {end}", undefined, {
+          start: startDate ? formatDate(startDate) : t("Beginning"),
+          end: endDate ? formatDate(endDate) : t("Current"),
+        }),
         columns: [
-          { key: 'orderNumber', label: 'Order Number', width: 22 },
-          { key: 'date', label: 'Date', width: 14 },
-          { key: 'storeName', label: 'Store Branch', width: 20 },
-          { key: 'customerName', label: 'Customer Name', width: 24 },
-          { key: 'salesperson', label: 'Salesperson', width: 22 },
-          { key: 'status', label: 'Order Status', width: 16 },
-          { key: 'totalAmount', label: 'Total Amount (IDR)', width: 22, format: (v) => Number(v ?? 0) },
-          { key: 'deliveryAddress', label: 'Delivery Address', width: 35 },
+          { key: 'orderNumber', label: t("Order Number"), width: 22 },
+          { key: 'date', label: t("Date"), width: 14 },
+          { key: 'storeName', label: t("Store Branch"), width: 20 },
+          { key: 'customerName', label: t("Customer Name"), width: 24 },
+          { key: 'salesperson', label: t("Salesperson"), width: 22 },
+          { key: 'status', label: t("Order Status"), width: 16 },
+          { key: 'totalAmount', label: t("Total Amount (IDR)"), width: 22, format: (v) => Number(v ?? 0) },
+          { key: 'deliveryAddress', label: t("Delivery Address"), width: 35 },
         ],
         data: parsedSales,
       });
@@ -182,7 +187,7 @@ export default function DashboardPage() {
 
   const handleExportStockExcel = () => {
     exportStockBalanceToExcel({
-      storeName: stores.find((s) => s.id === storeFilter)?.name || 'Company Wide (All Stores)',
+      storeName: stores.find((s) => s.id === storeFilter)?.name || t("Company Wide (All Stores)"),
       stockUnits: [],
       distribution: inventory,
     });
@@ -212,22 +217,22 @@ export default function DashboardPage() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700 }} gutterBottom>
-            Reports & Executive Insights
+          <Typography variant="h5" sx={{ fontWeight: 600 }} gutterBottom>
+            {t("Reports & Executive Insights")}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Cross-module real-time intelligence: sales volume, collection aging, inventory health, and operational exceptions.
+            {t("Cross-module real-time intelligence: sales volume, collection aging, inventory health, and operational exceptions.")}
           </Typography>
         </Box>
 
         <FormControl size="small" sx={{ minWidth: 220 }}>
-          <InputLabel>Filter Store Scope</InputLabel>
+          <InputLabel>{t("Filter Store Scope")}</InputLabel>
           <Select
             value={storeFilter}
-            label="Filter Store Scope"
+            label={t("Filter Store Scope")}
             onChange={(e) => setStoreFilter(e.target.value)}
           >
-            <MenuItem value="">All Stores (Company Wide)</MenuItem>
+            <MenuItem value="">{t("All Stores (Company Wide)")}</MenuItem>
             {stores.map((s) => (
               <MenuItem key={s.id} value={s.id}>
                 {s.name}
@@ -251,14 +256,14 @@ export default function DashboardPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <TrendingUpIcon color="primary" sx={{ mr: 1 }} />
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                GROSS SALES VOLUME
+                {t("GROSS SALES VOLUME")}
               </Typography>
             </Box>
             <Typography variant="h5" sx={{ fontWeight: 700 }}>
-              Rp {Number(overview?.totalSalesAmount ?? 0).toLocaleString()}
+              {t("Rp")} {formatNumber(Number(overview?.totalSalesAmount ?? 0))}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {overview?.totalOrdersCount ?? 0} confirmed/released orders
+              {overview?.totalOrdersCount ?? 0} {t("confirmed/released orders")}
             </Typography>
           </CardContent>
         </Card>
@@ -268,14 +273,14 @@ export default function DashboardPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <PriceCheckIcon color="success" sx={{ mr: 1 }} />
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                CASH COLLECTED
+                {t("CASH COLLECTED")}
               </Typography>
             </Box>
             <Typography variant="h5" color="success.main" sx={{ fontWeight: 700 }}>
-              Rp {Number(overview?.totalCashCollected ?? 0).toLocaleString()}
+              {t("Rp")} {formatNumber(Number(overview?.totalCashCollected ?? 0))}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {overview?.activeCreditAccountsCount ?? 0} active credit accounts
+              {overview?.activeCreditAccountsCount ?? 0} {t("active credit accounts")}
             </Typography>
           </CardContent>
         </Card>
@@ -285,14 +290,14 @@ export default function DashboardPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <AccountBalanceWalletIcon color="warning" sx={{ mr: 1 }} />
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                RECEIVABLES BALANCE
+                {t("RECEIVABLES BALANCE")}
               </Typography>
             </Box>
             <Typography variant="h5" color="warning.main" sx={{ fontWeight: 700 }}>
-              Rp {Number(overview?.totalOutstandingReceivables ?? 0).toLocaleString()}
+              {t("Rp")} {formatNumber(Number(overview?.totalOutstandingReceivables ?? 0))}
             </Typography>
             <Typography variant="caption" color="error.main">
-              Overdue: Rp {Number(overview?.overdueReceivablesAmount ?? 0).toLocaleString()}
+              {t("Overdue: Rp")} {formatNumber(Number(overview?.overdueReceivablesAmount ?? 0))}
             </Typography>
           </CardContent>
         </Card>
@@ -302,14 +307,14 @@ export default function DashboardPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <Inventory2Icon color="info" sx={{ mr: 1 }} />
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                STOCK UNITS IN SYSTEM
+                {t("STOCK UNITS IN SYSTEM")}
               </Typography>
             </Box>
             <Typography variant="h5" color="info.main" sx={{ fontWeight: 700 }}>
               {overview?.totalStockUnitsCount ?? 0}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {overview?.warehouseUnitsCount ?? 0} WH / {overview?.showroomUnitsCount ?? 0} Showroom
+              {overview?.warehouseUnitsCount ?? 0} {t("WH /")} {overview?.showroomUnitsCount ?? 0} {t("Showroom")}
             </Typography>
           </CardContent>
         </Card>
@@ -325,59 +330,62 @@ export default function DashboardPage() {
           variant="scrollable"
           scrollButtons="auto"
         >
-          <Tab label="Executive Insights" icon={<AssessmentIcon />} iconPosition="start" />
-          <Tab label="Comparative Analytics" icon={<CompareArrowsIcon />} iconPosition="start" />
-          <Tab label="Sales Leaderboard" icon={<LeaderboardIcon />} iconPosition="start" />
-          <Tab label="Collection & Aging" icon={<PriceCheckIcon />} iconPosition="start" />
+          <Tab label={t("Executive Insights")} icon={<AssessmentIcon />} iconPosition="start" />
+          <Tab label={t("Comparative Analytics")} icon={<CompareArrowsIcon />} iconPosition="start" />
+          <Tab label={t("Sales Leaderboard")} icon={<LeaderboardIcon />} iconPosition="start" />
+          <Tab label={t("Collection & Aging")} icon={<PriceCheckIcon />} iconPosition="start" />
           <Tab
-            label={`Exceptions Center (${exceptions.length})`}
+            label={t("Exceptions Center ({count})", undefined, {
+              count: formatNumber(exceptions.length),
+            })}
             icon={<WarningAmberIcon />}
             iconPosition="start"
           />
-          <Tab label="Export Center" icon={<DownloadIcon />} iconPosition="start" />
+          <Tab label={t("Export Center")} icon={<DownloadIcon />} iconPosition="start" />
         </Tabs>
       </Paper>
 
       {/* TAB 0: Executive Insights */}
       {activeTab === 0 && (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <OverviewCharts overview={overview} inventory={inventory} loading={loadingOverview || loadingInventory} failed={overviewFailed || inventoryFailed} />
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
             {/* Financial Overview Card */}
             <Card variant="outlined" sx={{ borderRadius: 2 }}>
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-                  Financial Position Summary
+                  {t("Financial Position Summary")}
                 </Typography>
                 <Table size="small">
                   <TableBody>
                     <TableRow>
-                      <TableCell>Gross Confirmed Sales</TableCell>
+                      <TableCell>{t("Gross Confirmed Sales")}</TableCell>
                       <TableCell align="right">
-                        <strong>Rp {Number(overview?.totalSalesAmount ?? 0).toLocaleString()}</strong>
+                        <strong>{t("Rp")} {formatNumber(Number(overview?.totalSalesAmount ?? 0))}</strong>
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Total Customer Cash Inflow</TableCell>
+                      <TableCell>{t("Total Customer Cash Inflow")}</TableCell>
                       <TableCell align="right" sx={{ color: 'success.main' }}>
-                        <strong>Rp {Number(overview?.totalCashCollected ?? 0).toLocaleString()}</strong>
+                        <strong>{t("Rp")} {formatNumber(Number(overview?.totalCashCollected ?? 0))}</strong>
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Committed Operational Expenses</TableCell>
+                      <TableCell>{t("Committed Operational Expenses")}</TableCell>
                       <TableCell align="right" sx={{ color: 'error.main' }}>
-                        <strong>-Rp {Number(overview?.totalExpensesAmount ?? 0).toLocaleString()}</strong>
+                        <strong>{t("-Rp")} {formatNumber(Number(overview?.totalExpensesAmount ?? 0))}</strong>
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Outstanding Credit Portfolio</TableCell>
+                      <TableCell>{t("Outstanding Credit Portfolio")}</TableCell>
                       <TableCell align="right">
-                        <strong>Rp {Number(overview?.totalOutstandingReceivables ?? 0).toLocaleString()}</strong>
+                        <strong>{t("Rp")} {formatNumber(Number(overview?.totalOutstandingReceivables ?? 0))}</strong>
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Overdue Installments (Past Due)</TableCell>
+                      <TableCell>{t("Overdue Installments (Past Due)")}</TableCell>
                       <TableCell align="right" sx={{ color: 'error.main' }}>
-                        <strong>Rp {Number(overview?.overdueReceivablesAmount ?? 0).toLocaleString()}</strong>
+                        <strong>{t("Rp")} {formatNumber(Number(overview?.overdueReceivablesAmount ?? 0))}</strong>
                       </TableCell>
                     </TableRow>
                   </TableBody>
@@ -389,44 +397,44 @@ export default function DashboardPage() {
             <Card variant="outlined" sx={{ borderRadius: 2 }}>
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-                  Physical Inventory Breakdown
+                  {t("Physical Inventory Breakdown")}
                 </Typography>
                 <Table size="small">
                   <TableBody>
                     <TableRow>
-                      <TableCell>Warehouse Stock</TableCell>
+                      <TableCell>{t("Warehouse Stock")}</TableCell>
                       <TableCell align="right">
-                        <strong>{inventory?.warehouseUnits ?? 0} units</strong>
+                        <strong>{inventory?.warehouseUnits ?? 0} {t("units")}</strong>
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Showroom Floor Stock</TableCell>
+                      <TableCell>{t("Showroom Floor Stock")}</TableCell>
                       <TableCell align="right">
-                        <strong>{inventory?.showroomUnits ?? 0} units</strong>
+                        <strong>{inventory?.showroomUnits ?? 0} {t("units")}</strong>
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Repair Area / Recovery</TableCell>
+                      <TableCell>{t("Repair Area / Recovery")}</TableCell>
                       <TableCell align="right" sx={{ color: 'warning.main' }}>
-                        <strong>{inventory?.repairAreaUnits ?? 0} units</strong>
+                        <strong>{inventory?.repairAreaUnits ?? 0} {t("units")}</strong>
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>In-Transit (Trips & Transfers)</TableCell>
+                      <TableCell>{t("In-Transit (Trips & Transfers)")}</TableCell>
                       <TableCell align="right">
-                        <strong>{inventory?.inTransitUnits ?? 0} units</strong>
+                        <strong>{inventory?.inTransitUnits ?? 0} {t("units")}</strong>
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Delivered at Customer</TableCell>
+                      <TableCell>{t("Delivered at Customer")}</TableCell>
                       <TableCell align="right" sx={{ color: 'info.main' }}>
-                        <strong>{inventory?.atCustomerUnits ?? 0} units</strong>
+                        <strong>{inventory?.atCustomerUnits ?? 0} {t("units")}</strong>
                       </TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell>Available for Immediate Sale</TableCell>
+                      <TableCell>{t("Available for Immediate Sale")}</TableCell>
                       <TableCell align="right" sx={{ color: 'success.main' }}>
-                        <strong>{inventory?.availableUnits ?? 0} units</strong>
+                        <strong>{inventory?.availableUnits ?? 0} {t("units")}</strong>
                       </TableCell>
                     </TableRow>
                   </TableBody>
@@ -437,10 +445,10 @@ export default function DashboardPage() {
             <Card variant="outlined" sx={{ borderRadius: 2 }}>
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                  Stock Balance & Inventory Audit
+                  {t("Stock Balance & Inventory Audit")}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Multi-sheet Excel workbook detailing physical unit distribution across warehouses, showrooms, in-transit fleet, and itemized serial unit statuses.
+                  {t("Multi-sheet Excel workbook detailing physical unit distribution across warehouses, showrooms, in-transit fleet, and itemized serial unit statuses.")}
                 </Typography>
                 <Button
                   variant="contained"
@@ -448,7 +456,7 @@ export default function DashboardPage() {
                   startIcon={<TableChartIcon />}
                   onClick={handleExportStockExcel}
                 >
-                  Download Stock Balance Excel (.xlsx)
+                  {t("Download Stock Balance Excel (.xlsx)")}
                 </Button>
               </CardContent>
             </Card>
@@ -468,7 +476,7 @@ export default function DashboardPage() {
             <TextField
               size="small"
               type="date"
-              label="Start Date"
+              label={t("Start Date")}
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}
@@ -476,7 +484,7 @@ export default function DashboardPage() {
             <TextField
               size="small"
               type="date"
-              label="End Date"
+              label={t("End Date")}
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}
@@ -487,29 +495,29 @@ export default function DashboardPage() {
             <Table>
               <TableHead sx={{ backgroundColor: 'action.hover' }}>
                 <TableRow>
-                  <TableCell align="center"><strong>Rank</strong></TableCell>
-                  <TableCell><strong>Salesperson</strong></TableCell>
-                  <TableCell><strong>Employee #</strong></TableCell>
-                  <TableCell align="center"><strong>Confirmed Orders</strong></TableCell>
-                  <TableCell align="right"><strong>Total Volume (Rp)</strong></TableCell>
-                  <TableCell align="right"><strong>Est. Commission (3%)</strong></TableCell>
+                  <TableCell align="center"><strong>{t("Rank")}</strong></TableCell>
+                  <TableCell><strong>{t("Salesperson")}</strong></TableCell>
+                  <TableCell><strong>{t("Employee #")}</strong></TableCell>
+                  <TableCell align="center"><strong>{t("Confirmed Orders")}</strong></TableCell>
+                  <TableCell align="right"><strong>{t("Total Volume (Rp)")}</strong></TableCell>
+                  <TableCell align="right"><strong>{t("Est. Commission (3%)")}</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loadingSales ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center">Loading sales performance...</TableCell>
+                    <TableCell colSpan={6} align="center">{t("Loading sales performance...")}</TableCell>
                   </TableRow>
                 ) : salesRanking.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} align="center">No sales orders found for selected date window.</TableCell>
+                    <TableCell colSpan={6} align="center">{t("No sales orders found for selected date window.")}</TableCell>
                   </TableRow>
                 ) : (
                   salesRanking.map((sp, idx) => (
                     <TableRow key={sp.salespersonId} hover>
                       <TableCell align="center">
                         <Chip
-                          label={`#${idx + 1}`}
+                          label={`#${formatNumber(idx + 1)}`}
                           size="small"
                           color={idx === 0 ? 'primary' : 'default'}
                           sx={{ fontWeight: 700 }}
@@ -522,15 +530,21 @@ export default function DashboardPage() {
                       </TableCell>
                       <TableCell>{sp.salespersonCode || '-'}</TableCell>
                       <TableCell align="center">
-                        <Chip label={`${sp.confirmedOrdersCount} orders`} size="small" variant="outlined" />
+                        <Chip
+                          label={t("{count} orders", undefined, {
+                            count: formatNumber(sp.confirmedOrdersCount),
+                          })}
+                          size="small"
+                          variant="outlined"
+                        />
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                          Rp {Number(sp.totalSalesVolume).toLocaleString()}
+                          {t("Rp")} {formatNumber(Number(sp.totalSalesVolume))}
                         </Typography>
                       </TableCell>
                       <TableCell align="right" sx={{ color: 'success.main', fontWeight: 600 }}>
-                        Rp {Number(sp.estimatedCommission).toLocaleString()}
+                        {t("Rp")} {formatNumber(Number(sp.estimatedCommission))}
                       </TableCell>
                     </TableRow>
                   ))
@@ -548,10 +562,10 @@ export default function DashboardPage() {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
               <Box>
                 <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                  Credit Portfolio Aging Breakdown
+                  {t("Credit Portfolio Aging Breakdown")}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Installment debts grouped by delinquency duration. Total active portfolio: Rp {Number(aging?.totalReceivableBalance ?? 0).toLocaleString()}.
+                  {t("Installment debts grouped by delinquency duration. Total active portfolio: Rp")} {formatNumber(Number(aging?.totalReceivableBalance ?? 0))}.
                 </Typography>
               </Box>
               <Button
@@ -560,7 +574,7 @@ export default function DashboardPage() {
                 startIcon={<TableChartIcon />}
                 onClick={handleExportAgingExcel}
               >
-                Export Aging Excel (.xlsx)
+                {t("Export Aging Excel (.xlsx)")}
               </Button>
             </Box>
 
@@ -574,10 +588,10 @@ export default function DashboardPage() {
                         {bucket.bucketName.toUpperCase()}
                       </Typography>
                       <Typography variant="h5" sx={{ fontWeight: 700, my: 1, color: isRisk ? 'error.main' : 'text.primary' }}>
-                        Rp {Number(bucket.totalAmount).toLocaleString()}
+                        {t("Rp")} {formatNumber(Number(bucket.totalAmount))}
                       </Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                        {bucket.installmentCount} installments ({bucket.percentage}%)
+                        {bucket.installmentCount} {t("installments (")}{bucket.percentage}%)
                       </Typography>
                       <LinearProgress
                         variant="determinate"
@@ -593,7 +607,7 @@ export default function DashboardPage() {
 
             {aging && aging.custodyDiscrepanciesCount > 0 && (
               <Alert severity="warning" sx={{ mb: 2 }}>
-                Found <strong>{aging.custodyDiscrepanciesCount} cash custody discrepancies</strong> flagged during cashier handover verification. Check Cash Custody tab in Finance.
+                {t("Found")} <strong>{aging.custodyDiscrepanciesCount} {t("cash custody discrepancies")}</strong> {t("flagged during cashier handover verification. Check Cash Custody tab in Finance.")}
               </Alert>
             )}
           </Box>
@@ -604,17 +618,17 @@ export default function DashboardPage() {
       {activeTab === 4 && (
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-            High-Priority Operational Exceptions
+            {t("High-Priority Operational Exceptions")}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Actions requiring manager review: unapproved budget overruns, cash custody short/overs, and severe default-risk accounts.
+            {t("Actions requiring manager review: unapproved budget overruns, cash custody short/overs, and severe default-risk accounts.")}
           </Typography>
 
           {loadingExceptions ? (
-            <Typography>Loading exceptions...</Typography>
+            <Typography>{t("Loading exceptions...")}</Typography>
           ) : exceptions.length === 0 ? (
             <Alert severity="success">
-              ✓ All operational checks clear! No unhandled budget overruns or cash discrepancies detected.
+              {t("✓ All operational checks clear! No unhandled budget overruns or cash discrepancies detected.")}
             </Alert>
           ) : (
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -642,7 +656,7 @@ export default function DashboardPage() {
                       size="small"
                       onClick={() => navigate(ex.actionUrl)}
                     >
-                      Resolve in Module &rarr;
+                      {t("Resolve in Module →")}
                     </Button>
                   </CardContent>
                 </Card>
@@ -656,20 +670,20 @@ export default function DashboardPage() {
       {activeTab === 5 && (
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-            Download Operational & Audit Reports
+            {t("Download Operational & Audit Reports")}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Export tabular audit sheets directly in CSV format for spreadsheet reconciliation and executive reporting.
+            {t("Export tabular audit sheets directly in CSV format for spreadsheet reconciliation and executive reporting.")}
           </Typography>
 
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
             <Card variant="outlined" sx={{ borderRadius: 2 }}>
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                  Receivables & Credit Aging Audit
+                  {t("Receivables & Credit Aging Audit")}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Complete CSV ledger containing customer accounts, telephone numbers, total contract values, current remaining balances, repayment terms, and contract statuses.
+                  {t("Complete CSV ledger containing customer accounts, telephone numbers, total contract values, current remaining balances, repayment terms, and contract statuses.")}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
                   <Button
@@ -678,7 +692,7 @@ export default function DashboardPage() {
                     startIcon={<DownloadIcon />}
                     onClick={handleDownloadReceivables}
                   >
-                    Download Receivables CSV
+                    {t("Download Receivables CSV")}
                   </Button>
                   <Button
                     variant="outlined"
@@ -686,7 +700,7 @@ export default function DashboardPage() {
                     startIcon={<TableChartIcon />}
                     onClick={handleExportAgingExcel}
                   >
-                    Download Aging Excel (.xlsx)
+                    {t("Download Aging Excel (.xlsx)")}
                   </Button>
                 </Box>
               </CardContent>
@@ -695,10 +709,10 @@ export default function DashboardPage() {
             <Card variant="outlined" sx={{ borderRadius: 2 }}>
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
-                  Sales Orders & Volume Audit
+                  {t("Sales Orders & Volume Audit")}
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  Itemized sales summary with order numbers, transaction dates, assigned salespersons, customer names, confirmed order values, and delivery address snapshots.
+                  {t("Itemized sales summary with order numbers, transaction dates, assigned salespersons, customer names, confirmed order values, and delivery address snapshots.")}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
                   <Button
@@ -707,7 +721,7 @@ export default function DashboardPage() {
                     startIcon={<DownloadIcon />}
                     onClick={handleDownloadSales}
                   >
-                    Download Sales Summary CSV
+                    {t("Download Sales Summary CSV")}
                   </Button>
                   <Button
                     variant="outlined"
@@ -715,7 +729,7 @@ export default function DashboardPage() {
                     startIcon={<TableChartIcon />}
                     onClick={handleExportSalesExcel}
                   >
-                    Download Sales Excel (.xlsx)
+                    {t("Download Sales Excel (.xlsx)")}
                   </Button>
                 </Box>
               </CardContent>

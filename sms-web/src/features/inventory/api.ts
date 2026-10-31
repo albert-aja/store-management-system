@@ -8,6 +8,7 @@ import type {
   StockMovement,
   StockUnit,
 } from "./types";
+import type { BulkOperationResultDto } from "../salesOrders/api";
 
 export const inventoryApi = {
   search: (params: {
@@ -40,6 +41,14 @@ export const inventoryApi = {
   ) =>
     apiClient
       .put<StockUnit>(`/api/stock-units/${id}/availability`, { status, reason })
+      .then((r) => r.data),
+  bulkAdjustAvailability: (input: {
+    ids: string[];
+    availability: StockAvailability;
+    reason?: string;
+  }) =>
+    apiClient
+      .post<BulkOperationResultDto>("/api/stock-units/bulk-availability", input)
       .then((r) => r.data),
   movements: (id: string) =>
     apiClient

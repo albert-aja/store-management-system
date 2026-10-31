@@ -1,3 +1,4 @@
+import { t } from "../../lib/locale";
 import { useState } from "react";
 import {
   Box,
@@ -51,7 +52,7 @@ export default function AllocationPanel({
             key={a.id}
             secondaryAction={
               <Button size="small" onClick={() => release.mutate(a.id)}>
-                Release
+                {t("Release")}
               </Button>
             }
           >
@@ -64,7 +65,7 @@ export default function AllocationPanel({
           <TextField
             select
             size="small"
-            label="Reserved unit"
+            label={t("Reserved unit")}
             sx={{ width: 220 }}
             value={stockUnitId}
             onChange={(e) => setStockUnitId(e.target.value)}
@@ -83,7 +84,7 @@ export default function AllocationPanel({
               setStockUnitId("");
             }}
           >
-            Allocate
+            {t("Allocate")}
           </Button>
         </Box>
       )}

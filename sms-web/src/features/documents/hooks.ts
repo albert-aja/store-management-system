@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { documentsApi } from "./api";
+import type { DocumentRecord } from "./types";
 
 const documentsKey = (ownerType: string, ownerId: string) => [
   "documents",
@@ -32,5 +33,21 @@ export function useUploadDocument(ownerType: string, ownerId: string) {
       queryClient.invalidateQueries({
         queryKey: documentsKey(ownerType, ownerId),
       }),
+  });
+}
+
+export function useDocumentDownloadTicket(documentId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: ["document-download-ticket", documentId],
+    queryFn: () => (documentId ? documentsApi.getDownloadTicket(documentId) : null),
+    enabled: !!documentId && enabled,
+    staleTime: 1000 * 60 * 10, // 10 minutes cache
+  });
+}
+
+export function useDownloadDocumentMutation() {
+  return useMutation({
+    mutationFn: (doc: DocumentRecord | { id?: string; fileName: string; url?: string }) =>
+      documentsApi.downloadDocument(doc),
   });
 }

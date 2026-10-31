@@ -1,4 +1,5 @@
 import { apiClient } from "../../lib/apiClient";
+import type { BulkOperationResultDto } from "../salesOrders/api";
 import type {
   CreateReceiptInput,
   PurchaseOrder,
@@ -28,18 +29,19 @@ export const suppliersApi = {
     apiClient.post<Supplier>("/api/suppliers", input).then((r) => r.data),
   update: (id: string, input: SupplierInput) =>
     apiClient.put<Supplier>(`/api/suppliers/${id}`, input).then((r) => r.data),
-  deactivate: (id: string) => apiClient.post(`/api/suppliers/${id}/deactivate`),
-  activate: (id: string) => apiClient.post(`/api/suppliers/${id}/activate`),
-  listContacts: (id: string) =>
+  toggleActive: (id: string) =>
+    apiClient.post<Supplier>(`/api/suppliers/${id}/toggle-active`).then((r) => r.data),
+
+  listContacts: (supplierId: string) =>
     apiClient
-      .get<SupplierContact[]>(`/api/suppliers/${id}/contacts`)
+      .get<SupplierContact[]>(`/api/suppliers/${supplierId}/contacts`)
       .then((r) => r.data),
-  addContact: (id: string, input: SupplierContactInput) =>
+  addContact: (supplierId: string, input: SupplierContactInput) =>
     apiClient
-      .post<SupplierContact>(`/api/suppliers/${id}/contacts`, input)
+      .post<SupplierContact>(`/api/suppliers/${supplierId}/contacts`, input)
       .then((r) => r.data),
-  deactivateContact: (contactId: string) =>
-    apiClient.post(`/api/suppliers/contacts/${contactId}/deactivate`),
+  deleteContact: (supplierId: string, contactId: string) =>
+    apiClient.delete(`/api/suppliers/${supplierId}/contacts/${contactId}`),
 };
 
 export const purchaseOrdersApi = {
@@ -59,6 +61,11 @@ export const purchaseOrdersApi = {
     apiClient
       .post<PurchaseOrder>("/api/purchase-orders", input)
       .then((r) => r.data),
+  updateHeader: (id: string, supplierId?: string, notes?: string) =>
+    apiClient
+      .put<PurchaseOrder>(`/api/purchase-orders/${id}`, { supplierId, notes })
+      .then((r) => r.data),
+
   listItems: (id: string) =>
     apiClient
       .get<PurchaseOrderItem[]>(`/api/purchase-orders/${id}/items`)
@@ -69,6 +76,7 @@ export const purchaseOrdersApi = {
       .then((r) => r.data),
   removeItem: (itemId: string) =>
     apiClient.delete(`/api/purchase-orders/items/${itemId}`),
+
   submitForApproval: (id: string, workflowCode: string) =>
     apiClient
       .post<PurchaseOrder>(`/api/purchase-orders/${id}/submit-approval`, {
@@ -86,6 +94,10 @@ export const purchaseOrdersApi = {
   cancel: (id: string, reason?: string) =>
     apiClient
       .post<PurchaseOrder>(`/api/purchase-orders/${id}/cancel`, { reason })
+      .then((r) => r.data),
+  bulkUpdateStatus: (input: { ids: string[]; action: string; reason?: string }) =>
+    apiClient
+      .post<BulkOperationResultDto>("/api/purchase-orders/bulk-status", input)
       .then((r) => r.data),
 };
 

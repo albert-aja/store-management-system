@@ -162,3 +162,12 @@ export function useReleaseAllocation(soItemId: string) {
     [["allocations", soItemId], STOCK_UNITS_KEY],
   );
 }
+
+
+export function useBulkAdjustAvailability() {
+  return useInvalidatingMutation(
+    (input: { ids: string[]; availability: StockAvailability; reason?: string }) =>
+      inventoryApi.bulkAdjustAvailability(input),
+    [STOCK_UNITS_KEY],
+  );
+}

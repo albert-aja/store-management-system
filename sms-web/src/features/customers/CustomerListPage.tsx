@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Box, Button, Chip, Switch, TextField, Typography } from "@mui/material";
-import { DataGrid, type GridColDef } from "@mui/x-data-grid";
+import { DataGrid, type GridColDef, type GridRowSelectionModel } from "@mui/x-data-grid";
+import BulkActionBar from "../../components/BulkActionBar";
 import { useSnackbar } from "notistack";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import StarIcon from "@mui/icons-material/Star";
@@ -16,17 +17,20 @@ import {
   useUpdateCustomer,
 } from "./hooks";
 import type { Customer } from "./types";
+import { formatNumber, t } from "../../lib/locale";
+
+const INITIAL_SELECTION: GridRowSelectionModel = { type: "include", ids: new Set() };
 
 function getSegmentChip(segment: string | undefined) {
   switch (segment) {
     case "VIP_CASH":
-      return <Chip label="VIP Cash" size="small" color="warning" />;
+      return <Chip label={t("VIP Cash")} size="small" color="warning" />;
     case "STAR_CREDIT":
-      return <Chip label="Star Credit" size="small" color="secondary" />;
+      return <Chip label={t("Star Credit")} size="small" color="secondary" />;
     case "HIGH_DELINQUENCY_RISK":
-      return <Chip label="High Risk" size="small" color="error" />;
+      return <Chip label={t("High Risk")} size="small" color="error" />;
     default:
-      return <Chip label="Standard" size="small" variant="outlined" />;
+      return <Chip label={t("Standard")} size="small" variant="outlined" />;
   }
 }
 
@@ -36,7 +40,7 @@ function getCreditScoreBadge(grade: string | undefined, score: number | undefine
   return (
     <Chip
       icon={<StarIcon style={{ fontSize: "0.85rem" }} />}
-      label={`${g} (${score ?? 80})`}
+      label={`${g} (${formatNumber(score ?? 80)})`}
       size="small"
       color={color}
       variant="outlined"
@@ -58,6 +62,7 @@ export default function CustomerListPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Customer | null>(null);
+  const [selectedRowIds, setSelectedRowIds] = useState<GridRowSelectionModel>(INITIAL_SELECTION);
 
   const filteredData = (data ?? []).filter((c) => {
     if (segmentFilter === "ALL") return true;
@@ -65,25 +70,25 @@ export default function CustomerListPage() {
   });
 
   const columns: GridColDef<Customer>[] = [
-    { field: "fullName", headerName: "Full Name", flex: 1.2 },
-    { field: "nik", headerName: "NIK", width: 140 },
-    { field: "primaryPhone", headerName: "Phone", width: 130 },
+    { field: "fullName", headerName: t("Full Name"), flex: 1.2 },
+    { field: "nik", headerName: t("NIK"), width: 140 },
+    { field: "primaryPhone", headerName: t("Phone"), width: 130 },
     {
       field: "segment",
-      headerName: "CRM Segment",
+      headerName: t("CRM Segment"),
       width: 130,
       renderCell: (params) => getSegmentChip(params.row.segment),
     },
     {
       field: "creditScoreGrade",
-      headerName: "Credit Rating",
+      headerName: t("Credit Rating"),
       width: 120,
       renderCell: (params) => getCreditScoreBadge(params.row.creditScoreGrade, params.row.creditScorePoints),
     },
-    { field: "primaryEmail", headerName: "Email", flex: 1 },
+    { field: "primaryEmail", headerName: t("Email"), flex: 1 },
     {
       field: "active",
-      headerName: "Active",
+      headerName: t("Active"),
       width: 90,
       renderCell: (params) => (
         <Switch
@@ -106,7 +111,7 @@ export default function CustomerListPage() {
             variant="outlined"
             onClick={() => navigate(`/customers/${params.row.id}`)}
           >
-            360 Profile
+            {t("360 Profile")}
           </Button>
           {canManage && (
             <Button
@@ -116,8 +121,7 @@ export default function CustomerListPage() {
                 setDialogOpen(true);
               }}
             >
-              Edit
-            </Button>
+              {t("Edit")}</Button>
           )}
         </>
       ),
@@ -131,18 +135,20 @@ export default function CustomerListPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          mb: 2,
+          flexWrap: "wrap",
+          gap: 2,
+          mb: 3,
         }}
       >
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>
-            Customer Directory & CRM 360
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>
+            {t("Customer Directory & CRM 360")}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Master profil pelanggan, segmentasi perilaku, skoring kredit terintegrasi, dan riwayat omnichannel.
+            {t("Master profil pelanggan, segmentasi perilaku, skoring kredit terintegrasi, dan riwayat omnichannel.")}
           </Typography>
         </Box>
-        <Box sx={{ display: "flex", gap: 1 }}>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
           <Button
             variant="outlined"
             startIcon={<FileDownloadIcon />}
@@ -150,19 +156,19 @@ export default function CustomerListPage() {
               exportToCsv(
                 "customers_crm_directory",
                 [
-                  { key: "fullName", label: "Full Name" },
-                  { key: "nik", label: "NIK" },
-                  { key: "primaryPhone", label: "Phone" },
-                  { key: "segment", label: "CRM Segment" },
-                  { key: "creditScoreGrade", label: "Credit Grade" },
-                  { key: "primaryEmail", label: "Email" },
-                  { key: "active", label: "Active" },
+                  { key: "fullName", label: t("Full Name") },
+                  { key: "nik", label: t("NIK") },
+                  { key: "primaryPhone", label: t("Phone") },
+                  { key: "segment", label: t("CRM Segment") },
+                  { key: "creditScoreGrade", label: t("Credit Grade") },
+                  { key: "primaryEmail", label: t("Email") },
+                  { key: "active", label: t("Active") },
                 ],
                 filteredData,
               )
             }
           >
-            Export CSV
+            {t("Export CSV")}
           </Button>
           {canManage && (
             <Button
@@ -172,7 +178,7 @@ export default function CustomerListPage() {
                 setDialogOpen(true);
               }}
             >
-              New Customer
+              {t("New Customer")}
             </Button>
           )}
         </Box>
@@ -181,38 +187,38 @@ export default function CustomerListPage() {
       {/* Quick CRM Segment Filters */}
       <Box sx={{ display: "flex", gap: 1, mb: 2, alignItems: "center", flexWrap: "wrap" }}>
         <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", mr: 1 }}>
-          Filter Segmen:
+          {t("Filter Segmen:")}
         </Typography>
         <Chip
-          label="Semua Pelanggan"
+          label={t("Semua Pelanggan")}
           clickable
           color={segmentFilter === "ALL" ? "primary" : "default"}
           onClick={() => setSegmentFilter("ALL")}
           size="small"
         />
         <Chip
-          label="VIP Cash Buyer"
+          label={t("VIP Cash Buyer")}
           clickable
           color={segmentFilter === "VIP_CASH" ? "warning" : "default"}
           onClick={() => setSegmentFilter("VIP_CASH")}
           size="small"
         />
         <Chip
-          label="Star Credit"
+          label={t("Star Credit")}
           clickable
           color={segmentFilter === "STAR_CREDIT" ? "secondary" : "default"}
           onClick={() => setSegmentFilter("STAR_CREDIT")}
           size="small"
         />
         <Chip
-          label="High Delinquency Risk"
+          label={t("High Delinquency Risk")}
           clickable
           color={segmentFilter === "HIGH_DELINQUENCY_RISK" ? "error" : "default"}
           onClick={() => setSegmentFilter("HIGH_DELINQUENCY_RISK")}
           size="small"
         />
         <Chip
-          label="Standard Account"
+          label={t("Standard Account")}
           clickable
           color={segmentFilter === "STANDARD" ? "primary" : "default"}
           onClick={() => setSegmentFilter("STANDARD")}
@@ -222,7 +228,7 @@ export default function CustomerListPage() {
       </Box>
 
       <TextField
-        label="Search by name, NIK, or phone"
+        label={t("Search by name, NIK, or phone")}
         fullWidth
         sx={{ mb: 2 }}
         value={query}
@@ -234,7 +240,19 @@ export default function CustomerListPage() {
         loading={isLoading}
         getRowId={(row) => row.id}
         autoHeight
+        checkboxSelection
+        rowSelectionModel={selectedRowIds}
+        onRowSelectionModelChange={(newModel) => setSelectedRowIds(newModel)}
         disableRowSelectionOnClick
+      />
+      <BulkActionBar
+        selectedRowIds={selectedRowIds}
+        totalCount={filteredData.length}
+        onClearSelection={() => setSelectedRowIds(INITIAL_SELECTION)}
+        columns={columns}
+        rows={filteredData}
+        exportFilename="customers_master"
+        exportTitle="DATABASE MASTER PELANGGAN (CUSTOMER 360)"
       />
       <CustomerFormDialog
         key={editing?.id ?? "new"}
@@ -256,7 +274,7 @@ export default function CustomerListPage() {
             ? updateCustomer.mutateAsync({ id: editing.id, input })
             : createCustomer.mutateAsync(input);
           action.then(() => {
-            enqueueSnackbar(editing ? "Customer updated" : "Customer created", {
+            enqueueSnackbar(editing ? t("Customer updated") : t("Customer created"), {
               variant: "success",
             });
             setDialogOpen(false);

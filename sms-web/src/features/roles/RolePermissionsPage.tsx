@@ -22,6 +22,7 @@ import {
   useTogglePermission,
 } from "./hooks";
 import type { Role } from "./types";
+import { t } from "../../lib/locale";
 
 export default function RolePermissionsPage() {
   const { data: roles } = useRoles();
@@ -35,11 +36,10 @@ export default function RolePermissionsPage() {
   const [formOpen, setFormOpen] = useState(false);
 
   return (
-    <Box sx={{ display: "flex", gap: 3 }}>
-      <Paper sx={{ width: 260, p: 1 }}>
+    <Box sx={{ display: "flex", gap: 3, flexDirection: { xs: "column", md: "row" } }}>
+      <Paper variant="outlined" sx={{ width: { xs: "100%", md: 260 }, p: 1, borderRadius: 2, flexShrink: 0 }}>
         <Typography variant="subtitle1" sx={{ p: 1 }}>
-          Roles
-        </Typography>
+          {t("Roles")}</Typography>
         <List>
           {(roles ?? []).map((role) => (
             <ListItem key={role.id} disablePadding>
@@ -54,13 +54,15 @@ export default function RolePermissionsPage() {
         </List>
         {canManage && (
           <Button fullWidth onClick={() => setFormOpen(true)}>
-            New Role
+            {t("New Role")}
           </Button>
         )}
       </Paper>
-      <Paper sx={{ flex: 1, p: 2 }}>
+      <Paper variant="outlined" sx={{ flex: 1, p: 3, borderRadius: 2, minWidth: 0 }}>
         <Typography variant="subtitle1" sx={{ mb: 1 }}>
-          {selected ? `Permissions for ${selected.name}` : "Select a role"}
+          {selected
+            ? t("Permissions for {role}", undefined, { role: selected.name })
+            : t("Select a role")}
         </Typography>
         {selected &&
           (permissions ?? []).map((permission) => {
@@ -83,7 +85,7 @@ export default function RolePermissionsPage() {
                   />
                 }
                 label={permission.code}
-                sx={{ display: "block" }}
+                sx={{ display: "block", overflowWrap: "anywhere" }}
               />
             );
           })}
@@ -93,7 +95,7 @@ export default function RolePermissionsPage() {
         onClose={() => setFormOpen(false)}
         onSubmit={(values) => {
           createRole.mutateAsync(values).then(() => {
-            enqueueSnackbar("Role created", { variant: "success" });
+            enqueueSnackbar(t("Role created"), { variant: "success" });
             setFormOpen(false);
           });
         }}

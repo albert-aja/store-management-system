@@ -24,6 +24,7 @@ import {
   useVariants,
 } from "./hooks";
 import type { ComponentInput, VariantInput } from "./types";
+import { t } from "../../lib/locale";
 
 export default function ProductDetailPage() {
   const { id = "" } = useParams();
@@ -54,14 +55,13 @@ export default function ProductDetailPage() {
         {product.name}
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Code: {product.code} · Category: {product.categoryName ?? "—"} ·
-        Brand: {product.brandName ?? "—"}
+        {t("Code:")} {product.code} {t("· Category:")} {product.categoryName ?? "—"} {t("· Brand:")} {product.brandName ?? "—"}
       </Typography>
 
       <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
         <Paper sx={{ p: 2, width: 380 }}>
           <Typography variant="subtitle1" sx={{ mb: 1 }}>
-            Variants
+            {t("Variants")}
           </Typography>
           <List dense>
             {(variants ?? []).map((variant) => (
@@ -73,7 +73,7 @@ export default function ProductDetailPage() {
                       size="small"
                       onClick={() => deactivateVariant.mutate(variant.id)}
                     >
-                      Remove
+                      {t("Remove")}
                     </Button>
                   )
                 }
@@ -96,31 +96,31 @@ export default function ProductDetailPage() {
                 })}
               >
                 <TextField
-                  label="SKU"
+                  label={t("SKU")}
                   size="small"
                   required
                   {...variantForm.register("sku", { required: true })}
                 />
                 <TextField
-                  label="Variant Name"
+                  label={t("Variant Name")}
                   size="small"
                   required
                   {...variantForm.register("variantName", { required: true })}
                 />
                 <Button type="submit" variant="contained" size="small">
-                  Add Variant
+                  {t("Add Variant")}
                 </Button>
               </Box>
             ) : (
               <Button size="small" onClick={() => setShowVariantForm(true)}>
-                Add Variant
+                {t("Add Variant")}
               </Button>
             ))}
         </Paper>
 
         <Paper sx={{ p: 2, width: 380 }}>
           <Typography variant="subtitle1" sx={{ mb: 1 }}>
-            Standard Components
+            {t("Standard Components")}
           </Typography>
           <List dense>
             {(components ?? []).map((component) => (
@@ -132,7 +132,7 @@ export default function ProductDetailPage() {
                       size="small"
                       onClick={() => deactivateComponent.mutate(component.id)}
                     >
-                      Remove
+                      {t("Remove")}
                     </Button>
                   )
                 }
@@ -159,13 +159,13 @@ export default function ProductDetailPage() {
                 })}
               >
                 <TextField
-                  label="Name"
+                  label={t("Name")}
                   size="small"
                   required
                   {...componentForm.register("name", { required: true })}
                 />
                 <TextField
-                  label="Quantity"
+                  label={t("Quantity")}
                   size="small"
                   type="number"
                   {...componentForm.register("quantity", {
@@ -174,23 +174,23 @@ export default function ProductDetailPage() {
                   })}
                 />
                 <TextField
-                  label="Notes"
+                  label={t("Notes")}
                   size="small"
                   {...componentForm.register("notes")}
                 />
                 <Button type="submit" variant="contained" size="small">
-                  Add Component
+                  {t("Add Component")}
                 </Button>
               </Box>
             ) : (
               <Button size="small" onClick={() => setShowComponentForm(true)}>
-                Add Component
+                {t("Add Component")}
               </Button>
             ))}
         </Paper>
 
         <Paper sx={{ p: 2, width: 420 }}>
-          <PricingPanel variants={variants ?? []} />
+          <PricingPanel variants={variants ?? []} productId={id} />
         </Paper>
 
         <Paper sx={{ p: 2, width: 380 }}>

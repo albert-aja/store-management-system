@@ -17,6 +17,7 @@ import {
   useReceivablesBySalesOrder,
 } from "./hooks";
 import type { Receivable } from "./types";
+import { formatNumber , localizeDisplayCode, t} from "../../lib/locale";
 
 interface ReceivableSalesOrderPanelProps {
   salesOrderId: string;
@@ -45,11 +46,11 @@ export default function ReceivableSalesOrderPanel({
       await createReceivable.mutateAsync({
         salesOrderId,
       });
-      enqueueSnackbar("Credit schedule (receivable) generated successfully", {
+      enqueueSnackbar(t("Credit schedule (receivable) generated successfully"), {
         variant: "success",
       });
     } catch {
-      enqueueSnackbar("Failed to create credit schedule", { variant: "error" });
+      enqueueSnackbar(t("Failed to create credit schedule"), { variant: "error" });
     }
   };
 
@@ -69,10 +70,10 @@ export default function ReceivableSalesOrderPanel({
       >
         <Box>
           <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-            Credit Accounts & Receivables ({receivables.length})
+            {t("Credit Accounts & Receivables (")}{receivables.length})
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Payment schedules and customer obligation tracking
+            {t("Payment schedules and customer obligation tracking")}
           </Typography>
         </Box>
 
@@ -85,7 +86,7 @@ export default function ReceivableSalesOrderPanel({
               onClick={handleCreateReceivable}
               disabled={createReceivable.isPending}
             >
-              Generate Credit Schedule
+              {t("Generate Credit Schedule")}
             </Button>
           )}
           {receivables.length > 0 && (
@@ -98,7 +99,7 @@ export default function ReceivableSalesOrderPanel({
                 setPaymentDialogOpen(true);
               }}
             >
-              Record Payment
+              {t("Record Payment")}
             </Button>
           )}
         </Box>
@@ -106,13 +107,11 @@ export default function ReceivableSalesOrderPanel({
 
       {isLoading ? (
         <Typography variant="body2" color="text.secondary">
-          Loading receivables...
+          {t("Loading receivables...")}
         </Typography>
       ) : receivables.length === 0 ? (
         <Typography variant="body2" color="text.secondary">
-          No credit receivable generated yet. Click "Generate Credit Schedule" to
-          create the installment schedule from agreed payment terms.
-        </Typography>
+          {t("No credit receivable generated yet. Click \"Generate Credit Schedule\" to create the installment schedule from agreed payment terms.")}</Typography>
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
           {receivables.map((r) => {
@@ -140,7 +139,7 @@ export default function ReceivableSalesOrderPanel({
                     </Typography>
                     <Chip
                       size="small"
-                      label={r.status}
+                      label={localizeDisplayCode(r.status)}
                       color={
                         r.status === "PAID_IN_FULL"
                           ? "success"
@@ -151,15 +150,15 @@ export default function ReceivableSalesOrderPanel({
                     />
                   </Box>
                   <Typography variant="caption" color="text.secondary">
-                    Total: IDR {r.totalAmount.toLocaleString()} · Financed: IDR{" "}
-                    {r.financedAmount.toLocaleString()} ({r.paymentTermMonths} Months)
+                    {t("Total: IDR")} {formatNumber(r.totalAmount)} {t("· Financed: IDR")}{" "}
+                    {formatNumber(r.financedAmount)} ({r.paymentTermMonths} {t("Months)")}
                   </Typography>
                 </Box>
 
                 <Box sx={{ minWidth: 160 }}>
                   <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
                     <Typography variant="caption">
-                      Paid: IDR {r.totalPaid.toLocaleString()}
+                      {t("Paid: IDR")} {formatNumber(r.totalPaid)}
                     </Typography>
                     <Typography variant="caption" sx={{ fontWeight: 600 }}>
                       {progress}%
@@ -176,7 +175,7 @@ export default function ReceivableSalesOrderPanel({
                     color={r.remainingBalance > 0 ? "error.main" : "text.secondary"}
                     sx={{ display: "block", mt: 0.5 }}
                   >
-                    Remaining: IDR {r.remainingBalance.toLocaleString()}
+                    {t("Remaining: IDR")} {formatNumber(r.remainingBalance)}
                   </Typography>
                 </Box>
 
@@ -185,7 +184,7 @@ export default function ReceivableSalesOrderPanel({
                   variant="outlined"
                   onClick={() => setSelectedReceivable(r)}
                 >
-                  View Schedule ({r.installments.length})
+                  {t("View Schedule (")}{r.installments.length})
                 </Button>
               </Paper>
             );

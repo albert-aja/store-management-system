@@ -11,6 +11,7 @@ import {
 import { useProductSearch, useVariants } from "../products/hooks";
 import { useStores } from "../stores/hooks";
 import { useReceiveStockUnit } from "./hooks";
+import { t } from "../../lib/locale";
 
 interface Props {
   open: boolean;
@@ -31,13 +32,13 @@ export default function ReceiveStockUnitDialog({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Receive Stock Unit</DialogTitle>
+      <DialogTitle>{t("Receive Stock Unit")}</DialogTitle>
       <DialogContent
         sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}
       >
         <TextField
           select
-          label="Store"
+          label={t("Store")}
           fullWidth
           value={storeId}
           onChange={(e) => setStoreId(e.target.value)}
@@ -49,14 +50,14 @@ export default function ReceiveStockUnitDialog({ open, onClose }: Props) {
           ))}
         </TextField>
         <TextField
-          label="Search product"
+          label={t("Search product")}
           fullWidth
           value={productQuery}
           onChange={(e) => setProductQuery(e.target.value)}
         />
         <TextField
           select
-          label="Product"
+          label={t("Product")}
           fullWidth
           value={productId}
           onChange={(e) => {
@@ -72,7 +73,7 @@ export default function ReceiveStockUnitDialog({ open, onClose }: Props) {
         </TextField>
         <TextField
           select
-          label="Variant"
+          label={t("Variant")}
           fullWidth
           value={variantId}
           onChange={(e) => setVariantId(e.target.value)}
@@ -85,20 +86,20 @@ export default function ReceiveStockUnitDialog({ open, onClose }: Props) {
           ))}
         </TextField>
         <TextField
-          label="Manufacturer serial (optional)"
+          label={t("Manufacturer serial (optional)")}
           fullWidth
           value={manufacturerSerial}
           onChange={(e) => setManufacturerSerial(e.target.value)}
         />
         <TextField
-          label="Notes"
+          label={t("Notes")}
           fullWidth
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t("Cancel")}</Button>
         <Button
           variant="contained"
           disabled={!storeId || !variantId}
@@ -114,7 +115,7 @@ export default function ReceiveStockUnitDialog({ open, onClose }: Props) {
             );
           }}
         >
-          Receive
+          {t("Receive")}
         </Button>
       </DialogActions>
     </Dialog>

@@ -18,6 +18,7 @@ import {
   useUpdateAssessment,
 } from "./hooks";
 import type { AssessmentInput } from "./types";
+import { t , localizeDisplayCode} from "../../lib/locale";
 
 interface Props {
   salesOrderId: string;
@@ -44,16 +45,16 @@ export default function SurveyPanel({ salesOrderId }: Props) {
           createSurvey.mutate(undefined, {
             onError: () =>
               enqueueSnackbar(
-                "Could not start survey (SO must be Released and credit-based)",
+                t("Could not start survey (SO must be Released and credit-based)"),
                 { variant: "error" },
               ),
           })
         }
       >
-        Start Survey
+        {t("Start Survey")}
       </Button>
     ) : (
-      <Typography color="text.secondary">No survey yet</Typography>
+      <Typography color="text.secondary">{t("No survey yet")}</Typography>
     );
   }
 
@@ -67,9 +68,9 @@ export default function SurveyPanel({ salesOrderId }: Props) {
   return (
     <Box>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-        <Typography variant="subtitle1">Survey</Typography>
+        <Typography variant="subtitle1">{t("Survey")}</Typography>
         <Chip
-          label={survey.status}
+          label={localizeDisplayCode(survey.status)}
           size="small"
           color={
             survey.status === "APPROVED"
@@ -83,7 +84,7 @@ export default function SurveyPanel({ salesOrderId }: Props) {
       {isPending && canManage && (
         <TextField
           select
-          label="Surveyor"
+          label={t("Surveyor")}
           size="small"
           fullWidth
           sx={{ mb: 1 }}
@@ -100,7 +101,7 @@ export default function SurveyPanel({ salesOrderId }: Props) {
       {isPending && canManage && (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mb: 1 }}>
           <TextField
-            label="Monthly income"
+            label={t("Monthly income")}
             size="small"
             type="number"
             defaultValue={survey.monthlyIncome ?? ""}
@@ -112,7 +113,7 @@ export default function SurveyPanel({ salesOrderId }: Props) {
             }
           />
           <TextField
-            label="Ability to pay assessment"
+            label={t("Ability to pay assessment")}
             size="small"
             multiline
             rows={2}
@@ -128,7 +129,7 @@ export default function SurveyPanel({ salesOrderId }: Props) {
             size="small"
             onClick={() => updateAssessment.mutate(assessment)}
           >
-            Save Assessment
+            {t("Save Assessment")}
           </Button>
         </Box>
       )}
@@ -138,18 +139,18 @@ export default function SurveyPanel({ salesOrderId }: Props) {
             color="success"
             onClick={() => decideSurvey.mutate({ approve: true })}
           >
-            Approve
+            {t("Approve")}
           </Button>
           <Button
             color="error"
             onClick={() =>
               decideSurvey.mutate({
                 approve: false,
-                notes: window.prompt("Rejection reason?") ?? undefined,
+                notes: window.prompt(t("Rejection reason?")) ?? undefined,
               })
             }
           >
-            Reject
+            {t("Reject")}
           </Button>
         </Box>
       )}

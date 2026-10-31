@@ -13,6 +13,7 @@ import { useAuthStore } from "../../store/authStore";
 import { useStores } from "../stores/hooks";
 import { useAdjustComponentStock, useComponentStock } from "./hooks";
 import type { ProductComponent } from "../products/types";
+import { t } from "../../lib/locale";
 
 interface Props {
   components: ProductComponent[];
@@ -28,11 +29,11 @@ export default function ComponentStockPanel({ components }: Props) {
   return (
     <div>
       <Typography variant="subtitle1" sx={{ mb: 1 }}>
-        Component Stock (spares)
+        {t("Component Stock (spares)")}
       </Typography>
       <TextField
         select
-        label="Store"
+        label={t("Store")}
         size="small"
         fullWidth
         sx={{ mb: 1 }}

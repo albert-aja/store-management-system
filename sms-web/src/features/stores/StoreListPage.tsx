@@ -11,6 +11,7 @@ import {
 } from "./hooks";
 import StoreFormDialog from "./StoreFormDialog";
 import type { Store } from "./types";
+import { t } from "../../lib/locale";
 
 export default function StoreListPage() {
   const { data, isLoading } = useStores();
@@ -24,12 +25,12 @@ export default function StoreListPage() {
   const [editing, setEditing] = useState<Store | null>(null);
 
   const columns: GridColDef<Store>[] = [
-    { field: "code", headerName: "Code", width: 120 },
-    { field: "name", headerName: "Name", flex: 1 },
-    { field: "address", headerName: "Address", flex: 1 },
+    { field: "code", headerName: t("Code"), width: 120 },
+    { field: "name", headerName: t("Name"), flex: 1 },
+    { field: "address", headerName: t("Address"), flex: 1 },
     {
       field: "active",
-      headerName: "Active",
+      headerName: t("Active"),
       width: 100,
       renderCell: (params) => (
         <Switch
@@ -55,8 +56,7 @@ export default function StoreListPage() {
                   setDialogOpen(true);
                 }}
               >
-                Edit
-              </Button>
+                {t("Edit")}</Button>
             ),
           },
         ]
@@ -70,10 +70,12 @@ export default function StoreListPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          mb: 2,
+          flexWrap: "wrap",
+          gap: 2,
+          mb: 3,
         }}
       >
-        <Typography variant="h5">Stores</Typography>
+        <Typography variant="h5">{t("Stores")}</Typography>
         {canManage && (
           <Button
             variant="contained"
@@ -82,7 +84,7 @@ export default function StoreListPage() {
               setDialogOpen(true);
             }}
           >
-            New Store
+            {t("New Store")}
           </Button>
         )}
       </Box>
@@ -104,7 +106,7 @@ export default function StoreListPage() {
             ? updateStore.mutateAsync({ id: editing.id, input: values })
             : createStore.mutateAsync(values);
           action.then(() => {
-            enqueueSnackbar(editing ? "Store updated" : "Store created", {
+            enqueueSnackbar(editing ? t("Store updated") : t("Store created"), {
               variant: "success",
             });
             setDialogOpen(false);

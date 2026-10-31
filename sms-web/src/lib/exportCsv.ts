@@ -1,3 +1,4 @@
+import { t } from "./locale";
 /**
  * Helper to export tabular data to a downloadable CSV file.
  * Automatically adds UTF-8 BOM so Indonesian characters and Microsoft Excel display properly.
@@ -8,7 +9,7 @@ export function exportToCsv<T extends object>(
   data: T[],
 ) {
   if (!data || data.length === 0) {
-    alert("No data available to export.");
+    alert(t("No data available to export."));
     return;
   }
 

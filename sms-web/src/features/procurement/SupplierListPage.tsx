@@ -22,6 +22,7 @@ import {
   useUpdateSupplier,
 } from "./hooks";
 import type { Supplier, SupplierInput } from "./types";
+import { t } from "../../lib/locale";
 
 function SupplierDialog({
   initial,
@@ -43,25 +44,26 @@ function SupplierDialog({
   return (
     <Dialog open onClose={onClose} fullWidth maxWidth="sm">
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogTitle>{initial ? "Edit Supplier" : "New Supplier"}</DialogTitle>
+        <DialogTitle>
+          {initial ? t("Edit Supplier") : t("New Supplier")}
+        </DialogTitle>
         <DialogContent
           sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}
         >
           <TextField
-            label="Name"
+            label={t("Name")}
             required
             fullWidth
             {...register("name", { required: true })}
           />
-          <TextField label="Code" fullWidth {...register("code")} />
-          <TextField label="Address" fullWidth {...register("address")} />
-          <TextField label="Notes" fullWidth {...register("notes")} />
+          <TextField label={t("Code")} fullWidth {...register("code")} />
+          <TextField label={t("Address")} fullWidth {...register("address")} />
+          <TextField label={t("Notes")} fullWidth {...register("notes")} />
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t("Cancel")}</Button>
           <Button type="submit" variant="contained">
-            Save
-          </Button>
+            {t("Save")}</Button>
         </DialogActions>
       </form>
     </Dialog>
@@ -81,12 +83,12 @@ export default function SupplierListPage() {
   const [editing, setEditing] = useState<Supplier | null>(null);
 
   const columns: GridColDef<Supplier>[] = [
-    { field: "code", headerName: "Code", width: 120 },
-    { field: "name", headerName: "Name", flex: 1 },
-    { field: "address", headerName: "Address", flex: 1 },
+    { field: "code", headerName: t("Code"), width: 120 },
+    { field: "name", headerName: t("Name"), flex: 1 },
+    { field: "address", headerName: t("Address"), flex: 1 },
     {
       field: "active",
-      headerName: "Active",
+      headerName: t("Active"),
       width: 100,
       renderCell: (params) => (
         <Switch
@@ -108,8 +110,7 @@ export default function SupplierListPage() {
             size="small"
             onClick={() => navigate(`/suppliers/${params.row.id}`)}
           >
-            Open
-          </Button>
+            {t("Open")}</Button>
           {canManage && (
             <Button
               size="small"
@@ -118,8 +119,7 @@ export default function SupplierListPage() {
                 setDialogOpen(true);
               }}
             >
-              Edit
-            </Button>
+              {t("Edit")}</Button>
           )}
         </>
       ),
@@ -133,10 +133,12 @@ export default function SupplierListPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          mb: 2,
+          flexWrap: "wrap",
+          gap: 2,
+          mb: 3,
         }}
       >
-        <Typography variant="h5">Suppliers</Typography>
+        <Typography variant="h5">{t("Suppliers")}</Typography>
         {canManage && (
           <Button
             variant="contained"
@@ -145,12 +147,12 @@ export default function SupplierListPage() {
               setDialogOpen(true);
             }}
           >
-            New Supplier
+            {t("New Supplier")}
           </Button>
         )}
       </Box>
       <TextField
-        label="Search by name or code"
+        label={t("Search by name or code")}
         fullWidth
         sx={{ mb: 2 }}
         value={query}
@@ -180,7 +182,7 @@ export default function SupplierListPage() {
               : create.mutateAsync(input);
             action.then(() => {
               enqueueSnackbar(
-                editing ? "Supplier updated" : "Supplier created",
+                editing ? t("Supplier updated") : t("Supplier created"),
                 { variant: "success" },
               );
               setDialogOpen(false);

@@ -11,6 +11,7 @@ import {
   TextField,
 } from "@mui/material";
 import type { Employee } from "./types";
+import { t } from "../../lib/locale";
 
 const schema = z.object({
   employeeNumber: z.string().min(1, "Employee number is required"),
@@ -55,12 +56,12 @@ export default function EmployeeFormDialog({
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogTitle>{initial ? "Edit Employee" : "New Employee"}</DialogTitle>
+        <DialogTitle>{initial ? t("Edit Employee") : t("New Employee")}</DialogTitle>
         <DialogContent
           sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}
         >
           <TextField
-            label="Employee Number"
+            label={t("Employee Number")}
             fullWidth
             disabled={!!initial}
             {...register("employeeNumber")}
@@ -68,16 +69,16 @@ export default function EmployeeFormDialog({
             helperText={errors.employeeNumber?.message}
           />
           <TextField
-            label="Full Name"
+            label={t("Full Name")}
             fullWidth
             {...register("fullName")}
             error={!!errors.fullName}
             helperText={errors.fullName?.message}
           />
-          <TextField label="NIK" fullWidth {...register("nik")} />
-          <TextField label="Phone" fullWidth {...register("phone")} />
+          <TextField label={t("NIK")} fullWidth {...register("nik")} />
+          <TextField label={t("Phone")} fullWidth {...register("phone")} />
           <TextField
-            label="Email"
+            label={t("Email")}
             fullWidth
             {...register("email")}
             error={!!errors.email}
@@ -87,18 +88,17 @@ export default function EmployeeFormDialog({
             control={control}
             name="employmentType"
             render={({ field }) => (
-              <TextField select label="Employment Type" fullWidth {...field}>
-                <MenuItem value="PERMANENT">Permanent</MenuItem>
-                <MenuItem value="FREELANCE">Freelance</MenuItem>
+              <TextField select label={t("Employment Type")} fullWidth {...field}>
+                <MenuItem value="PERMANENT">{t("Permanent")}</MenuItem>
+                <MenuItem value="FREELANCE">{t("Freelance")}</MenuItem>
               </TextField>
             )}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t("Cancel")}</Button>
           <Button type="submit" variant="contained">
-            Save
-          </Button>
+            {t("Save")}</Button>
         </DialogActions>
       </form>
     </Dialog>

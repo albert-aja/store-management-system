@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { useCustomerAddresses, useCustomerSearch } from "../customers/hooks";
 import { useStores } from "../stores/hooks";
 import { useCreateDraft } from "./hooks";
+import { t } from "../../lib/locale";
 
 interface Props {
   open: boolean;
@@ -31,13 +32,13 @@ export default function NewSalesOrderDialog({ open, onClose }: Props) {
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>New Draft Sales Order</DialogTitle>
+      <DialogTitle>{t("New Draft Sales Order")}</DialogTitle>
       <DialogContent
         sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}
       >
         <TextField
           select
-          label="Store"
+          label={t("Store")}
           fullWidth
           value={storeId}
           onChange={(e) => setStoreId(e.target.value)}
@@ -49,14 +50,14 @@ export default function NewSalesOrderDialog({ open, onClose }: Props) {
           ))}
         </TextField>
         <TextField
-          label="Search customer"
+          label={t("Search customer")}
           fullWidth
           value={customerQuery}
           onChange={(e) => setCustomerQuery(e.target.value)}
         />
         <TextField
           select
-          label="Customer"
+          label={t("Customer")}
           fullWidth
           value={customerId}
           onChange={(e) => {
@@ -72,7 +73,7 @@ export default function NewSalesOrderDialog({ open, onClose }: Props) {
         </TextField>
         <TextField
           select
-          label="Delivery Address"
+          label={t("Delivery Address")}
           fullWidth
           value={deliveryAddressId}
           onChange={(e) => setDeliveryAddressId(e.target.value)}
@@ -86,7 +87,7 @@ export default function NewSalesOrderDialog({ open, onClose }: Props) {
         </TextField>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t("Cancel")}</Button>
         <Button
           variant="contained"
           disabled={!storeId || !customerId}
@@ -103,7 +104,7 @@ export default function NewSalesOrderDialog({ open, onClose }: Props) {
               });
           }}
         >
-          Create Draft
+          {t("Create Draft")}
         </Button>
       </DialogActions>
     </Dialog>

@@ -1,3 +1,4 @@
+import { t } from "./locale";
 import * as XLSX from "xlsx";
 
 export interface ExcelColumn<T = Record<string, unknown>> {
@@ -123,7 +124,7 @@ function triggerWorkbookDownload(wb: XLSX.WorkBook, filename: string): void {
 export function exportToExcel<T extends object>(options: SingleSheetExportOptions<T>): void {
   const { filename, sheetName = "Sheet1", ...rest } = options;
   if (!rest.data || rest.data.length === 0) {
-    alert("No data available to export.");
+    alert(t("No data available to export."));
     return;
   }
 
@@ -139,7 +140,7 @@ export function exportToExcel<T extends object>(options: SingleSheetExportOption
 export function exportMultiSheetExcel(options: MultiSheetExportOptions): void {
   const { filename, sheets } = options;
   if (!sheets || sheets.length === 0) {
-    alert("No sheets provided for export.");
+    alert(t("No sheets provided for export."));
     return;
   }
 
@@ -200,17 +201,17 @@ export function exportFinancialAgingToExcel(params: FinancialAgingExportParams):
   };
 
   const bucketColumns: ExcelColumn<(typeof params.buckets)[0]>[] = [
-    { key: "bucketName", label: "Aging Delinquency Bucket", width: 28 },
-    { key: "installmentCount", label: "Installment Count", width: 18 },
+    { key: "bucketName", label: t("Aging Delinquency Bucket"), width: 28 },
+    { key: "installmentCount", label: t("Installment Count"), width: 18 },
     {
       key: "totalAmount",
-      label: "Outstanding Balance (IDR)",
+      label: t("Outstanding Balance (IDR)"),
       width: 25,
       format: (val) => Number(val ?? 0),
     },
     {
       key: "percentage",
-      label: "Portfolio Share (%)",
+      label: t("Portfolio Share (%)"),
       width: 18,
       format: (val) => `${Number(val ?? 0).toFixed(1)}%`,
     },
@@ -218,31 +219,31 @@ export function exportFinancialAgingToExcel(params: FinancialAgingExportParams):
 
   // Sheet 2: Account Level Receivables Ledger
   const receivableColumns: ExcelColumn<(typeof params.receivables)[0]>[] = [
-    { key: "receivableNumber", label: "Contract Number", width: 20 },
-    { key: "customerName", label: "Customer Name", width: 25 },
-    { key: "customerPhone", label: "Contact Phone", width: 16 },
-    { key: "storeName", label: "Store Branch", width: 20 },
+    { key: "receivableNumber", label: t("Contract Number"), width: 20 },
+    { key: "customerName", label: t("Customer Name"), width: 25 },
+    { key: "customerPhone", label: t("Contact Phone"), width: 16 },
+    { key: "storeName", label: t("Store Branch"), width: 20 },
     {
       key: "financedAmount",
-      label: "Financed Principal (IDR)",
+      label: t("Financed Principal (IDR)"),
       width: 22,
       format: (val) => Number(val ?? 0),
     },
     {
       key: "totalPaid",
-      label: "Total Paid (IDR)",
+      label: t("Total Paid (IDR)"),
       width: 20,
       format: (val) => Number(val ?? 0),
     },
     {
       key: "remainingBalance",
-      label: "Remaining Balance (IDR)",
+      label: t("Remaining Balance (IDR)"),
       width: 22,
       format: (val) => Number(val ?? 0),
     },
-    { key: "paymentTermMonths", label: "Term (Months)", width: 14 },
-    { key: "status", label: "Contract Status", width: 18 },
-    { key: "firstDueDate", label: "First Due Date", width: 16 },
+    { key: "paymentTermMonths", label: t("Term (Months)"), width: 14 },
+    { key: "status", label: t("Contract Status"), width: 18 },
+    { key: "firstDueDate", label: t("First Due Date"), width: 16 },
   ];
 
   exportMultiSheetExcel({
@@ -250,7 +251,7 @@ export function exportFinancialAgingToExcel(params: FinancialAgingExportParams):
     sheets: [
       {
         sheetName: "Aging Summary",
-        title: "STORE MANAGEMENT SYSTEM — CREDIT AGING PORTFOLIO",
+        title: t("STORE MANAGEMENT SYSTEM — CREDIT AGING PORTFOLIO"),
         subtitle: `Delinquency risk breakdown and portfolio health as of ${asOf}`,
         metadata: summaryMetadata,
         columns: bucketColumns,
@@ -258,7 +259,7 @@ export function exportFinancialAgingToExcel(params: FinancialAgingExportParams):
       },
       {
         sheetName: "Receivable Accounts",
-        title: "STORE MANAGEMENT SYSTEM — RECEIVABLE ACCOUNTS LEDGER",
+        title: t("STORE MANAGEMENT SYSTEM — RECEIVABLE ACCOUNTS LEDGER"),
         subtitle: `Itemized customer contract balances and statuses`,
         columns: receivableColumns,
         data: params.receivables,
@@ -330,11 +331,11 @@ export function exportStockBalanceToExcel(params: StockBalanceExportParams): voi
   ];
 
   const locationColumns: ExcelColumn<(typeof locationSummaryData)[0]>[] = [
-    { key: "location", label: "Physical Location", width: 32 },
-    { key: "count", label: "Unit Count", width: 16 },
+    { key: "location", label: t("Physical Location"), width: 32 },
+    { key: "count", label: t("Unit Count"), width: 16 },
     {
       key: "pct",
-      label: "% of Inventory",
+      label: t("% of Inventory"),
       width: 18,
       format: (val) => `${Number(val ?? 0).toFixed(1)}%`,
     },
@@ -344,14 +345,14 @@ export function exportStockBalanceToExcel(params: StockBalanceExportParams): voi
   const unitColumns: ExcelColumn<(typeof params.stockUnits)[0]>[] = [
     {
       key: "manufacturerSerial",
-      label: "Serial Number",
+      label: t("Serial Number"),
       width: 24,
       format: (val) => (val ? String(val) : "Non-serialized"),
     },
-    { key: "variantName", label: "Product Variant", width: 32 },
-    { key: "locationType", label: "Physical Location", width: 20 },
-    { key: "availabilityStatus", label: "Availability Status", width: 20 },
-    { key: "notes", label: "Condition / Notes", width: 30 },
+    { key: "variantName", label: t("Product Variant"), width: 32 },
+    { key: "locationType", label: t("Physical Location"), width: 20 },
+    { key: "availabilityStatus", label: t("Availability Status"), width: 20 },
+    { key: "notes", label: t("Condition / Notes"), width: 30 },
   ];
 
   exportMultiSheetExcel({
@@ -359,7 +360,7 @@ export function exportStockBalanceToExcel(params: StockBalanceExportParams): voi
     sheets: [
       {
         sheetName: "Inventory Summary",
-        title: "STORE MANAGEMENT SYSTEM — STOCK BALANCE & DISTRIBUTION",
+        title: t("STORE MANAGEMENT SYSTEM — STOCK BALANCE & DISTRIBUTION"),
         subtitle: `Physical inventory breakdown across warehouse, showroom, and transit as of ${asOf}`,
         metadata: summaryMetadata,
         columns: locationColumns,
@@ -367,7 +368,7 @@ export function exportStockBalanceToExcel(params: StockBalanceExportParams): voi
       },
       {
         sheetName: "Stock Units Ledger",
-        title: "STORE MANAGEMENT SYSTEM — SERIALIZED STOCK UNITS",
+        title: t("STORE MANAGEMENT SYSTEM — SERIALIZED STOCK UNITS"),
         subtitle: `Individual unit serialized ledger records and status`,
         columns: unitColumns,
         data: params.stockUnits,
@@ -375,4 +376,3 @@ export function exportStockBalanceToExcel(params: StockBalanceExportParams): voi
     ],
   });
 }
-

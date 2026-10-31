@@ -43,6 +43,7 @@ import {
 import { useRoles } from "../roles/hooks";
 import type { ApprovalWorkflow } from "./types";
 import ApprovalStepNode, { type ApprovalStepNodeData } from "./ApprovalStepNode";
+import { t } from "../../lib/locale";
 
 interface StepFormValues {
   stepOrder: number;
@@ -120,13 +121,13 @@ export default function ApprovalWorkflowsPage() {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       {/* Title & Info */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            Approval Workflows Engine
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>
+            {t("Approval Workflows Engine")}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Visual multistep approval designer with role gating and step snapshotting
+            {t("Visual multistep approval designer with role gating and step snapshotting")}
           </Typography>
         </Box>
         {selected && (
@@ -135,18 +136,20 @@ export default function ApprovalWorkflowsPage() {
             startIcon={<PlayArrowIcon />}
             onClick={() => setSimulationOpen(true)}
           >
-            Simulate Workflow Chain
+            {t("Simulate Workflow Chain")}
           </Button>
         )}
       </Box>
 
       {/* Main Workspace */}
-      <Box sx={{ display: "flex", gap: 2, height: "72vh" }}>
+      <Box sx={{ display: "flex", gap: 2, flexDirection: { xs: "column", md: "row" }, height: { xs: "auto", md: "72vh" } }}>
         {/* Workflows Sidebar */}
         <Paper
           variant="outlined"
           sx={{
-            width: 300,
+            width: { xs: "100%", md: 280 },
+            flexShrink: 0,
+            maxHeight: { xs: 320, md: "none" },
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
@@ -155,10 +158,10 @@ export default function ApprovalWorkflowsPage() {
         >
           <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              Workflows Directory
+              {t("Workflows Directory")}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Select a workflow to edit its chain
+              {t("Select a workflow to edit its chain")}
             </Typography>
           </Box>
 
@@ -214,15 +217,15 @@ export default function ApprovalWorkflowsPage() {
               startIcon={<AddIcon />}
               onClick={() => {
                 const code = window.prompt(
-                  "Workflow Code (e.g. PRICE_OVERRIDE_TIER2, EXPENSE_OVERRUN):",
+                  t("Workflow Code (e.g. PRICE_OVERRIDE_TIER2, EXPENSE_OVERRUN):"),
                 );
                 if (code) {
-                  const name = window.prompt("Workflow Display Name:");
+                  const name = window.prompt(t("Workflow Display Name:"));
                   if (name) createWorkflow.mutate({ code, name });
                 }
               }}
             >
-              New Workflow
+              {t("New Workflow")}
             </Button>
           </Box>
         </Paper>
@@ -232,6 +235,8 @@ export default function ApprovalWorkflowsPage() {
           variant="outlined"
           sx={{
             flex: 1,
+            minWidth: 0,
+            minHeight: { xs: 480, md: 0 },
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
@@ -244,6 +249,7 @@ export default function ApprovalWorkflowsPage() {
               {/* Canvas Area */}
               <Box sx={{ flex: 1, position: "relative" }}>
                 <ReactFlow
+                  colorMode={theme.palette.mode}
                   nodes={nodes}
                   edges={edges}
                   nodeTypes={nodeTypes}
@@ -273,10 +279,11 @@ export default function ApprovalWorkflowsPage() {
                       }}
                     >
                       <Typography variant="caption" color="text.secondary">
-                        Active Chain:
+                        {t("Active Chain:")}
                       </Typography>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                        {selected.name} ({steps.length} Step{steps.length !== 1 ? "s" : ""})
+                        {selected.name} ({steps.length}{" "}
+                        {t(steps.length === 1 ? "Step" : "Steps")})
                       </Typography>
                     </Paper>
                   </Panel>
@@ -311,7 +318,7 @@ export default function ApprovalWorkflowsPage() {
                 })}
               >
                 <TextField
-                  label="Order"
+                  label={t("Order")}
                   type="number"
                   size="small"
                   sx={{ width: 90 }}
@@ -322,14 +329,14 @@ export default function ApprovalWorkflowsPage() {
                   })}
                 />
                 <TextField
-                  label="Step Name (e.g. Manager Review)"
+                  label={t("Step Name (e.g. Manager Review)")}
                   size="small"
                   sx={{ flex: 1 }}
                   {...register("name", { required: true })}
                 />
                 <TextField
                   select
-                  label="Approver Role"
+                  label={t("Approver Role")}
                   size="small"
                   sx={{ width: 220 }}
                   defaultValue=""
@@ -342,7 +349,7 @@ export default function ApprovalWorkflowsPage() {
                   ))}
                 </TextField>
                 <TextField
-                  label="Optional Guidance"
+                  label={t("Optional Guidance")}
                   size="small"
                   sx={{ flex: 1 }}
                   {...register("description")}
@@ -353,7 +360,7 @@ export default function ApprovalWorkflowsPage() {
                   startIcon={<AddIcon />}
                   sx={{ minWidth: 120 }}
                 >
-                  Add Step
+                  {t("Add Step")}
                 </Button>
               </Box>
             </>
@@ -370,10 +377,10 @@ export default function ApprovalWorkflowsPage() {
             >
               <AccountTreeIcon sx={{ fontSize: 48, color: "text.secondary", mb: 2 }} />
               <Typography variant="h6" color="text.secondary">
-                Select a workflow from the left sidebar
+                {t("Select a workflow from the left sidebar")}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                You can design, reorder, and simulate approval chains visually.
+                {t("You can design, reorder, and simulate approval chains visually.")}
               </Typography>
             </Box>
           )}
@@ -389,16 +396,16 @@ export default function ApprovalWorkflowsPage() {
         slotProps={{ paper: { sx: { borderRadius: 3 } } }}
       >
         <DialogTitle sx={{ fontWeight: 700 }}>
-          Simulate Approval Workflow Execution
+          {t("Simulate Approval Workflow Execution")}
         </DialogTitle>
         <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
           <Typography variant="body2" color="text.secondary">
-            Test how different discount thresholds activate sequential approval gates in this chain.
+            {t("Test how different discount thresholds activate sequential approval gates in this chain.")}
           </Typography>
 
           <Box sx={{ mt: 2 }}>
             <Typography variant="caption" sx={{ fontWeight: 600 }}>
-              Simulated Price Discount: {simulatedDiscountPct}%
+              {t("Simulated Price Discount:")} {simulatedDiscountPct}%
             </Typography>
             <Slider
               value={simulatedDiscountPct}
@@ -428,20 +435,20 @@ export default function ApprovalWorkflowsPage() {
             }}
           >
             <Typography variant="caption" color="text.secondary">
-              Simulation Result:
+              {t("Simulation Result:")}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
-              Requires {activeStepCount} of {steps.length} approval step
-              {activeStepCount !== 1 ? "s" : ""}
+              {t("Requires")} {activeStepCount} {t("of")}{steps.length}{" "}
+              {t(steps.length === 1 ? "approval step" : "approval steps")}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Active gates are highlighted in emerald with animated stroke flow on canvas.
+              {t("Active gates are highlighted in emerald with animated stroke flow on canvas.")}
             </Typography>
           </Paper>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={() => setSimulationOpen(false)} variant="contained">
-            Close Simulation
+            {t("Close Simulation")}
           </Button>
         </DialogActions>
       </Dialog>

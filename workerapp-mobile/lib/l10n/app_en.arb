@@ -1,0 +1,1514 @@
+{
+  "@@locale": "en",
+  "perMonth": "/ month",
+  "morning": "Morning",
+  "goods": "Goods",
+  "none": "None",
+  "notification": "Notification",
+  "open": "Open",
+  "submitted": "Submitted",
+  "recount": "Recount Required",
+  "matched": "Matched",
+  "uncounted": "Uncounted",
+  "missing": "Missing",
+  "unexpected": "Unexpected",
+  "kept": "Kept",
+  "broken": "Broken",
+  "inTransit": "In Transit",
+  "unknown": "Unknown",
+  "recipient": "Recipient",
+  "compensation": "Compensation",
+  "logistics": "Logistics",
+  "finance": "Finance",
+  "worker": "Worker",
+  "supervisor": "Supervisor",
+  "annual": "Annual Leave",
+  "sick": "Sick Leave",
+  "maternity": "Maternity / Paternity",
+  "other": "Other",
+  "incomeDefault": "Eligible for 12 months installment credit.",
+  "morningWindow": "Morning (09:00–12:00 WIB)",
+  "afternoonWindow": "Afternoon (12:00–17:00 WIB)",
+  "deliveryWindowValue": "Delivery window: {window}",
+  "@deliveryWindowValue": {"placeholders": {"window": {"type": "String"}}},
+  "noNotes": "No notes",
+  "notAssigned": "Not assigned",
+  "productItem": "Product Item",
+  "noSession": "NO SESSION",
+  "noDp": "No down payment for HD < Rp 5M",
+  "priceBracket": "Based on price bracket",
+  "taskLabel": "TASK",
+  "formulaPrincipal": "(HD - DP) + Rp 30,000",
+  "formulaRounding": "Round(h4 / 5,000) × 5,000 + 5,000",
+  "removePhoto": "Remove photo",
+  "capturePhoto": "Capture {category} photo",
+  "@capturePhoto": {"placeholders": {"category": {"type": "String"}}},
+  "signatureCanvas": "Signature drawing area",
+  "navigationPreferenceInvalid": "Saved navigation app is invalid. Choose a navigation app again.",
+  "navigationGpsInvalid": "Destination GPS is invalid. Ask dispatch to correct this stop.",
+  "navigationUnsupported": "{app} is not supported on this platform.",
+  "@navigationUnsupported": {"placeholders": {"app": {"type": "String"}}},
+  "navigationStopRequired": "Trip and delivery stop are required.",
+  "navigationAppUnavailable": "{app} is unavailable. Install it or choose another navigation app.",
+  "@navigationAppUnavailable": {"placeholders": {"app": {"type": "String"}}},
+  "navigationOpenFailed": "{app} could not open. Please retry.",
+  "@navigationOpenFailed": {"placeholders": {"app": {"type": "String"}}},
+  "navigationPreferenceSaveFailed": "Navigation opened, but app preference could not be saved.",
+  "gpsEnable": "Enable device location services and try again.",
+  "gpsDenied": "Location permission was denied.",
+  "gpsBlocked": "Location permission is blocked. Enable it in system settings.",
+  "requestFailed": "The operation could not be completed. Check your connection and retry.",
+  "deliverySignIn": "Sign in to load your delivery trips.",
+  "deliveryNotAssigned": "Requested trip is not assigned to this driver.",
+  "deliveryTripInvalid": "Invalid delivery trip response.",
+  "deliveryStopInvalid": "Invalid delivery stop response.",
+  "deliveryTripsFailed": "Delivery trips could not load. Check access or connection.",
+  "deliveryStopsFailed": "Delivery stops could not load. Check access or connection.",
+  "showPassword": "Show password",
+  "hidePassword": "Hide password",
+  "photoCaptured": "{count} / {total} Captured",
+  "@photoCaptured": {"placeholders": {"count": {"type": "String"}, "total": {"type": "String"}}},
+  "photoProofTitle": "{category} Proof",
+  "@photoProofTitle": {"placeholders": {"category": {"type": "String"}}},
+  "navigate": "Navigate",
+  "navigateWithApp": "Navigate - {app}",
+  "@navigateWithApp": {"placeholders": {"app": {"type": "String"}}},
+  "present": "Present",
+  "late": "Late",
+  "onLeave": "On Leave",
+  "halfDay": "Half Day",
+  "absent": "Absent",
+  "pending": "Pending",
+  "approved": "Approved",
+  "rejected": "Rejected",
+  "completed": "Completed",
+  "planned": "Planned",
+  "dispatched": "Dispatched",
+  "delivered": "Delivered",
+  "failed": "Failed",
+  "assigned": "Assigned",
+  "paid": "Paid",
+  "unpaid": "Unpaid",
+  "inProgress": "In Progress",
+  "draft": "Draft",
+  "confirmed": "Confirmed",
+  "surveyRejected": "Survey Rejected",
+  "handedOver": "Handed Over",
+  "cashVerified": "Cash Verified",
+  "vipCash": "VIP Cash",
+  "starCredit": "Star Credit",
+  "highRisk": "High Delinquency Risk",
+  "general": "General",
+  "notificationPause": "Manual resume required",
+  "trackingTitle": "SMS Field Telematics Active",
+  "trackingBounded": "Tracking bounded to assigned operational task",
+  "trackingNotStarted": "Task not started",
+  "trackingComplete": "Task completed",
+  "trackingBreak": "Scheduled break",
+  "trackingManual": "Tracking paused",
+  "trackingThermal": "Thermal safety cutoff",
+  "trackingLowBattery": "Low battery; reduced GPS frequency",
+  "trackingActive": "GPS tracking active",
+  "trackingSystemPause": "Quick pause via system notification action",
+  "trackingLunch": "Lunch break automatic pause",
+  "trackingResume": "Manual resume by employee",
+  "simulationTitle": "📋 *SMS STORE CREDIT SIMULATION*",
+  "simulationProduct": "Product: *{product}*",
+  "@simulationProduct": {"placeholders": {"product": {"type": "String"}}},
+  "simulationPrice": "Base Price: *{price}*",
+  "@simulationPrice": {"placeholders": {"price": {"type": "String"}}},
+  "simulationDp": "Down Payment (DP): *{amount}* ({percentage}%)",
+  "@simulationDp": {"placeholders": {"amount": {"type": "String"}, "percentage": {"type": "String"}}},
+  "simulationOptions": "MONTHLY INSTALLMENT OPTIONS:",
+  "simulationTerm": "• *{months} Months*: {amount} / month",
+  "@simulationTerm": {"placeholders": {"months": {"type": "String"}, "amount": {"type": "String"}}},
+  "simulationTotal": "   (Total: {total}, Discount Savings: {saved}/month)",
+  "@simulationTotal": {"placeholders": {"total": {"type": "String"}, "saved": {"type": "String"}}},
+  "simulationDiscount": "💡 *15% timely payment incentive discount is included in installments.*",
+  "language": "Language",
+  "appTitle": "SMS Worker Portal",
+  "languagePersistenceFailed": "Language preference could not be loaded or saved. Choose ID/EN to retry.",
+  "message1": "Manual Tracking Pause",
+  "message2": "Enter exceptional reason for pausing GPS tracking (e.g. vehicle repair, flat tire, emergency):",
+  "message3": "Pause Reason",
+  "message4": "e.g. Flat tire, changing tire",
+  "message5": "Cancel",
+  "message6": "Pause Tracking",
+  "message7": "🎯 Proximity Alert",
+  "message8": "{arg0}m away",
+  "@message8": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message9": "Dismiss",
+  "message10": "GPS Tracking Standby • Activates strictly upon task initiation",
+  "message11": "Operational Task & GPS Tracking Completed",
+  "message12": "Thermal Cutoff Active ({arg0}°C > 45°C)",
+  "@message12": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message13": "Continuous GPS pinging suspended to prevent device battery overheating under direct sunlight. Auto-resumes when cooled <=40°C.",
+  "message14": "GPS Paused — Scheduled Break Enforced",
+  "message15": "Zero coordinates collected during break window (UU PDP No. 27/2022).",
+  "message16": "Tracking Paused: {arg0}",
+  "@message16": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message17": "Resume",
+  "message18": "GPS Tracking Active",
+  "message19": "Task bounded • Low Battery ({arg0}%) • {arg1}°C • Throttled 60s",
+  "@message19": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message20": "Task bounded • {arg0} km/h • {arg1}°C • {arg2} pings",
+  "@message20": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "message21": "Quick Pause",
+  "message22": "Reason...",
+  "message23": "Notification Tray: {arg0}",
+  "@message23": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message24": "DISMISS ALERT",
+  "message25": "NOTIF PAUSE",
+  "message26": "NOTIF RESUME",
+  "message27": "Scan Barcode / QR Code",
+  "message28": "Align serial number barcode or QR within frame",
+  "message29": "Camera unavailable: {arg0}",
+  "@message29": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message30": "Could not toggle flashlight: {arg0}",
+  "@message30": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message31": "Toggle flashlight",
+  "message32": "Enter code manually",
+  "message33": "Enter",
+  "message34": "Field Photo Evidence",
+  "message35": "Tap to capture",
+  "message36": "Signatory: {arg0}",
+  "@message36": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message37": "Sign above line with finger or stylus",
+  "message38": "Clear",
+  "message39": "Apply Signature",
+  "message40": "Please enter a reason for the leave request",
+  "message41": "Leave request submitted to Store Manager for approval",
+  "message42": "Failed to submit leave request",
+  "message43": "Attendance & Leaves",
+  "message44": "Refresh",
+  "message45": "Attendance Log",
+  "message46": "Apply Leave",
+  "message47": "No attendance logs found.",
+  "message48": "In: {arg0}  •  Out: {arg1}",
+  "@message48": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message49": "Leave Request Form",
+  "message50": "Leave Category",
+  "message51": "Annual Leave (Paid)",
+  "message52": "Sick Leave (Doctor's Note)",
+  "message53": "Unpaid Leave / Permission",
+  "message54": "Maternity / Paternity",
+  "message55": "Special / Compassionate",
+  "message56": "Start Date",
+  "message57": "End Date",
+  "message58": "Reason & Justification",
+  "message59": "Describe necessity and handover coverage...",
+  "message60": "Submit Request for Approval",
+  "message61": "Please enter both email and password",
+  "message62": "SMS Worker App",
+  "message63": "Field operations, tasks, attendance & personal records",
+  "message64": "Work Email",
+  "message65": "Password",
+  "message66": "Sign In to Worker Workspace",
+  "message67": "Quick Demo Roles:",
+  "message68": "Driver",
+  "message69": "Surveyor",
+  "message70": "Collector",
+  "message71": "Salesperson",
+  "message72": "Manager",
+  "message73": "Helper",
+  "message74": "Sales Commission Tier & Target Policy (2026)",
+  "message75": "Sales commission is tier-based, evaluated against confirmed sales orders. Confirmation includes customer attestation and DP where applicable. Reached tier rate applies to the entire eligible amount.",
+  "message76": "Pre-Delivery Vehicle & Goods Inspection SOP",
+  "message77": "Drivers and helpers must complete the mandatory checklist before dispatching: tires, brakes, fuel, straps, and stock unit serial matching with Surat Jalan.",
+  "message78": "Cash Custody & Handover Policy for Field Workers",
+  "message79": "All cash collected from COD deliveries and field visits is held under collector custody until physically verified by the store cashier. Any short/over discrepancy must be documented.",
+  "message80": "Credit Survey Standards & Decisive Authority",
+  "message81": "Surveyors possess decisive approval authority on customer credit viability. Verify residence ownership, electricity bills, and original identity documents.",
+  "message82": "Non-Calendar Sales Period Cutoff Guidelines",
+  "message83": "HR / PAYROLL",
+  "message84": "Compensation periods end on the Sunday containing the target month final calendar day. Payout is processed on the Monday following cutoff.",
+  "message85": "Office Bulletin & SOPs",
+  "message86": "Search rules, guidelines, commission tiers...",
+  "message87": "Collection not recorded; GPS unavailable: {arg0}",
+  "@message87": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message88": "Field Collection Visit",
+  "message89": "Field collection outcome recorded: {arg0} with GPS verification",
+  "@message89": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message90": "Failed to record collection attempt",
+  "message91": "Hand Over Cash to Cashier",
+  "message92": "Confirm handover of Rp {arg0} to store cashier? Status will change to HANDED_OVER awaiting cashier verification.",
+  "@message92": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message93": "Cash custody handed over to cashier successfully!",
+  "message94": "Confirm Handover",
+  "message95": "Field Collection Visit",
+  "message96": "Cash Custody in Hand:",
+  "message97": "Hand Over Cash",
+  "message98": "Account: REC/JKT/10/2026/0088",
+  "message99": "14 DAYS OVERDUE",
+  "message100": "Phone: 0811-2233-4455  •  Installment #3 of 12",
+  "message101": "Address: Jl. Pancoran Barat III No. 22, RT 04/RW 02",
+  "message102": "Overdue Installment Amount:",
+  "message103": "Open Customer 360 Profile & CRM History",
+  "message104": "Record Visit Outcome",
+  "message105": "Outcome Classification",
+  "message106": "Paid in Full (Cash Handover)",
+  "message107": "Paid via Bank Transfer",
+  "message108": "Promised to Pay (PTP Date)",
+  "message109": "Customer Not at Home",
+  "message110": "Refused Payment / Dispute",
+  "message111": "Collected Amount (Rp)",
+  "message112": "Installment Payment Receipt",
+  "message113": "Payer Signature Captured",
+  "message114": "Customer Payment Signature",
+  "message115": "Promised Payment Date",
+  "message116": "Location Evidence",
+  "message117": "Receipt Voucher",
+  "message118": "Collector Notes & Field Evidence",
+  "message119": "Describe conversation outcome, obstacles, customer statement...",
+  "message120": "Save Field Visit Record",
+  "message121": "Record Promise to Pay (PTP)",
+  "message122": "Promised Amount (Rp)",
+  "message123": "Promised Payment Date",
+  "message124": "Change",
+  "message125": "Customer Notes / Reason",
+  "message126": "Save Promise to Pay",
+  "message127": "Enter a valid promised amount",
+  "message128": "Promise to pay recorded & queued for sync",
+  "message129": "Field Visit / Follow-up",
+  "message130": "Interaction / Visit Log",
+  "message131": "Communication Channel",
+  "message132": "In-person Visit",
+  "message133": "Phone Call",
+  "message134": "WhatsApp Chat",
+  "message135": "Interaction Outcome",
+  "message136": "Reached / Met",
+  "message137": "Agreed Promise to Pay",
+  "message138": "No Answer / Empty Home",
+  "message139": "Refused / Complaint",
+  "message140": "Subject",
+  "message141": "Full Conversation Notes",
+  "message142": "Save Interaction Log",
+  "message143": "CRM interaction saved",
+  "message144": "Customer 360 CRM",
+  "message145": "Refresh Data",
+  "message146": "Customer data not found",
+  "message147": "NIK: {arg0} • {arg1}",
+  "@message147": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message148": "Score {arg0}/100",
+  "@message148": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message149": "Customer Lifetime Value",
+  "message150": "Store Credit Balance",
+  "message151": "Active Promises to Pay",
+  "message152": "{arg0} PTP",
+  "@message152": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message153": "Total Completed Orders",
+  "message154": "{arg0} Orders",
+  "@message154": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message155": "Record Promise to Pay",
+  "message156": "Interaction Log",
+  "message157": "Demographic & Characteristic Tags",
+  "message158": "Promises to Pay (PTP)",
+  "message159": "No promises to pay recorded",
+  "message160": "Due: {arg0}\n{arg1}",
+  "@message160": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message161": "Recent CRM Interaction History",
+  "message162": "No interaction history",
+  "message163": "Outcome: {arg0}\n{arg1}",
+  "@message163": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message164": "Delivery order returned invalid data.",
+  "message165": "Delivery order unavailable: {arg0}",
+  "@message165": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message166": "Delivery Order",
+  "message167": "{arg0}\nStatus: {arg1}",
+  "@message167": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message168": "Failure reason",
+  "message169": "Packing manifest",
+  "message170": "Product",
+  "message171": "Serial: {arg0}",
+  "@message171": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message172": "Returned to trip sheet. Navigation does not confirm arrival or delivery.",
+  "message173": "Scan Delivery Barcode",
+  "message174": "Scan Delivery Note QR or Stock Unit Serial",
+  "message175": "Scanned barcode verified: {arg0}",
+  "@message175": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message176": "Confirm Delivery Handover",
+  "message177": "Delivery Note: {arg0}",
+  "@message177": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message178": "Recipient Full Name",
+  "message179": "Recipient Phone",
+  "message180": "COD Cash Collected (Rp)",
+  "message181": "Delivery Note {arg0} Handover",
+  "@message181": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message182": "Signature Captured",
+  "message183": "Customer Digital Signature",
+  "message184": "Goods Handover",
+  "message185": "Signed Delivery Note",
+  "message186": "Delivery not confirmed; GPS unavailable: {arg0}",
+  "@message186": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message187": "Handover verified via GPS [{arg0}, {arg1}]. Signature captured: {arg2}. Photos: {arg3}",
+  "@message187": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      },
+      "arg3": {
+        "type": "String"
+      }
+    }
+  },
+  "message188": "Delivery confirmed.",
+  "message189": "Delivery was not confirmed by server. Check connection and retry.",
+  "message190": "Report Delivery Failure",
+  "message191": "Failure Reason",
+  "message192": "Customer Unreachable / Not Home",
+  "message193": "Wrong / Incomplete Address",
+  "message194": "Customer Refused Goods",
+  "message195": "Item Damaged in Transit",
+  "message196": "Operational Notes",
+  "message197": "Delivery Failure Proof",
+  "message198": "Failure not reported; GPS unavailable: {arg0}",
+  "@message198": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message199": "{arg0} GPS: {arg1}, {arg2}. Failure proof photos: {arg3}.",
+  "@message199": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      },
+      "arg3": {
+        "type": "String"
+      }
+    }
+  },
+  "message200": "Failure report submitted. Dispatcher must reschedule delivery.",
+  "message201": "Report not saved: {arg0}",
+  "@message201": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message202": "Submit Failure Report",
+  "message203": "Driver Trip Execution",
+  "message204": "Trip: {arg0}",
+  "@message204": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message205": "Barcode Scanner",
+  "message206": "Vehicle not assigned",
+  "message207": "No trip loaded",
+  "message208": "{arg0} / {arg1} Drops",
+  "@message208": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message209": "COD Custody Cash Balance:",
+  "message210": "No active delivery stops for this trip.",
+  "message211": "Stop #{arg0}  •  {arg1}",
+  "@message211": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message212": "Phone: {arg0}",
+  "@message212": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message213": "Address: {arg0}",
+  "@message213": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message214": "Delivery window: {arg0} WIB",
+  "@message214": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message215": "{arg0} (SN: {arg1})",
+  "@message215": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message216": "Verify Serial Barcode",
+  "message217": "COD Collection Required: Rp {arg0}",
+  "@message217": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message218": "Failed / Refused",
+  "message219": "Handover Done",
+  "message220": "Navigation preference could not load: {arg0}",
+  "@message220": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message221": "Navigation is not available in this build.",
+  "message222": "Share only destination GPS with your chosen navigation app. Choice is remembered for one-tap navigation. Return using Maps callback or the system Back/app switcher.",
+  "message223": "Navigation could not open: {arg0}",
+  "@message223": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message224": "Navigation unavailable: destination GPS missing or invalid. Ask dispatch to supply verified coordinates.",
+  "message225": "External navigation requires Android or iOS.",
+  "message226": "Opening navigation...",
+  "message227": "Choose navigation app",
+  "message228": "Clocked out successfully for today",
+  "message229": "Outside Store Geofence",
+  "message230": "Your GPS position ({arg0}) is outside the authorized store perimeter (200m). Please clock-in inside the store building.",
+  "@message230": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message231": "OK",
+  "message232": "GPS Verified: [{arg0}, {arg1}] (Accuracy: {arg2}m)",
+  "@message232": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "message233": "GPS Geofence Verified: Clock-in recorded (PRESENT at store)",
+  "message234": "Biometric identity confirmed (Fingerprint / Face ID verified)",
+  "message235": "Worker App",
+  "message236": "Actionable Notifications",
+  "message237": "Verify Biometrics",
+  "message238": "Sign Out",
+  "message239": "{arg0} Offline Action(s) Queued",
+  "@message239": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message240": "Auto-syncing in background when connected",
+  "message241": "Sync Now",
+  "message242": "Clocked In (Present)",
+  "message243": "Daily Attendance",
+  "message244": "Verified: {arg0}",
+  "@message244": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message245": "Requires GPS Geofence Check",
+  "message246": "Clock Out",
+  "message247": "Clock In",
+  "message248": "My Active Work",
+  "message249": "Credit Surveys Queue",
+  "message250": "{arg0} survey(s) • KTP/KK/GPS Photo Evidence",
+  "@message250": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message251": "{arg0} PENDING",
+  "@message251": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message252": "Active Delivery Trip",
+  "message253": "{arg0} • {arg1} Drops • Barcode & Signature",
+  "@message253": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message254": "Field Collection Visits",
+  "message255": "{arg0} accounts • Cash: Rp {arg1}",
+  "@message255": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message256": "{arg0} DUE",
+  "@message256": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message257": "Sales & Customer Follow-Ups",
+  "message258": "Confirmed orders eligible for commission recognition",
+  "message259": "Assigned Helper Tasks",
+  "message260": "Loading delivery trip truck • Showroom prep",
+  "message261": "Personal Records & Company",
+  "message262": "GPS Geofence history",
+  "message263": "My Payroll Slips",
+  "message264": "Salary & commissions",
+  "message265": "Office Bulletin",
+  "message266": "Rules, SOPs & targets",
+  "message267": "My Task Center",
+  "message268": "All assigned tasks",
+  "message269": "Mobile Stocktake",
+  "message270": "Scan and compare book balance",
+  "message271": "Warehouse Picking",
+  "message272": "Verify manifest serials",
+  "message273": "Stocktake session returned invalid data.",
+  "message274": "Stocktake session unavailable: {arg0}",
+  "@message274": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message275": "Count reviewed",
+  "message276": "Count rejected for recount",
+  "message277": "Stocktake reviewed. Inventory unchanged.",
+  "message278": "Stocktake rejected for recount.",
+  "message279": "Review failed: {arg0}",
+  "@message279": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message280": "Review Stocktake",
+  "message281": "Status: {arg0} • {arg1} variance(s)",
+  "@message281": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message282": "Unknown product",
+  "message283": "Reject / Recount",
+  "message284": "Approve Review",
+  "message285": "Saved stocktake session could not be read: {arg0}",
+  "@message285": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message286": "Your profile has no store assignment.",
+  "message287": "Could not load book balance: {arg0}",
+  "@message287": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message288": "No server session exists. Connect and start a session before submitting.",
+  "message289": "Stocktake submission returned invalid data.",
+  "message290": "Count submitted for supervisor review. Inventory unchanged.",
+  "message291": "Count not submitted; local scans retained: {arg0}",
+  "@message291": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message292": "Stocktake Scan",
+  "message293": "Scan stock unit serial. Manual entry available.",
+  "message294": "Duplicate scan ignored: {arg0}",
+  "@message294": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message295": "Scan Unit",
+  "message296": "Blind count",
+  "message297": "{arg0} scanned • {arg1}",
+  "@message297": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message298": "Expected inventory stays hidden. Scans save on this device while offline. Submissions go to supervisor review and never adjust inventory.",
+  "message299": "Submit for supervisor review",
+  "message300": "Start new session",
+  "message301": "Scanned serials ({arg0})",
+  "@message301": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message302": "Picking manifest returned invalid data.",
+  "message303": "Picking manifest unavailable: {arg0}",
+  "@message303": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message304": "No stock-unit serials assigned to {arg0}.",
+  "@message304": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message305": "Verify Packing Manifest",
+  "message306": "Scan {arg0} stock-unit serial(s) for {arg1}",
+  "@message306": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message307": "Unexpected serial for {arg0}: {arg1}",
+  "@message307": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message308": "Server did not confirm packing verification.",
+  "message309": "{arg0} packing verified.",
+  "@message309": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message310": "Packing verification failed: {arg0}",
+  "@message310": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message311": "Guided Picking & Packing",
+  "message312": "Refresh manifests",
+  "message313": "{arg0} / {arg1} manifests verified",
+  "@message313": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message314": "No pending delivery manifests.",
+  "message315": "Product manifest",
+  "message316": "Customer: {arg0}",
+  "@message316": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message317": "Expected units: {arg0}",
+  "@message317": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message318": "Manifest verified",
+  "message319": "{arg0} / {arg1} scanned",
+  "@message319": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message320": "Scan",
+  "message321": "Notifications returned invalid data.",
+  "message322": "Notifications unavailable: {arg0}",
+  "@message322": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message323": "Could not mark notification read: {arg0}",
+  "@message323": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message324": "Approval steps returned invalid data.",
+  "message325": "No pending approval step found.",
+  "message326": "Decided from mobile notification",
+  "message327": "Approval recorded.",
+  "message328": "Rejection recorded.",
+  "message329": "Approval action failed: {arg0}",
+  "@message329": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message330": "Retry",
+  "message331": "No notifications.",
+  "message332": "Open document",
+  "message333": "Reject",
+  "message334": "Approve",
+  "message335": "My Payroll & Compensation",
+  "message336": "No payroll slips available yet.",
+  "message337": "Cutoff: {arg0} • Payout: {arg1}",
+  "@message337": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message338": "Total Net Payout (Transfer)",
+  "message339": "Disbursed via BCA Payroll Account",
+  "message340": "Earnings & Commission Breakdown",
+  "message341": "Base Salary (Prorated)",
+  "message342": "Confirmed Sales Commission",
+  "message343": "Collection Recovery Incentive",
+  "message344": "Operational & Fuel Allowance",
+  "message345": "Gross Earnings",
+  "message346": "Deductions & Adjustments",
+  "message347": "Attendance & Late Deductions",
+  "message348": "Total Deductions",
+  "message349": "Catalog Product",
+  "message350": "Product Simulation",
+  "message351": "Catalog search failed: {arg0}",
+  "@message351": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message352": "Credit simulation copied! Ready to send to WhatsApp/buyer.",
+  "message353": "Credit Calculator & Simulation",
+  "message354": "Copy Quote (WhatsApp)",
+  "message355": "Reset Input",
+  "message356": "Simulate credit installments for buyer-specific terms (10% down payment, custom amount, or flexible term).",
+  "message357": "Product Source",
+  "message358": "Manual Input",
+  "message359": "Store Catalog",
+  "message360": "Code: {arg0}",
+  "@message360": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message361": "Search product name / code...",
+  "message362": "Search",
+  "message363": "Product / Package Name (Optional)",
+  "message364": "Example: Smart TV 43\" UHD / L Sofa Package",
+  "message365": "Base Price (HD / Cash OTR)",
+  "message366": "Base Price Amount",
+  "message367": "+500 K",
+  "message368": "+1 M",
+  "message369": "+2 M",
+  "message370": "+5 M",
+  "message371": "Down Payment (DP)",
+  "message372": "Standard",
+  "message373": "Percentage (%)",
+  "message374": "Amount (Rp)",
+  "message375": "System recommendation: {arg0} ({arg1})",
+  "@message375": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message376": "Choose Down Payment Percentage: {arg0}% = {arg1}",
+  "@message376": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message377": "Down payment amount agreed with buyer",
+  "message378": "Example: 750000",
+  "message379": "Equivalent to {arg0}% of Base Price",
+  "@message379": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message380": "Net Financing Principal (h1):",
+  "message381": "{arg0} (incl. Rp 30K fee)",
+  "@message381": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message382": "15% Timely Payment Discount",
+  "message383": "Term & Installment Options",
+  "message384": "{arg0} Options Available",
+  "@message384": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message385": "{arg0} Months",
+  "@message385": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message386": "Total Payment: {arg0}",
+  "@message386": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message387": "Save Rp {arg0}K/month (15% Discount)",
+  "@message387": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message388": "Retail Formula Details (Company Standard)",
+  "message389": "Calculation breakdown for a {arg0}-month term",
+  "@message389": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message390": "1. Net Principal (h1)",
+  "message391": "2. Flat Interest (h2)",
+  "message392": "h1 × (1 + 4% × {arg0} months)",
+  "@message392": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message393": "3. Gross Installment (h3)",
+  "message394": "{arg0}/month",
+  "@message394": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message395": "4. Timely Payment Discount (h4)",
+  "message396": "h3 × 85% (15% Discount)",
+  "message397": "5. Final Result",
+  "message398": "Copy Simulation for WhatsApp",
+  "message399": "Use {arg0}-Month Term ({arg1}/month)",
+  "@message399": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message400": "Sales order returned invalid data.",
+  "message401": "Sales order unavailable: {arg0}",
+  "@message401": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message402": "Sales Order",
+  "message403": "Customer",
+  "message404": "Status: {arg0}",
+  "@message404": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message405": "Item",
+  "message406": "Quantity: {arg0}",
+  "@message406": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message407": "Quote total",
+  "message408": "Sales progress unavailable. Check access or connection.",
+  "message409": "Enter customer name or phone to search.",
+  "message410": "Customer search returned invalid data.",
+  "message411": "Customer search failed: {arg0}",
+  "@message411": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message412": "Draft quotation could not be created: {arg0}",
+  "@message412": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message413": "Enter product name or code to search.",
+  "message414": "Product search returned invalid data.",
+  "message415": "Product search failed: {arg0}",
+  "@message415": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message416": "No active product variants found.",
+  "message417": "No active store price for this product.",
+  "message418": "Quote items returned invalid data.",
+  "message419": "{arg0} added to draft quote.",
+  "@message419": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message420": "Could not add product to quote: {arg0}",
+  "@message420": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message421": "Simulation: {arg0} ({arg1} months @ {arg2}/month)",
+  "@message421": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "message422": "Simulation {arg0}: {arg1} months @ {arg2}/month",
+  "@message422": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "message423": "Salesperson Work Center",
+  "message424": "Sales progress unavailable",
+  "message425": "{arg0} confirmed orders this month",
+  "@message425": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message426": "Refresh progress",
+  "message427": "Actual: {arg0} / Target: {arg1} ({arg2}%)",
+  "@message427": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "message428": "Estimated Commission: {arg0}",
+  "@message428": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message429": "Credit Calculator & Simulation",
+  "message430": "Simulate installments with custom down payment (10%, custom amount, or custom term).",
+  "message431": "Open",
+  "message432": "Find customer",
+  "message433": "Quote draft: {arg0}",
+  "@message433": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message434": "Customer name or phone",
+  "message435": "Search Customers",
+  "message436": "Create draft quotation",
+  "message437": "Product name or code",
+  "message438": "Search Products",
+  "message439": "Simulate credit for this product",
+  "message440": "Add one unit at store cash price",
+  "message441": "Customer Location Survey",
+  "message442": "Could not capture GPS location: {arg0}",
+  "@message442": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message443": "Confirm {arg0} Survey?",
+  "@message443": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message444": "This will approve customer credit eligibility and advance the sales order to confirmation.",
+  "message445": "This will reject credit eligibility and set the sales order to terminal SURVEY_REJECTED.",
+  "message446": "Confirm Approval",
+  "message447": "Confirm Rejection",
+  "message448": "Survey decision not submitted; GPS unavailable: {arg0}",
+  "@message448": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message449": "Survey profile was not saved. Check connection and retry.",
+  "message450": "Credit survey decision recorded: {arg0} with GPS & {arg1} photos",
+  "@message450": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message451": "Failed to submit survey decision",
+  "message452": "Credit Survey Assessment",
+  "message453": "Survey ID: {arg0}",
+  "@message453": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message454": "NIK: 3171021405880003  •  Phone: 0812-8899-7711",
+  "message455": "Address: Jl. Tebet Barat Dalam VII No. 4, Jakarta Selatan",
+  "message456": "Delivery Location Profile",
+  "message457": "Destination GPS not captured",
+  "message458": "GPS: {arg0}, {arg1} (±{arg2} m)",
+  "@message458": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "message459": "Capture destination GPS",
+  "message460": "Alley width (meters)",
+  "message461": "Stair / doorway clearance (meters)",
+  "message462": "Gate and delivery access notes",
+  "message463": "Gate width, access hours, stairs, parking constraints",
+  "message464": "Residence & Financial Verification",
+  "message465": "Home Ownership Status",
+  "message466": "Self-owned",
+  "message467": "Family-owned",
+  "message468": "Annual Rental (Contract)",
+  "message469": "Boarding / Monthly Rental",
+  "message470": "Estimated Net Monthly Income (Rp)",
+  "message471": "Estimated Monthly Living Expenses (Rp)",
+  "message472": "Other Existing Installments / Obligations",
+  "message473": "Customer ID Card (KTP)",
+  "message474": "Family Card (KK)",
+  "message475": "Electricity / Water Proof",
+  "message476": "House & Front Door",
+  "message477": "Field Physical Document Checks",
+  "message478": "Original KTP Verified on site",
+  "message479": "Family Card (KK) verified",
+  "message480": "Recent Electricity / Water Utility Bill matches address",
+  "message481": "Proof of Income / Payslip / Bank Statement",
+  "message482": "Surveyor Assessment & Justification",
+  "message483": "Assessment Notes",
+  "message484": "Provide detailed justification for credit viability...",
+  "message485": "Reject Credit",
+  "message486": "Approve Credit",
+  "message487": "Credit Survey: Customer #{arg0}",
+  "@message487": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message488": "Delivery: {arg0} ({arg1})",
+  "@message488": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message489": "Field Collection: {arg0}",
+  "@message489": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message490": "Warehouse Truck Prep & Helper Inspection",
+  "message491": "My Work & Task Queue",
+  "message492": "All Tasks",
+  "message493": "Deliveries",
+  "message494": "Surveys",
+  "message495": "Collections",
+  "message496": "Helper / Floor",
+  "message497": "No operational tasks for this filter."
+}

@@ -1,3 +1,4 @@
+import { t } from "../../lib/locale";
 import { useState } from "react";
 import {
   Badge,
@@ -33,7 +34,7 @@ export default function NotificationBell() {
       >
         <List sx={{ width: 320, maxHeight: 400, overflow: "auto" }}>
           {(data ?? []).length === 0 && (
-            <Typography sx={{ p: 2 }}>No notifications</Typography>
+            <Typography sx={{ p: 2 }}>{t("No notifications")}</Typography>
           )}
           {(data ?? []).map((n) => (
             <ListItemButton

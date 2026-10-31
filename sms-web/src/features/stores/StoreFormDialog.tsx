@@ -10,6 +10,7 @@ import {
   TextField,
 } from "@mui/material";
 import type { Store } from "./types";
+import { t } from "../../lib/locale";
 
 const schema = z.object({
   code: z.string().min(1, "Code is required"),
@@ -47,12 +48,12 @@ export default function StoreFormDialog({
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogTitle>{initial ? "Edit Store" : "New Store"}</DialogTitle>
+        <DialogTitle>{initial ? t("Edit Store") : t("New Store")}</DialogTitle>
         <DialogContent
           sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}
         >
           <TextField
-            label="Code"
+            label={t("Code")}
             fullWidth
             disabled={!!initial}
             {...register("code")}
@@ -60,14 +61,14 @@ export default function StoreFormDialog({
             helperText={errors.code?.message}
           />
           <TextField
-            label="Name"
+            label={t("Name")}
             fullWidth
             {...register("name")}
             error={!!errors.name}
             helperText={errors.name?.message}
           />
           <TextField
-            label="Address"
+            label={t("Address")}
             fullWidth
             multiline
             rows={2}
@@ -75,10 +76,9 @@ export default function StoreFormDialog({
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t("Cancel")}</Button>
           <Button type="submit" variant="contained">
-            Save
-          </Button>
+            {t("Save")}</Button>
         </DialogActions>
       </form>
     </Dialog>

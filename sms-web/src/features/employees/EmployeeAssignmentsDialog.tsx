@@ -1,3 +1,4 @@
+import { t } from "../../lib/locale";
 import {
   Dialog,
   DialogContent,
@@ -50,14 +51,14 @@ export default function EmployeeAssignmentsDialog({
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Assignments — {employee.fullName}</DialogTitle>
+      <DialogTitle>{t("Assignments —")} {employee.fullName}</DialogTitle>
       <DialogContent
         sx={{ display: "flex", flexDirection: "column", gap: 3, pt: 1 }}
       >
         <div>
           <TextField
             select
-            label="Add role"
+            label={t("Add role")}
             fullWidth
             value={roleToAdd}
             onChange={(e) => {
@@ -82,7 +83,7 @@ export default function EmployeeAssignmentsDialog({
         <div>
           <TextField
             select
-            label="Add store"
+            label={t("Add store")}
             fullWidth
             value={storeToAdd}
             onChange={(e) => {
@@ -109,7 +110,7 @@ export default function EmployeeAssignmentsDialog({
         <div>
           <TextField
             select
-            label="Reporting supervisor"
+            label={t("Reporting supervisor")}
             fullWidth
             value={employee.supervisorEmployeeId ?? ""}
             onChange={(e) =>

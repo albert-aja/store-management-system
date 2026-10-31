@@ -30,8 +30,15 @@ import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
+import NavigationIcon from "@mui/icons-material/Navigation";
+import PriceCheckIcon from "@mui/icons-material/PriceCheck";
+import BusinessIcon from "@mui/icons-material/Business";
+import ReceiptIcon from "@mui/icons-material/Receipt";
+import GroupIcon from "@mui/icons-material/Group";
+import SecurityIcon from "@mui/icons-material/Security";
 import { useNavigate } from "react-router-dom";
 import { useThemeStore } from "../store/themeStore";
+import { t, useLanguage } from "../lib/locale";
 
 interface CommandItem {
   id: string;
@@ -49,6 +56,7 @@ interface CommandPaletteProps {
 }
 
 export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
+  const language = useLanguage();
   const navigate = useNavigate();
   const theme = useTheme();
   const { mode, toggleTheme } = useThemeStore();
@@ -64,10 +72,34 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
     return [
       // Navigation
       {
+        id: "nav-suppliers", category: "Navigation", title: t("Suppliers", language),
+        subtitle: t("Supplier directory and procurement contacts", language),
+        icon: <BusinessIcon fontSize="small" />, keywords: "supplier vendor procurement",
+        action: () => handleNav("/suppliers"),
+      },
+      {
+        id: "nav-purchase-orders", category: "Navigation", title: t("Purchase Orders", language),
+        subtitle: t("Supplier orders and incoming stock", language),
+        icon: <ReceiptIcon fontSize="small" />, keywords: "purchase order po procurement",
+        action: () => handleNav("/purchase-orders"),
+      },
+      {
+        id: "nav-employees", category: "Navigation", title: t("Employees", language),
+        subtitle: t("Employee directory and store assignments", language),
+        icon: <GroupIcon fontSize="small" />, keywords: "employee staff team people",
+        action: () => handleNav("/employees"),
+      },
+      {
+        id: "nav-roles", category: "Navigation", title: t("Roles & Permissions"),
+        subtitle: t("Role assignments and access permissions", language),
+        icon: <SecurityIcon fontSize="small" />, keywords: "role permission access security",
+        action: () => handleNav("/roles"),
+      },
+      {
         id: "nav-stores",
         category: "Navigation",
-        title: "Stores & Branches",
-        subtitle: "Multi-store hierarchy and showroom locations",
+        title: t("Stores & Branches", language),
+        subtitle: t("Multi-store hierarchy and showroom locations", language),
         icon: <StorefrontIcon fontSize="small" />,
         keywords: "store branch showroom location",
         action: () => handleNav("/"),
@@ -75,8 +107,8 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       {
         id: "nav-customers",
         category: "Navigation",
-        title: "Customers Directory",
-        subtitle: "NIK identity, credit history, delivery addresses",
+        title: t("Customers Directory", language),
+        subtitle: t("NIK identity, credit history, delivery addresses", language),
         icon: <PeopleIcon fontSize="small" />,
         keywords: "customer client buyer nik address",
         action: () => handleNav("/customers"),
@@ -84,17 +116,26 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       {
         id: "nav-products",
         category: "Navigation",
-        title: "Product Catalog & Pricing",
-        subtitle: "Variants, SKUs, store price configuration",
+        title: t("Product Catalog & Pricing", language),
+        subtitle: t("Variants, SKUs, store price configuration", language),
         icon: <Inventory2Icon fontSize="small" />,
         keywords: "product catalog sku price variant category",
         action: () => handleNav("/products"),
       },
       {
+        id: "nav-price-list",
+        category: "Navigation",
+        title: t("Daftar Harga & Skema Angsuran (Price List)", language),
+        subtitle: t("Printable price catalog, 10x/12x/15x installment tables, Excel export", language),
+        icon: <PriceCheckIcon fontSize="small" />,
+        keywords: "price list daftar harga catalog angsuran cicilan formula excel pdf print",
+        action: () => handleNav("/price-list"),
+      },
+      {
         id: "nav-inventory",
         category: "Navigation",
-        title: "Stock Units & Ledger",
-        subtitle: "Serial tracking, location transfers, physical stock",
+        title: t("Stock Units & Ledger", language),
+        subtitle: t("Serial tracking, location transfers, physical stock", language),
         icon: <QrCodeScannerIcon fontSize="small" />,
         keywords: "inventory stock unit serial warehouse showroom ledger",
         action: () => handleNav("/inventory"),
@@ -102,8 +143,8 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       {
         id: "nav-orders",
         category: "Navigation",
-        title: "Sales Orders",
-        subtitle: "Order management, price approvals, down payments",
+        title: t("Sales Orders", language),
+        subtitle: t("Order management, price approvals, down payments", language),
         icon: <ShoppingCartIcon fontSize="small" />,
         keywords: "sales order so pos invoice draft credit",
         action: () => handleNav("/sales-orders"),
@@ -111,17 +152,26 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       {
         id: "nav-deliveries",
         category: "Navigation",
-        title: "Deliveries & Surat Jalan",
-        subtitle: "Trip dispatch, driver loading, pre-inspection, handover",
+        title: t("Deliveries & Surat Jalan", language),
+        subtitle: t("Trip dispatch, driver loading, pre-inspection, handover", language),
         icon: <LocalShippingIcon fontSize="small" />,
         keywords: "delivery trip surat jalan driver vehicle dispatch",
         action: () => handleNav("/delivery-trips"),
       },
       {
+        id: "nav-fleet",
+        category: "Navigation",
+        title: t("Fleet & GPS Tracking", language),
+        subtitle: t("Live driver/surveyor/collector monitor, routes, vehicle registry", language),
+        icon: <NavigationIcon fontSize="small" />,
+        keywords: "fleet tracking gps driver surveyor collector vehicle stnk kir break route",
+        action: () => handleNav("/fleet"),
+      },
+      {
         id: "nav-finance",
         category: "Navigation",
-        title: "Finance & Accounts Receivable",
-        subtitle: "Installment schedules, payments, cash custody handover",
+        title: t("Finance & Accounts Receivable", language),
+        subtitle: t("Installment schedules, payments, cash custody handover", language),
         icon: <AccountBalanceIcon fontSize="small" />,
         keywords: "finance ar installment payment custody cashier collection",
         action: () => handleNav("/finance"),
@@ -129,8 +179,8 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       {
         id: "nav-expenses",
         category: "Navigation",
-        title: "Expenses & Budget Ceilings",
-        subtitle: "Store monthly budgets, expense vouchers, overruns",
+        title: t("Expenses & Budget Ceilings", language),
+        subtitle: t("Store monthly budgets, expense vouchers, overruns", language),
         icon: <ReceiptLongIcon fontSize="small" />,
         keywords: "expense budget overrun disbursement voucher",
         action: () => handleNav("/expenses"),
@@ -138,8 +188,8 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       {
         id: "nav-returns",
         category: "Navigation",
-        title: "Returns, Repossessions & Warranty",
-        subtitle: "Asset recovery triage, repairs, scrap disposal",
+        title: t("Returns, Repossessions & Warranty", language),
+        subtitle: t("Asset recovery triage, repairs, scrap disposal", language),
         icon: <AssignmentReturnIcon fontSize="small" />,
         keywords: "return repossession warranty repair scrap triage",
         action: () => handleNav("/returns"),
@@ -147,8 +197,8 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       {
         id: "nav-payroll",
         category: "Navigation",
-        title: "HR, Attendance & Payroll",
-        subtitle: "Time tracking, leave requests, monthly commission slips",
+        title: t("HR, Attendance & Payroll", language),
+        subtitle: t("Time tracking, leave requests, monthly commission slips", language),
         icon: <BadgeIcon fontSize="small" />,
         keywords: "payroll attendance hr leave clock in slip salary commission",
         action: () => handleNav("/payroll"),
@@ -156,8 +206,8 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       {
         id: "nav-reports",
         category: "Navigation",
-        title: "Executive Reports & Analytics",
-        subtitle: "Aging analysis, revenue trends, sales leaderboards",
+        title: t("Executive Reports & Analytics", language),
+        subtitle: t("Aging analysis, revenue trends, sales leaderboards", language),
         icon: <AssessmentIcon fontSize="small" />,
         keywords: "report dashboard aging revenue sales kpi analytics",
         action: () => handleNav("/reports"),
@@ -165,8 +215,8 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       {
         id: "nav-approvals",
         category: "Navigation",
-        title: "Approval Workflow Engine",
-        subtitle: "Configure multi-level approval steps and roles",
+        title: t("Approval Workflow Engine", language),
+        subtitle: t("Configure multi-level approval steps and roles", language),
         icon: <RuleIcon fontSize="small" />,
         keywords: "approval workflow chain step condition override",
         action: () => handleNav("/approvals"),
@@ -176,8 +226,8 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       {
         id: "action-new-so",
         category: "Quick Action",
-        title: "Create Sales Order",
-        subtitle: "Draft a new retail cash or credit agreement",
+        title: t("Create Sales Order", language),
+        subtitle: t("Draft a new retail cash or credit agreement", language),
         icon: <AddCircleIcon color="primary" fontSize="small" />,
         keywords: "create new sales order draft",
         action: () => handleNav("/sales-orders"),
@@ -185,8 +235,8 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       {
         id: "action-receive-stock",
         category: "Quick Action",
-        title: "Receive Stock Units",
-        subtitle: "Ingest serialized stock units into warehouse",
+        title: t("Receive Stock Units", language),
+        subtitle: t("Ingest serialized stock units into warehouse", language),
         icon: <AddCircleIcon color="secondary" fontSize="small" />,
         keywords: "receive stock inbound serial ingest",
         action: () => handleNav("/inventory"),
@@ -194,8 +244,8 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       {
         id: "action-new-customer",
         category: "Quick Action",
-        title: "Register New Customer",
-        subtitle: "Add NIK profile, contacts, and delivery address",
+        title: t("Register New Customer", language),
+        subtitle: t("Add NIK profile, contacts, and delivery address", language),
         icon: <AddCircleIcon color="primary" fontSize="small" />,
         keywords: "new customer register add nik",
         action: () => handleNav("/customers"),
@@ -205,8 +255,8 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
       {
         id: "sys-toggle-theme",
         category: "System",
-        title: mode === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode",
-        subtitle: "Toggle between Dark Navy and Clean Light interface themes",
+        title: mode === "dark" ? t("Switch to Light Mode", language) : t("Switch to Dark Mode", language),
+        subtitle: t("Toggle between Dark Navy and Clean Light interface themes", language),
         icon: mode === "dark" ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />,
         keywords: "theme dark light mode color style",
         action: () => {
@@ -215,7 +265,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
         },
       },
     ];
-  }, [navigate, onClose, mode, toggleTheme]);
+  }, [navigate, onClose, mode, toggleTheme, language]);
 
   // Filter items based on search query
   const filteredItems = useMemo(() => {
@@ -275,7 +325,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
         <TextField
           autoFocus
           fullWidth
-          placeholder="Type a command, module, or keyword... (Esc to close)"
+          placeholder={t("Type a command, module, or keyword... (Esc to close)", language)}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -291,7 +341,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
               endAdornment: (
                 <InputAdornment position="end">
                   <Chip
-                    label="ESC"
+                    label={t("ESC")}
                     size="small"
                     variant="outlined"
                     sx={{ fontSize: "0.7rem", height: 22 }}
@@ -322,7 +372,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
         {filteredItems.length === 0 ? (
           <Box sx={{ p: 4, textAlign: "center" }}>
             <Typography variant="body2" color="text.secondary">
-              No results found for "{query}".
+              {t("No results found for", language)} "{query}".
             </Typography>
           </Box>
         ) : (
@@ -374,7 +424,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
                           {item.title}
                         </Typography>
                         <Chip
-                          label={item.category}
+                          label={t(item.category, language)}
                           size="small"
                           sx={{
                             fontSize: "0.65rem",
@@ -413,7 +463,7 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
                         fontWeight: 600,
                       }}
                     >
-                      Press Enter ↵
+                      {t("Press Enter ↵", language)}
                     </Typography>
                   )}
                 </ListItemButton>
@@ -439,10 +489,10 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
         }}
       >
         <Typography variant="caption" color="text.secondary">
-          Navigate with <strong>↑</strong> <strong>↓</strong> arrows
+          {t("Navigate with", language)} <strong>↑</strong> <strong>↓</strong> {t("arrows", language)}
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          Store Management System v2.0
+          {t("Store Management System v2.0", language)}
         </Typography>
       </Box>
     </Dialog>

@@ -101,7 +101,15 @@ export function useConfirmSalesOrder(id: string) {
 
 export function useCancelSalesOrder(id: string) {
   return useInvalidatingMutation(
-    (reason: string | undefined) => salesOrdersApi.cancel(id, reason),
+    (reason?: string) => salesOrdersApi.cancel(id, reason),
     [salesOrderKey(id), SALES_ORDERS_KEY],
+  );
+}
+
+export function useBulkUpdateSalesOrders() {
+  return useInvalidatingMutation(
+    (input: { ids: string[]; action: string; reason?: string }) =>
+      salesOrdersApi.bulkUpdateStatus(input),
+    [SALES_ORDERS_KEY],
   );
 }

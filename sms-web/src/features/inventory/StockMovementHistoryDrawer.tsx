@@ -15,6 +15,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { useQuery } from "@tanstack/react-query";
 import { inventoryApi } from "./api";
 import type { StockUnit } from "./types";
+import { formatDate , localizeDisplayCode, t} from "../../lib/locale";
 
 interface StockMovementHistoryDrawerProps {
   stockUnit: StockUnit | null;
@@ -64,10 +65,10 @@ export default function StockMovementHistoryDrawer({
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <HistoryIcon color="primary" />
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            Stock Movement Ledger
+            {t("Stock Movement Ledger")}
           </Typography>
         </Box>
-        <IconButton size="small" onClick={onClose} aria-label="close">
+        <IconButton size="small" onClick={onClose} aria-label={t("close")}>
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
@@ -85,14 +86,14 @@ export default function StockMovementHistoryDrawer({
         }}
       >
         <Typography variant="caption" color="text.secondary">
-          Serial Number
+          {t("Serial Number")}
         </Typography>
         <Typography variant="body1" sx={{ fontWeight: 700, mb: 1 }}>
           {stockUnit.manufacturerSerial ?? "Non-serialized unit"}
         </Typography>
 
         <Typography variant="caption" color="text.secondary">
-          Variant
+          {t("Variant")}
         </Typography>
         <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
           {stockUnit.variantName}
@@ -100,7 +101,7 @@ export default function StockMovementHistoryDrawer({
 
         <Box sx={{ display: "flex", gap: 1, mt: 1 }}>
           <Chip
-            label={stockUnit.availabilityStatus}
+            label={localizeDisplayCode(stockUnit.availabilityStatus)}
             size="small"
             color={
               stockUnit.availabilityStatus === "AVAILABLE"
@@ -115,8 +116,8 @@ export default function StockMovementHistoryDrawer({
       </Paper>
 
       <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 700 }}>
-        Immutable Physical Audit Trail ({movements.length} event
-        {movements.length !== 1 ? "s" : ""})
+        {t("Immutable Physical Audit Trail (")}{movements.length}{" "}
+        {t(movements.length === 1 ? "event" : "events")})
       </Typography>
 
       {isLoading ? (
@@ -126,7 +127,7 @@ export default function StockMovementHistoryDrawer({
       ) : movements.length === 0 ? (
         <Box sx={{ textAlign: "center", py: 4 }}>
           <Typography variant="body2" color="text.secondary">
-            No movement ledger entries recorded yet.
+            {t("No movement ledger entries recorded yet.")}
           </Typography>
         </Box>
       ) : (
@@ -159,7 +160,7 @@ export default function StockMovementHistoryDrawer({
                   }}
                 />
                 <Typography variant="caption" color="text.secondary">
-                  {new Date(m.occurredAt).toLocaleString()}
+                  {formatDate(new Date(m.occurredAt), undefined, { dateStyle: "medium", timeStyle: "short" })}
                 </Typography>
               </Box>
 
@@ -191,7 +192,7 @@ export default function StockMovementHistoryDrawer({
                   color="text.secondary"
                   sx={{ display: "block" }}
                 >
-                  Ref: {m.referenceType}{" "}
+                  {t("Ref:")} {m.referenceType}{" "}
                   {m.referenceId ? `(${m.referenceId})` : ""}
                 </Typography>
               )}
@@ -217,9 +218,8 @@ export default function StockMovementHistoryDrawer({
       <Divider sx={{ my: 3 }} />
 
       <Typography variant="caption" color="text.secondary" sx={{ textAlign: "center" }}>
-        Physical stock ledger is append-only and cannot be altered.
+        {t("Physical stock ledger is append-only and cannot be altered.")}
       </Typography>
     </Drawer>
   );
 }
-

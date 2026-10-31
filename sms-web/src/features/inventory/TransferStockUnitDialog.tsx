@@ -11,6 +11,7 @@ import {
 import { useStores } from "../stores/hooks";
 import { useTransferStockUnit } from "./hooks";
 import type { StockLocationType, StockUnit } from "./types";
+import { t } from "../../lib/locale";
 
 const LOCATIONS: StockLocationType[] = [
   "WAREHOUSE",
@@ -45,13 +46,13 @@ export default function TransferStockUnitDialog({
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
-      <DialogTitle>Transfer {stockUnit.variantName}</DialogTitle>
+      <DialogTitle>{t("Transfer")} {stockUnit.variantName}</DialogTitle>
       <DialogContent
         sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}
       >
         <TextField
           select
-          label="To Store"
+          label={t("To Store")}
           fullWidth
           value={toStoreId || stockUnit.currentStoreId}
           onChange={(e) => setToStoreId(e.target.value)}
@@ -64,7 +65,7 @@ export default function TransferStockUnitDialog({
         </TextField>
         <TextField
           select
-          label="To Location"
+          label={t("To Location")}
           fullWidth
           value={toLocationType}
           onChange={(e) =>
@@ -78,14 +79,14 @@ export default function TransferStockUnitDialog({
           ))}
         </TextField>
         <TextField
-          label="Notes"
+          label={t("Notes")}
           fullWidth
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t("Cancel")}</Button>
         <Button
           variant="contained"
           onClick={() => {
@@ -100,7 +101,7 @@ export default function TransferStockUnitDialog({
             );
           }}
         >
-          Transfer
+          {t("Transfer")}
         </Button>
       </DialogActions>
     </Dialog>

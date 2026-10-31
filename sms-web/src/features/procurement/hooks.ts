@@ -67,8 +67,8 @@ export function useUpdateSupplier() {
 
 export function useSetSupplierActive() {
   return useInvalidatingMutation(
-    ({ id, active }: { id: string; active: boolean }) =>
-      active ? suppliersApi.activate(id) : suppliersApi.deactivate(id),
+    ({ id }: { id: string; active?: boolean }) =>
+      suppliersApi.toggleActive(id),
     [SUPPLIERS_KEY],
   );
 }
@@ -88,10 +88,10 @@ export function useAddSupplierContact(id: string) {
   );
 }
 
-export function useDeactivateSupplierContact(id: string) {
+export function useDeactivateSupplierContact(supplierId: string) {
   return useInvalidatingMutation(
-    (contactId: string) => suppliersApi.deactivateContact(contactId),
-    [contactsKey(id)],
+    (contactId: string) => suppliersApi.deleteContact(supplierId, contactId),
+    [contactsKey(supplierId)],
   );
 }
 
@@ -169,6 +169,14 @@ export function useCancelPurchaseOrder(id: string) {
   return useInvalidatingMutation(
     (reason: string | undefined) => purchaseOrdersApi.cancel(id, reason),
     [poKey(id), POS_KEY],
+  );
+}
+
+export function useBulkUpdatePurchaseOrders() {
+  return useInvalidatingMutation(
+    (input: { ids: string[]; action: string; reason?: string }) =>
+      purchaseOrdersApi.bulkUpdateStatus(input),
+    [POS_KEY],
   );
 }
 

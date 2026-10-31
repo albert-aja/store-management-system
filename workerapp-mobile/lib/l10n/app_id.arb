@@ -1,0 +1,1501 @@
+{
+  "@@locale": "id",
+  "perMonth": "/ bulan",
+  "morning": "Pagi",
+  "goods": "Barang",
+  "none": "Tidak Ada",
+  "notification": "Notifikasi",
+  "open": "Terbuka",
+  "submitted": "Dikirim",
+  "recount": "Perlu Hitung Ulang",
+  "matched": "Sesuai",
+  "uncounted": "Belum Dihitung",
+  "missing": "Kurang",
+  "unexpected": "Tidak Sesuai",
+  "kept": "Ditepati",
+  "broken": "Tidak Ditepati",
+  "inTransit": "Dalam Perjalanan",
+  "unknown": "Tidak Diketahui",
+  "recipient": "Penerima",
+  "compensation": "Kompensasi",
+  "logistics": "Logistik",
+  "finance": "Keuangan",
+  "worker": "Pekerja",
+  "supervisor": "Supervisor",
+  "annual": "Cuti Tahunan",
+  "sick": "Cuti Sakit",
+  "maternity": "Cuti Melahirkan / Ayah",
+  "other": "Lainnya",
+  "incomeDefault": "Layak untuk kredit angsuran 12 bulan.",
+  "morningWindow": "Pagi (09:00–12:00 WIB)",
+  "afternoonWindow": "Siang (12:00–17:00 WIB)",
+  "deliveryWindowValue": "Rentang pengiriman: {window}",
+  "noNotes": "Tanpa catatan",
+  "notAssigned": "Belum ditugaskan",
+  "productItem": "Barang Produk",
+  "noSession": "TANPA SESI",
+  "noDp": "Tanpa DP untuk HD < Rp 5jt",
+  "priceBracket": "Sesuai tingkat harga",
+  "taskLabel": "TUGAS",
+  "formulaPrincipal": "(HD - DP) + Rp 30.000",
+  "formulaRounding": "Round(h4 / 5.000) × 5.000 + 5.000",
+  "removePhoto": "Hapus foto",
+  "capturePhoto": "Ambil foto {category}",
+  "signatureCanvas": "Area menggambar tanda tangan",
+  "navigationPreferenceInvalid": "Pilihan aplikasi navigasi tersimpan tidak valid. Pilih aplikasi navigasi lagi.",
+  "navigationGpsInvalid": "GPS tujuan tidak valid. Minta petugas pengiriman memperbaiki titik ini.",
+  "navigationUnsupported": "{app} tidak didukung pada platform ini.",
+  "navigationStopRequired": "Perjalanan dan titik pengiriman wajib diisi.",
+  "navigationAppUnavailable": "{app} tidak tersedia. Pasang atau pilih aplikasi navigasi lain.",
+  "navigationOpenFailed": "{app} gagal dibuka. Coba lagi.",
+  "navigationPreferenceSaveFailed": "Navigasi terbuka, tetapi pilihan aplikasi gagal disimpan.",
+  "gpsEnable": "Aktifkan layanan lokasi perangkat dan coba lagi.",
+  "gpsDenied": "Izin lokasi ditolak.",
+  "gpsBlocked": "Izin lokasi diblokir. Aktifkan di pengaturan sistem.",
+  "requestFailed": "Tindakan gagal diselesaikan. Periksa koneksi dan coba lagi.",
+  "deliverySignIn": "Masuk untuk memuat perjalanan pengiriman Anda.",
+  "deliveryNotAssigned": "Perjalanan yang diminta tidak ditugaskan ke pengemudi ini.",
+  "deliveryTripInvalid": "Respons perjalanan pengiriman tidak valid.",
+  "deliveryStopInvalid": "Respons titik pengiriman tidak valid.",
+  "deliveryTripsFailed": "Perjalanan pengiriman gagal dimuat. Periksa akses atau koneksi.",
+  "deliveryStopsFailed": "Titik pengiriman gagal dimuat. Periksa akses atau koneksi.",
+  "showPassword": "Tampilkan kata sandi",
+  "hidePassword": "Sembunyikan kata sandi",
+  "photoCaptured": "{count} / {total} Terekam",
+  "photoProofTitle": "Bukti {category}",
+  "navigate": "Navigasi",
+  "navigateWithApp": "Navigasi - {app}",
+  "present": "Hadir",
+  "late": "Terlambat",
+  "onLeave": "Cuti",
+  "halfDay": "Setengah Hari",
+  "absent": "Tidak Hadir",
+  "pending": "Menunggu",
+  "approved": "Disetujui",
+  "rejected": "Ditolak",
+  "completed": "Selesai",
+  "planned": "Direncanakan",
+  "dispatched": "Diberangkatkan",
+  "delivered": "Terkirim",
+  "failed": "Gagal",
+  "assigned": "Ditugaskan",
+  "paid": "Dibayar",
+  "unpaid": "Belum Dibayar",
+  "inProgress": "Dalam Proses",
+  "draft": "Draf",
+  "confirmed": "Dikonfirmasi",
+  "surveyRejected": "Survei Ditolak",
+  "handedOver": "Diserahkan",
+  "cashVerified": "Uang Terverifikasi",
+  "vipCash": "VIP Tunai",
+  "starCredit": "Kredit Unggulan",
+  "highRisk": "Risiko Tunggakan Tinggi",
+  "general": "Umum",
+  "notificationPause": "Perlu dilanjutkan secara manual",
+  "trackingTitle": "Telematika Lapangan SMS Aktif",
+  "trackingBounded": "Pelacakan terbatas pada tugas operasional yang ditugaskan",
+  "trackingNotStarted": "Tugas belum dimulai",
+  "trackingComplete": "Tugas selesai",
+  "trackingBreak": "Istirahat terjadwal",
+  "trackingManual": "Pelacakan dijeda",
+  "trackingThermal": "Penghentian untuk keamanan suhu",
+  "trackingLowBattery": "Baterai lemah; frekuensi GPS dikurangi",
+  "trackingActive": "Pelacakan GPS aktif",
+  "trackingSystemPause": "Jeda cepat melalui tindakan notifikasi sistem",
+  "trackingLunch": "Jeda otomatis istirahat makan siang",
+  "trackingResume": "Dilanjutkan secara manual oleh pegawai",
+  "simulationTitle": "📋 *SIMULASI KREDIT TOKO SMS*",
+  "simulationProduct": "Produk: *{product}*",
+  "simulationPrice": "Harga Dasar: *{price}*",
+  "simulationDp": "Uang Muka (DP): *{amount}* ({percentage}%)",
+  "simulationOptions": "PILIHAN ANGSURAN BULANAN:",
+  "simulationTerm": "• *{months} Bulan*: {amount} / bln",
+  "simulationTotal": "   (Total: {total}, Hemat Diskon: {saved}/bln)",
+  "simulationDiscount": "💡 *Diskon 15% insentif pembayaran lancar sudah termasuk dalam angsuran.*",
+  "language": "Bahasa",
+  "appTitle": "Portal Pekerja SMS",
+  "languagePersistenceFailed": "Pilihan bahasa gagal dimuat atau disimpan. Pilih ID/EN untuk mencoba lagi.",
+  "message1": "Jeda Pelacakan Manual",
+  "message2": "Masukkan alasan khusus untuk menjeda pelacakan GPS (mis. perbaikan kendaraan, ban kempes, keadaan darurat):",
+  "message3": "Alasan Jeda",
+  "message4": "mis. Ban kempes, sedang ganti ban",
+  "message5": "Batal",
+  "message6": "Jeda Pelacakan",
+  "message7": "🎯 Peringatan Kedekatan",
+  "message8": "Berjarak {arg0} m",
+  "@message8": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message9": "Tutup",
+  "message10": "Pelacakan GPS Siaga • Aktif hanya saat tugas dimulai",
+  "message11": "Tugas Operasional & Pelacakan GPS Selesai",
+  "message12": "Penghentian Akibat Panas Aktif ({arg0}°C > 45°C)",
+  "@message12": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message13": "Pengiriman GPS berkala dihentikan agar baterai tidak terlalu panas di bawah sinar matahari. Otomatis dilanjutkan setelah suhu <=40°C.",
+  "message14": "GPS Dijeda — Waktu Istirahat Terjadwal",
+  "message15": "Tidak ada koordinat yang dikumpulkan selama istirahat (UU PDP No. 27/2022).",
+  "message16": "Pelacakan Dijeda: {arg0}",
+  "@message16": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message17": "Lanjutkan",
+  "message18": "Pelacakan GPS Aktif",
+  "message19": "Terbatas pada tugas • Baterai Lemah ({arg0}%) • {arg1}°C • Interval 60 dtk",
+  "@message19": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message20": "Terbatas pada tugas • {arg0} km/jam • {arg1}°C • {arg2} pengiriman",
+  "@message20": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "message21": "Jeda Cepat",
+  "message22": "Alasan...",
+  "message23": "Panel Notifikasi: {arg0}",
+  "@message23": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message24": "TUTUP PERINGATAN",
+  "message25": "JEDA DARI NOTIFIKASI",
+  "message26": "LANJUTKAN DARI NOTIFIKASI",
+  "message27": "Pindai Kode Batang / QR",
+  "message28": "Arahkan kode batang nomor seri atau QR ke dalam bingkai",
+  "message29": "Kamera tidak tersedia: {arg0}",
+  "@message29": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message30": "Gagal mengubah lampu kilat: {arg0}",
+  "@message30": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message31": "Nyalakan/matikan lampu kilat",
+  "message32": "Masukkan kode secara manual",
+  "message33": "Masukkan",
+  "message34": "Bukti Foto Lapangan",
+  "message35": "Ketuk untuk memotret",
+  "message36": "Penanda tangan: {arg0}",
+  "@message36": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message37": "Tanda tangani di atas garis dengan jari atau stylus",
+  "message38": "Hapus",
+  "message39": "Terapkan Tanda Tangan",
+  "message40": "Masukkan alasan pengajuan cuti",
+  "message41": "Pengajuan cuti dikirim ke Manajer Toko untuk persetujuan",
+  "message42": "Gagal mengajukan cuti",
+  "message43": "Kehadiran & Cuti",
+  "message44": "Perbarui",
+  "message45": "Riwayat Kehadiran",
+  "message46": "Ajukan Cuti",
+  "message47": "Tidak ada riwayat kehadiran.",
+  "message48": "Masuk: {arg0}  •  Pulang: {arg1}",
+  "@message48": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message49": "Formulir Pengajuan Cuti",
+  "message50": "Kategori Cuti",
+  "message51": "Cuti Tahunan (Berbayar)",
+  "message52": "Cuti Sakit (Surat Dokter)",
+  "message53": "Cuti Tidak Berbayar / Izin",
+  "message54": "Cuti Melahirkan / Ayah",
+  "message55": "Cuti Khusus / Kedukaan",
+  "message56": "Tanggal Mulai",
+  "message57": "Tanggal Selesai",
+  "message58": "Alasan & Keterangan",
+  "message59": "Jelaskan keperluan dan pengalihan tugas...",
+  "message60": "Kirim Pengajuan untuk Persetujuan",
+  "message61": "Masukkan email dan kata sandi",
+  "message62": "Aplikasi Pekerja SMS",
+  "message63": "Operasional lapangan, tugas, kehadiran & data pribadi",
+  "message64": "Email Kerja",
+  "message65": "Kata Sandi",
+  "message66": "Masuk ke Ruang Kerja Pekerja",
+  "message67": "Peran Demo Cepat:",
+  "message68": "Pengemudi",
+  "message69": "Petugas Survei",
+  "message70": "Penagih",
+  "message71": "Pramuniaga",
+  "message72": "Manajer",
+  "message73": "Pembantu",
+  "message74": "Kebijakan Tingkat Komisi & Target Penjualan (2026)",
+  "message75": "Komisi penjualan berdasarkan tingkat, dihitung dari pesanan terkonfirmasi. Konfirmasi mencakup persetujuan pelanggan dan DP bila berlaku. Tarif tingkat yang tercapai berlaku pada seluruh nilai yang memenuhi syarat.",
+  "message76": "SOP Pemeriksaan Kendaraan & Barang Sebelum Pengiriman",
+  "message77": "Pengemudi dan pembantu wajib melengkapi daftar pemeriksaan sebelum berangkat: ban, rem, bahan bakar, tali pengikat, serta kecocokan nomor seri unit dengan Surat Jalan.",
+  "message78": "Kebijakan Penyimpanan & Serah Terima Uang Pekerja Lapangan",
+  "message79": "Semua uang dari pengiriman COD dan kunjungan lapangan disimpan penagih hingga diverifikasi secara fisik oleh kasir toko. Selisih kurang/lebih wajib didokumentasikan.",
+  "message80": "Standar Survei Kredit & Wewenang Keputusan",
+  "message81": "Petugas survei berwenang menentukan kelayakan kredit pelanggan. Verifikasi kepemilikan tempat tinggal, tagihan listrik, dan dokumen identitas asli.",
+  "message82": "Pedoman Batas Akhir Periode Penjualan Nonkalender",
+  "message83": "SDM / GAJI",
+  "message84": "Periode kompensasi berakhir pada hari Minggu yang mencakup tanggal terakhir bulan target. Pembayaran diproses pada hari Senin setelah batas akhir.",
+  "message85": "Pengumuman & SOP Kantor",
+  "message86": "Cari aturan, pedoman, tingkat komisi...",
+  "message87": "Penagihan belum tercatat; GPS tidak tersedia: {arg0}",
+  "@message87": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message88": "Kunjungan Penagihan Lapangan",
+  "message89": "Hasil penagihan lapangan tercatat: {arg0} dengan verifikasi GPS",
+  "@message89": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message90": "Gagal mencatat upaya penagihan",
+  "message91": "Serahkan Uang ke Kasir",
+  "message92": "Konfirmasi penyerahan Rp {arg0} kepada kasir toko? Status menjadi Diserahkan sambil menunggu verifikasi kasir.",
+  "@message92": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message93": "Uang yang disimpan berhasil diserahkan kepada kasir!",
+  "message94": "Konfirmasi Serah Terima",
+  "message95": "Kunjungan Penagihan Lapangan",
+  "message96": "Uang yang Disimpan:",
+  "message97": "Serahkan Uang",
+  "message98": "Akun: REC/JKT/10/2026/0088",
+  "message99": "TERLAMBAT 14 HARI",
+  "message100": "Telepon: 0811-2233-4455  •  Angsuran #3 dari 12",
+  "message101": "Alamat: Jl. Pancoran Barat III No. 22, RT 04/RW 02",
+  "message102": "Jumlah Angsuran Tertunggak:",
+  "message103": "Buka Profil Pelanggan 360 & Riwayat CRM",
+  "message104": "Catat Hasil Kunjungan",
+  "message105": "Klasifikasi Hasil",
+  "message106": "Lunas (Penyerahan Tunai)",
+  "message107": "Dibayar melalui Transfer Bank",
+  "message108": "Janji Bayar (Tanggal PTP)",
+  "message109": "Pelanggan Tidak di Rumah",
+  "message110": "Menolak Pembayaran / Sengketa",
+  "message111": "Jumlah Diterima (Rp)",
+  "message112": "Tanda Terima Pembayaran Angsuran",
+  "message113": "Tanda Tangan Pembayar Terekam",
+  "message114": "Tanda Tangan Pembayaran Pelanggan",
+  "message115": "Tanggal Janji Bayar",
+  "message116": "Bukti Lokasi",
+  "message117": "Bukti Pembayaran",
+  "message118": "Catatan Penagih & Bukti Lapangan",
+  "message119": "Jelaskan hasil percakapan, kendala, pernyataan pelanggan...",
+  "message120": "Simpan Catatan Kunjungan Lapangan",
+  "message121": "Catat Janji Bayar (PTP)",
+  "message122": "Nominal Janji Bayar (Rp)",
+  "message123": "Tanggal Janji Bayar",
+  "message124": "Ubah",
+  "message125": "Catatan / Alasan Nasabah",
+  "message126": "Simpan Janji Bayar",
+  "message127": "Masukkan nominal janji bayar yang valid",
+  "message128": "Janji bayar berhasil dicatat & masuk antrean sinkronisasi",
+  "message129": "Kunjungan Lapangan / Tindak Lanjut",
+  "message130": "Riwayat Interaksi / Kunjungan",
+  "message131": "Kanal Komunikasi",
+  "message132": "Kunjungan Langsung",
+  "message133": "Panggilan Telepon",
+  "message134": "Chat WhatsApp",
+  "message135": "Hasil Interaksi",
+  "message136": "Terhubung / Ditemui",
+  "message137": "Menyepakati Janji Bayar",
+  "message138": "Tidak Ada Jawaban / Rumah Kosong",
+  "message139": "Menolak / Komplain",
+  "message140": "Perihal",
+  "message141": "Catatan Lengkap Pembicaraan",
+  "message142": "Simpan Riwayat Interaksi",
+  "message143": "Interaksi CRM berhasil disimpan",
+  "message144": "CRM Pelanggan 360",
+  "message145": "Perbarui Data",
+  "message146": "Data nasabah tidak ditemukan",
+  "message147": "NIK: {arg0} • {arg1}",
+  "@message147": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message148": "Skor {arg0}/100",
+  "@message148": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message149": "Nilai Pelanggan Sepanjang Masa",
+  "message150": "Saldo Kredit Toko",
+  "message151": "Janji Bayar Aktif",
+  "message152": "{arg0} PTP",
+  "@message152": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message153": "Total Pesanan Selesai",
+  "message154": "{arg0} Pesanan",
+  "@message154": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message155": "Catat Janji Bayar",
+  "message156": "Riwayat Interaksi",
+  "message157": "Tag Demografis & Karakteristik",
+  "message158": "Daftar Janji Bayar (PTP)",
+  "message159": "Belum ada janji bayar tercatat",
+  "message160": "Jatuh Tempo: {arg0}\n{arg1}",
+  "@message160": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message161": "Riwayat Interaksi CRM Terakhir",
+  "message162": "Belum ada riwayat interaksi",
+  "message163": "Hasil: {arg0}\n{arg1}",
+  "@message163": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message164": "Pesanan pengiriman mengembalikan data tidak valid.",
+  "message165": "Pesanan pengiriman tidak tersedia: {arg0}",
+  "@message165": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message166": "Pesanan Pengiriman",
+  "message167": "{arg0}\nStatus: {arg1}",
+  "@message167": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message168": "Alasan kegagalan",
+  "message169": "Daftar barang kemasan",
+  "message170": "Produk",
+  "message171": "Nomor seri: {arg0}",
+  "@message171": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message172": "Kembali ke daftar perjalanan. Navigasi tidak mengonfirmasi kedatangan atau pengiriman.",
+  "message173": "Pindai Kode Batang Pengiriman",
+  "message174": "Pindai QR Surat Jalan atau Nomor Seri Unit Stok",
+  "message175": "Kode batang terverifikasi: {arg0}",
+  "@message175": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message176": "Konfirmasi Serah Terima Pengiriman",
+  "message177": "Surat Jalan: {arg0}",
+  "@message177": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message178": "Nama Lengkap Penerima",
+  "message179": "Telepon Penerima",
+  "message180": "Uang COD Diterima (Rp)",
+  "message181": "Serah Terima Surat Jalan {arg0}",
+  "@message181": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message182": "Tanda Tangan Terekam",
+  "message183": "Tanda Tangan Digital Pelanggan",
+  "message184": "Serah Terima Barang",
+  "message185": "Surat Jalan Ditandatangani",
+  "message186": "Pengiriman belum dikonfirmasi; GPS tidak tersedia: {arg0}",
+  "@message186": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message187": "Serah terima terverifikasi melalui GPS [{arg0}, {arg1}]. Tanda tangan terekam: {arg2}. Foto: {arg3}",
+  "@message187": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      },
+      "arg3": {
+        "type": "String"
+      }
+    }
+  },
+  "message188": "Pengiriman dikonfirmasi.",
+  "message189": "Pengiriman belum dikonfirmasi server. Periksa koneksi dan coba lagi.",
+  "message190": "Laporkan Kegagalan Pengiriman",
+  "message191": "Alasan Kegagalan",
+  "message192": "Pelanggan Tidak Dapat Dihubungi / Tidak di Rumah",
+  "message193": "Alamat Salah / Tidak Lengkap",
+  "message194": "Pelanggan Menolak Barang",
+  "message195": "Barang Rusak dalam Perjalanan",
+  "message196": "Catatan Operasional",
+  "message197": "Bukti Kegagalan Pengiriman",
+  "message198": "Kegagalan belum dilaporkan; GPS tidak tersedia: {arg0}",
+  "@message198": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message199": "{arg0} GPS: {arg1}, {arg2}. Foto bukti kegagalan: {arg3}.",
+  "@message199": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      },
+      "arg3": {
+        "type": "String"
+      }
+    }
+  },
+  "message200": "Laporan kegagalan dikirim. Petugas pengiriman harus menjadwalkan ulang.",
+  "message201": "Laporan belum disimpan: {arg0}",
+  "@message201": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message202": "Kirim Laporan Kegagalan",
+  "message203": "Pelaksanaan Perjalanan Pengemudi",
+  "message204": "Perjalanan: {arg0}",
+  "@message204": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message205": "Pemindai Kode Batang",
+  "message206": "Kendaraan belum ditugaskan",
+  "message207": "Tidak ada perjalanan dimuat",
+  "message208": "{arg0} / {arg1} Titik Pengiriman",
+  "@message208": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message209": "Saldo Uang COD yang Disimpan:",
+  "message210": "Tidak ada titik pengiriman aktif untuk perjalanan ini.",
+  "message211": "Titik #{arg0}  •  {arg1}",
+  "@message211": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message212": "Telepon: {arg0}",
+  "@message212": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message213": "Alamat: {arg0}",
+  "@message213": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message214": "Rentang pengiriman: {arg0} WIB",
+  "@message214": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message215": "{arg0} (NS: {arg1})",
+  "@message215": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message216": "Verifikasi Kode Batang Nomor Seri",
+  "message217": "Penagihan COD Diperlukan: Rp {arg0}",
+  "@message217": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message218": "Gagal / Ditolak",
+  "message219": "Serah Terima Selesai",
+  "message220": "Pilihan navigasi gagal dimuat: {arg0}",
+  "@message220": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message221": "Navigasi tidak tersedia dalam versi aplikasi ini.",
+  "message222": "Hanya GPS tujuan dibagikan ke aplikasi navigasi pilihan Anda. Pilihan disimpan untuk navigasi sekali ketuk. Kembali melalui callback Maps atau tombol Kembali/pengalih aplikasi sistem.",
+  "message223": "Navigasi gagal dibuka: {arg0}",
+  "@message223": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message224": "Navigasi tidak tersedia: GPS tujuan kosong atau tidak valid. Minta petugas pengiriman memberikan koordinat terverifikasi.",
+  "message225": "Navigasi eksternal memerlukan Android atau iOS.",
+  "message226": "Membuka navigasi...",
+  "message227": "Pilih aplikasi navigasi",
+  "message228": "Berhasil mencatat pulang hari ini",
+  "message229": "Di Luar Batas GPS Toko",
+  "message230": "Posisi GPS Anda ({arg0}) di luar batas toko yang diizinkan (200 m). Catat masuk di dalam bangunan toko.",
+  "@message230": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message231": "OK",
+  "message232": "GPS Terverifikasi: [{arg0}, {arg1}] (Akurasi: {arg2} m)",
+  "@message232": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "message233": "Batas GPS Terverifikasi: Masuk tercatat (Hadir di toko)",
+  "message234": "Identitas biometrik dikonfirmasi (Sidik Jari / Face ID terverifikasi)",
+  "message235": "Aplikasi Pekerja",
+  "message236": "Notifikasi Tindak Lanjut",
+  "message237": "Verifikasi Biometrik",
+  "message238": "Keluar",
+  "message239": "{arg0} Tindakan Luring dalam Antrean",
+  "@message239": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message240": "Sinkronisasi otomatis di latar belakang saat terhubung",
+  "message241": "Sinkronkan Sekarang",
+  "message242": "Sudah Masuk (Hadir)",
+  "message243": "Kehadiran Harian",
+  "message244": "Terverifikasi: {arg0}",
+  "@message244": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message245": "Memerlukan Pemeriksaan Batas GPS",
+  "message246": "Catat Pulang",
+  "message247": "Catat Masuk",
+  "message248": "Pekerjaan Aktif Saya",
+  "message249": "Antrean Survei Kredit",
+  "message250": "{arg0} survei • Bukti Foto KTP/KK/GPS",
+  "@message250": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message251": "{arg0} MENUNGGU",
+  "@message251": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message252": "Perjalanan Pengiriman Aktif",
+  "message253": "{arg0} • {arg1} Titik Pengiriman • Kode Batang & Tanda Tangan",
+  "@message253": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message254": "Kunjungan Penagihan Lapangan",
+  "message255": "{arg0} akun • Tunai: Rp {arg1}",
+  "@message255": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message256": "{arg0} JATUH TEMPO",
+  "@message256": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message257": "Penjualan & Tindak Lanjut Pelanggan",
+  "message258": "Pesanan terkonfirmasi memenuhi syarat pengakuan komisi",
+  "message259": "Tugas Pembantu yang Ditugaskan",
+  "message260": "Memuat truk pengiriman • Persiapan ruang pamer",
+  "message261": "Data Pribadi & Perusahaan",
+  "message262": "Riwayat Batas GPS",
+  "message263": "Slip Gaji Saya",
+  "message264": "Gaji & komisi",
+  "message265": "Pengumuman Kantor",
+  "message266": "Aturan, SOP & target",
+  "message267": "Pusat Tugas Saya",
+  "message268": "Semua tugas yang ditugaskan",
+  "message269": "Stock Opname Seluler",
+  "message270": "Pindai dan bandingkan saldo pembukuan",
+  "message271": "Pengambilan Barang Gudang",
+  "message272": "Verifikasi nomor seri daftar barang",
+  "message273": "Sesi stock opname mengembalikan data tidak valid.",
+  "message274": "Sesi stock opname tidak tersedia: {arg0}",
+  "@message274": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message275": "Hitungan ditinjau",
+  "message276": "Hitungan ditolak untuk dihitung ulang",
+  "message277": "Stock opname ditinjau. Persediaan tidak berubah.",
+  "message278": "Stock opname ditolak untuk dihitung ulang.",
+  "message279": "Peninjauan gagal: {arg0}",
+  "@message279": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message280": "Tinjau Stock Opname",
+  "message281": "Status: {arg0} • {arg1} selisih",
+  "@message281": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message282": "Produk tidak diketahui",
+  "message283": "Tolak / Hitung Ulang",
+  "message284": "Setujui Peninjauan",
+  "message285": "Sesi stock opname tersimpan gagal dibaca: {arg0}",
+  "@message285": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message286": "Profil Anda belum ditugaskan ke toko.",
+  "message287": "Saldo pembukuan gagal dimuat: {arg0}",
+  "@message287": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message288": "Tidak ada sesi server. Hubungkan dan mulai sesi sebelum mengirim.",
+  "message289": "Pengajuan stock opname mengembalikan data tidak valid.",
+  "message290": "Hitungan dikirim untuk ditinjau supervisor. Persediaan tidak berubah.",
+  "message291": "Hitungan belum dikirim; hasil pindai lokal disimpan: {arg0}",
+  "@message291": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message292": "Pindai Stock Opname",
+  "message293": "Pindai nomor seri unit stok. Input manual tersedia.",
+  "message294": "Pindaian duplikat diabaikan: {arg0}",
+  "@message294": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message295": "Pindai Unit",
+  "message296": "Hitung tanpa melihat saldo",
+  "message297": "{arg0} dipindai • {arg1}",
+  "@message297": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message298": "Persediaan seharusnya tetap tersembunyi. Hasil pindai disimpan di perangkat saat luring. Pengajuan ditinjau supervisor dan tidak pernah menyesuaikan persediaan.",
+  "message299": "Kirim untuk peninjauan supervisor",
+  "message300": "Mulai sesi baru",
+  "message301": "Nomor seri dipindai ({arg0})",
+  "@message301": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message302": "Daftar pengambilan mengembalikan data tidak valid.",
+  "message303": "Daftar pengambilan tidak tersedia: {arg0}",
+  "@message303": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message304": "Tidak ada nomor seri unit stok ditugaskan ke {arg0}.",
+  "@message304": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message305": "Verifikasi Daftar Kemasan",
+  "message306": "Pindai {arg0} nomor seri unit stok untuk {arg1}",
+  "@message306": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message307": "Nomor seri tidak sesuai untuk {arg0}: {arg1}",
+  "@message307": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message308": "Server belum mengonfirmasi verifikasi kemasan.",
+  "message309": "Kemasan {arg0} terverifikasi.",
+  "@message309": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message310": "Verifikasi kemasan gagal: {arg0}",
+  "@message310": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message311": "Panduan Pengambilan & Pengemasan",
+  "message312": "Perbarui daftar barang",
+  "message313": "{arg0} / {arg1} daftar barang terverifikasi",
+  "@message313": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message314": "Tidak ada daftar pengiriman menunggu.",
+  "message315": "Daftar Produk",
+  "message316": "Pelanggan: {arg0}",
+  "@message316": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message317": "Unit seharusnya: {arg0}",
+  "@message317": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message318": "Daftar barang terverifikasi",
+  "message319": "{arg0} / {arg1} dipindai",
+  "@message319": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message320": "Pindai",
+  "message321": "Notifikasi mengembalikan data tidak valid.",
+  "message322": "Notifikasi tidak tersedia: {arg0}",
+  "@message322": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message323": "Notifikasi gagal ditandai dibaca: {arg0}",
+  "@message323": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message324": "Tahapan persetujuan mengembalikan data tidak valid.",
+  "message325": "Tidak ditemukan tahap persetujuan menunggu.",
+  "message326": "Diputuskan dari notifikasi seluler",
+  "message327": "Persetujuan tercatat.",
+  "message328": "Penolakan tercatat.",
+  "message329": "Tindakan persetujuan gagal: {arg0}",
+  "@message329": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message330": "Coba Lagi",
+  "message331": "Tidak ada notifikasi.",
+  "message332": "Buka dokumen",
+  "message333": "Tolak",
+  "message334": "Setujui",
+  "message335": "Gaji & Kompensasi Saya",
+  "message336": "Belum ada slip gaji.",
+  "message337": "Batas Akhir: {arg0} • Pembayaran: {arg1}",
+  "@message337": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message338": "Total Pembayaran Bersih (Transfer)",
+  "message339": "Dibayarkan melalui Rekening Gaji BCA",
+  "message340": "Rincian Pendapatan & Komisi",
+  "message341": "Gaji Pokok (Prorata)",
+  "message342": "Komisi Penjualan Terkonfirmasi",
+  "message343": "Insentif Pemulihan Penagihan",
+  "message344": "Tunjangan Operasional & Bahan Bakar",
+  "message345": "Pendapatan Kotor",
+  "message346": "Potongan & Penyesuaian",
+  "message347": "Potongan Kehadiran & Keterlambatan",
+  "message348": "Total Potongan",
+  "message349": "Produk Katalog",
+  "message350": "Simulasi Produk",
+  "message351": "Gagal mencari katalog: {arg0}",
+  "@message351": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message352": "Simulasi kredit disalin! Siap dikirim ke WhatsApp/pembeli.",
+  "message353": "Kalkulator Kredit & Simulasi",
+  "message354": "Salin Penawaran (WhatsApp)",
+  "message355": "Atur Ulang Input",
+  "message356": "Hitung simulasi angsuran kredit sesuai kondisi khusus pembeli (DP 10%, nominal bebas, atau tenor fleksibel).",
+  "message357": "Sumber Produk",
+  "message358": "Input Bebas",
+  "message359": "Katalog Toko",
+  "message360": "Kode: {arg0}",
+  "@message360": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message361": "Cari nama / kode produk...",
+  "message362": "Cari",
+  "message363": "Nama Produk / Paket (Opsional)",
+  "message364": "Contoh: Smart TV 43\" UHD / Paket Sofa L",
+  "message365": "Harga Dasar (HD / OTR Tunai)",
+  "message366": "Nominal Harga Dasar",
+  "message367": "+500 Rb",
+  "message368": "+1 Jt",
+  "message369": "+2 Jt",
+  "message370": "+5 Jt",
+  "message371": "Uang Muka (DP)",
+  "message372": "Standar",
+  "message373": "Persen (%)",
+  "message374": "Nominal (Rp)",
+  "message375": "Rekomendasi sistem: {arg0} ({arg1})",
+  "@message375": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message376": "Pilih Persentase DP: {arg0}% = {arg1}",
+  "@message376": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message377": "Nominal DP yang disepakati pembeli",
+  "message378": "Contoh: 750000",
+  "message379": "Setara dengan {arg0}% dari Harga Dasar",
+  "@message379": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message380": "Pokok Pembiayaan Bersih (h1):",
+  "message381": "{arg0} (termasuk biaya Rp 30rb)",
+  "@message381": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message382": "Diskon Lancar 15%",
+  "message383": "Pilihan Tenor & Angsuran",
+  "message384": "{arg0} Opsi Tersedia",
+  "@message384": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message385": "{arg0} Bulan",
+  "@message385": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message386": "Total Bayar: {arg0}",
+  "@message386": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message387": "Hemat Rp {arg0}rb/bln (Diskon 15%)",
+  "@message387": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message388": "Rincian Rumus Ritel (Standar Perusahaan)",
+  "message389": "Rincian langkah perhitungan untuk tenor {arg0} bulan",
+  "@message389": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message390": "1. Pokok Bersih (h1)",
+  "message391": "2. Bunga Flat (h2)",
+  "message392": "h1 × (1 + 4% × {arg0} bln)",
+  "@message392": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message393": "3. Angsuran Kotor (h3)",
+  "message394": "{arg0}/bln",
+  "@message394": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message395": "4. Diskon Disiplin (h4)",
+  "message396": "h3 × 85% (Diskon 15%)",
+  "message397": "5. Hasil Akhir",
+  "message398": "Salin Simulasi untuk WhatsApp",
+  "message399": "Gunakan Tenor {arg0} Bulan ({arg1}/bln)",
+  "@message399": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message400": "Pesanan penjualan mengembalikan data tidak valid.",
+  "message401": "Pesanan penjualan tidak tersedia: {arg0}",
+  "@message401": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message402": "Pesanan Penjualan",
+  "message403": "Pelanggan",
+  "message404": "Status: {arg0}",
+  "@message404": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message405": "Barang",
+  "message406": "Jumlah: {arg0}",
+  "@message406": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message407": "Total penawaran",
+  "message408": "Progres penjualan tidak tersedia. Periksa akses atau koneksi.",
+  "message409": "Masukkan nama atau telepon pelanggan untuk mencari.",
+  "message410": "Pencarian pelanggan mengembalikan data tidak valid.",
+  "message411": "Pencarian pelanggan gagal: {arg0}",
+  "@message411": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message412": "Draf penawaran gagal dibuat: {arg0}",
+  "@message412": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message413": "Masukkan nama atau kode produk untuk mencari.",
+  "message414": "Pencarian produk mengembalikan data tidak valid.",
+  "message415": "Pencarian produk gagal: {arg0}",
+  "@message415": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message416": "Tidak ada varian produk aktif.",
+  "message417": "Tidak ada harga toko aktif untuk produk ini.",
+  "message418": "Item penawaran mengembalikan data tidak valid.",
+  "message419": "{arg0} ditambahkan ke draf penawaran.",
+  "@message419": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message420": "Produk gagal ditambahkan ke penawaran: {arg0}",
+  "@message420": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message421": "Simulasi: {arg0} ({arg1} bln @ {arg2}/bln)",
+  "@message421": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "message422": "Simulasi {arg0}: {arg1} bln @ {arg2}/bln",
+  "@message422": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "message423": "Pusat Kerja Pramuniaga",
+  "message424": "Progres penjualan tidak tersedia",
+  "message425": "{arg0} pesanan terkonfirmasi bulan ini",
+  "@message425": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message426": "Perbarui progres",
+  "message427": "Aktual: {arg0} / Target: {arg1} ({arg2}%)",
+  "@message427": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "message428": "Perkiraan Komisi: {arg0}",
+  "@message428": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message429": "Kalkulator & Simulasi Kredit",
+  "message430": "Hitung simulasi angsuran dengan DP khusus (10%, nominal bebas, atau tenor khusus).",
+  "message431": "Buka",
+  "message432": "Cari pelanggan",
+  "message433": "Draf penawaran: {arg0}",
+  "@message433": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message434": "Nama atau telepon pelanggan",
+  "message435": "Cari Pelanggan",
+  "message436": "Buat draf penawaran",
+  "message437": "Nama atau kode produk",
+  "message438": "Cari Produk",
+  "message439": "Simulasi kredit produk ini",
+  "message440": "Tambah satu unit dengan harga tunai toko",
+  "message441": "Survei Lokasi Nasabah",
+  "message442": "Lokasi GPS gagal direkam: {arg0}",
+  "@message442": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message443": "Konfirmasi Survei {arg0}?",
+  "@message443": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message444": "Ini akan menyetujui kelayakan kredit pelanggan dan melanjutkan pesanan penjualan ke konfirmasi.",
+  "message445": "Ini akan menolak kelayakan kredit dan menetapkan status akhir pesanan menjadi Survei Ditolak.",
+  "message446": "Konfirmasi Persetujuan",
+  "message447": "Konfirmasi Penolakan",
+  "message448": "Keputusan survei belum dikirim; GPS tidak tersedia: {arg0}",
+  "@message448": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message449": "Profil survei belum disimpan. Periksa koneksi dan coba lagi.",
+  "message450": "Keputusan survei kredit tercatat: {arg0} dengan GPS & {arg1} foto",
+  "@message450": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message451": "Gagal mengirim keputusan survei",
+  "message452": "Penilaian Survei Kredit",
+  "message453": "ID Survei: {arg0}",
+  "@message453": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message454": "NIK: 3171021405880003  •  Telepon: 0812-8899-7711",
+  "message455": "Alamat: Jl. Tebet Barat Dalam VII No. 4, Jakarta Selatan",
+  "message456": "Profil Lokasi Pengiriman",
+  "message457": "GPS tujuan belum direkam",
+  "message458": "GPS: {arg0}, {arg1} (±{arg2} m)",
+  "@message458": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      },
+      "arg2": {
+        "type": "String"
+      }
+    }
+  },
+  "message459": "Rekam GPS tujuan",
+  "message460": "Lebar gang (meter)",
+  "message461": "Ruang bebas tangga / pintu (meter)",
+  "message462": "Catatan gerbang dan akses pengiriman",
+  "message463": "Lebar gerbang, jam akses, tangga, batasan parkir",
+  "message464": "Verifikasi Tempat Tinggal & Keuangan",
+  "message465": "Status Kepemilikan Rumah",
+  "message466": "Milik Sendiri",
+  "message467": "Milik Keluarga",
+  "message468": "Sewa Tahunan (Kontrak)",
+  "message469": "Kost / Sewa Bulanan",
+  "message470": "Perkiraan Penghasilan Bersih Bulanan (Rp)",
+  "message471": "Perkiraan Biaya Hidup Bulanan (Rp)",
+  "message472": "Angsuran / Kewajiban Lain yang Ada",
+  "message473": "KTP Pelanggan",
+  "message474": "Kartu Keluarga",
+  "message475": "Bukti Listrik / Air",
+  "message476": "Rumah & Pintu Depan",
+  "message477": "Pemeriksaan Dokumen Fisik Lapangan",
+  "message478": "KTP Asli Diverifikasi di Lokasi",
+  "message479": "Kartu Keluarga (KK) terverifikasi",
+  "message480": "Tagihan Listrik / Air Terbaru sesuai alamat",
+  "message481": "Bukti Penghasilan / Slip Gaji / Rekening Koran",
+  "message482": "Penilaian & Alasan Petugas Survei",
+  "message483": "Catatan Penilaian",
+  "message484": "Berikan alasan terperinci tentang kelayakan kredit...",
+  "message485": "Tolak Kredit",
+  "message486": "Setujui Kredit",
+  "message487": "Survei Kredit: Pelanggan #{arg0}",
+  "@message487": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message488": "Pengiriman: {arg0} ({arg1})",
+  "@message488": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      },
+      "arg1": {
+        "type": "String"
+      }
+    }
+  },
+  "message489": "Penagihan Lapangan: {arg0}",
+  "@message489": {
+    "placeholders": {
+      "arg0": {
+        "type": "String"
+      }
+    }
+  },
+  "message490": "Persiapan Truk Gudang & Pemeriksaan Pembantu",
+  "message491": "Pekerjaan Saya & Antrean Tugas",
+  "message492": "Semua Tugas",
+  "message493": "Pengiriman",
+  "message494": "Survei",
+  "message495": "Penagihan",
+  "message496": "Pembantu / Lantai",
+  "message497": "Tidak ada tugas operasional untuk filter ini."
+}

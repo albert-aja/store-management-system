@@ -65,6 +65,7 @@ import type {
   PayrollPeriodStatus,
   PayrollSlip,
 } from './types';
+import { t , formatDate, formatNumber, localizeDisplayCode} from "../../lib/locale";
 
 export default function PayrollPage() {
   const [activeTab, setActiveTab] = useState(0);
@@ -106,7 +107,7 @@ export default function PayrollPage() {
   // Form states
   const [periodForm, setPeriodForm] = useState({
     periodCode: `PRD-${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`,
-    name: `Payroll Period ${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}`,
+    name: `Payroll Period ${formatDate(new Date(), undefined, { month: 'long', year: 'numeric' })}`,
     storeId: '',
     startDate: '',
     endDate: '',
@@ -263,11 +264,11 @@ export default function PayrollPage() {
   return (
     <Box>
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700 }} gutterBottom>
-          HR & Payroll Management
+        <Typography variant="h5" sx={{ fontWeight: 600 }} gutterBottom>
+          {t("HR & Payroll Management")}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Track employee attendance, manage leave requests, and calculate non-calendar sales periods with strict payroll freezing.
+          {t("Track employee attendance, manage leave requests, and calculate non-calendar sales periods with strict payroll freezing.")}
         </Typography>
       </Box>
 
@@ -285,14 +286,14 @@ export default function PayrollPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <ScheduleIcon color="primary" sx={{ mr: 1 }} />
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                ACTIVE PERIODS
+                {t("ACTIVE PERIODS")}
               </Typography>
             </Box>
             <Typography variant="h5" sx={{ fontWeight: 700 }}>
               {activePeriods}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {totalPeriods} total registered periods
+              {totalPeriods} {t("total registered periods")}
             </Typography>
           </CardContent>
         </Card>
@@ -302,14 +303,14 @@ export default function PayrollPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <LockIcon color="success" sx={{ mr: 1 }} />
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                FINALIZED PERIODS
+                {t("FINALIZED PERIODS")}
               </Typography>
             </Box>
             <Typography variant="h5" color="success.main" sx={{ fontWeight: 700 }}>
               {finalizedPeriods}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Strictly frozen & unalterable
+              {t("Strictly frozen & unalterable")}
             </Typography>
           </CardContent>
         </Card>
@@ -319,14 +320,14 @@ export default function PayrollPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <EventAvailableIcon color="info" sx={{ mr: 1 }} />
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                ATTENDANCE LOGGED
+                {t("ATTENDANCE LOGGED")}
               </Typography>
             </Box>
             <Typography variant="h5" color="info.main" sx={{ fontWeight: 700 }}>
               {todayAttendanceCount}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Filtered date records
+              {t("Filtered date records")}
             </Typography>
           </CardContent>
         </Card>
@@ -336,14 +337,14 @@ export default function PayrollPage() {
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
               <TimeToLeaveIcon color="warning" sx={{ mr: 1 }} />
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                PENDING LEAVES
+                {t("PENDING LEAVES")}
               </Typography>
             </Box>
             <Typography variant="h5" color="warning.main" sx={{ fontWeight: 700 }}>
               {leaveRequests.filter((l) => l.status === 'SUBMITTED').length}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Awaiting manager review
+              {t("Awaiting manager review")}
             </Typography>
           </CardContent>
         </Card>
@@ -357,9 +358,9 @@ export default function PayrollPage() {
           indicatorColor="primary"
           textColor="primary"
         >
-          <Tab label="Payroll Periods & Slips" icon={<PaymentsIcon />} iconPosition="start" />
-          <Tab label="Attendance Roster" icon={<EventAvailableIcon />} iconPosition="start" />
-          <Tab label="Leave Requests" icon={<TimeToLeaveIcon />} iconPosition="start" />
+          <Tab label={t("Payroll Periods & Slips")} icon={<PaymentsIcon />} iconPosition="start" />
+          <Tab label={t("Attendance Roster")} icon={<EventAvailableIcon />} iconPosition="start" />
+          <Tab label={t("Leave Requests")} icon={<TimeToLeaveIcon />} iconPosition="start" />
         </Tabs>
       </Paper>
 
@@ -369,13 +370,13 @@ export default function PayrollPage() {
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <FormControl size="small" sx={{ minWidth: 200 }}>
-                <InputLabel>Filter by Store</InputLabel>
+                <InputLabel>{t("Filter by Store")}</InputLabel>
                 <Select
                   value={storeFilter}
-                  label="Filter by Store"
+                  label={t("Filter by Store")}
                   onChange={(e) => setStoreFilter(e.target.value)}
                 >
-                  <MenuItem value="">All Stores (Company Wide)</MenuItem>
+                  <MenuItem value="">{t("All Stores (Company Wide)")}</MenuItem>
                   {stores.map((s) => (
                     <MenuItem key={s.id} value={s.id}>
                       {s.name}
@@ -391,7 +392,7 @@ export default function PayrollPage() {
                 startIcon={<AddIcon />}
                 onClick={() => setOpenPeriodDialog(true)}
               >
-                Create Payroll Period
+                {t("Create Payroll Period")}
               </Button>
             )}
           </Box>
@@ -400,24 +401,24 @@ export default function PayrollPage() {
             <Table>
               <TableHead sx={{ backgroundColor: 'action.hover' }}>
                 <TableRow>
-                  <TableCell><strong>Period Code</strong></TableCell>
-                  <TableCell><strong>Name</strong></TableCell>
-                  <TableCell><strong>Store</strong></TableCell>
-                  <TableCell><strong>Date Range</strong></TableCell>
-                  <TableCell><strong>Cutoff / Payout</strong></TableCell>
-                  <TableCell align="center"><strong>Slips</strong></TableCell>
-                  <TableCell align="center"><strong>Status</strong></TableCell>
-                  <TableCell align="right"><strong>Actions</strong></TableCell>
+                  <TableCell><strong>{t("Period Code")}</strong></TableCell>
+                  <TableCell><strong>{t("Name")}</strong></TableCell>
+                  <TableCell><strong>{t("Store")}</strong></TableCell>
+                  <TableCell><strong>{t("Date Range")}</strong></TableCell>
+                  <TableCell><strong>{t("Cutoff / Payout")}</strong></TableCell>
+                  <TableCell align="center"><strong>{t("Slips")}</strong></TableCell>
+                  <TableCell align="center"><strong>{t("Status")}</strong></TableCell>
+                  <TableCell align="right"><strong>{t("Actions")}</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loadingPeriods ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center">Loading payroll periods...</TableCell>
+                    <TableCell colSpan={8} align="center">{t("Loading payroll periods...")}</TableCell>
                   </TableRow>
                 ) : periods.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center">No payroll periods found. Create one to calculate compensation.</TableCell>
+                    <TableCell colSpan={8} align="center">{t("No payroll periods found. Create one to calculate compensation.")}</TableCell>
                   </TableRow>
                 ) : (
                   periods.map((p) => (
@@ -437,23 +438,29 @@ export default function PayrollPage() {
                       <TableCell>{p.storeName}</TableCell>
                       <TableCell>
                         <Typography variant="caption" sx={{ display: 'block' }}>
-                          {p.startDate} &rarr; {p.endDate}
+                          {formatDate(p.startDate)} {t("&rarr;")} {formatDate(p.endDate)}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="caption" sx={{ display: 'block' }}>
-                          Cutoff: {p.cutoffDate}
+                          {t("Cutoff:")} {formatDate(p.cutoffDate)}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          Payout: {p.payoutDate}
+                          {t("Payout:")} {formatDate(p.payoutDate)}
                         </Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Chip label={`${p.slipCount} slips`} size="small" variant="outlined" />
                       </TableCell>
                       <TableCell align="center">
                         <Chip
-                          label={p.status}
+                          label={t("{count} slips", undefined, {
+                            count: formatNumber(p.slipCount),
+                          })}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Chip
+                          label={localizeDisplayCode(p.status)}
                           size="small"
                           color={getStatusColor(p.status)}
                           sx={{ fontWeight: 600 }}
@@ -467,7 +474,7 @@ export default function PayrollPage() {
                             startIcon={<VisibilityIcon />}
                             onClick={() => setSelectedPeriod(p)}
                           >
-                            Slips
+                            {t("Slips")}
                           </Button>
 
                           {canManage && p.status !== 'FINALIZED' && (
@@ -481,7 +488,7 @@ export default function PayrollPage() {
                                 setOpenCalcDialog(true);
                               }}
                             >
-                              Calculate
+                              {t("Calculate")}
                             </Button>
                           )}
 
@@ -493,7 +500,7 @@ export default function PayrollPage() {
                               startIcon={<CheckCircleIcon />}
                               onClick={() => handleApprovePeriod(p)}
                             >
-                              Approve
+                              {t("Approve")}
                             </Button>
                           )}
 
@@ -505,7 +512,7 @@ export default function PayrollPage() {
                               startIcon={<LockIcon />}
                               onClick={() => handleFinalizePeriod(p)}
                             >
-                              Finalize & Freeze
+                              {t("Finalize & Freeze")}
                             </Button>
                           )}
                         </Box>
@@ -523,12 +530,12 @@ export default function PayrollPage() {
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                 <Box>
                   <Typography variant="h6" sx={{ fontWeight: 700 }}>
-                    Payroll Slips for {selectedPeriod.periodCode} — {selectedPeriod.name}
+                    {t("Payroll Slips for")} {selectedPeriod.periodCode} — {selectedPeriod.name}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {selectedPeriod.status === 'FINALIZED' ? (
                       <span style={{ color: '#2e7d32', fontWeight: 600 }}>
-                        ✓ Period is strictly finalized. Calculation parameters and slips are immutable.
+                        {t("✓ Period is strictly finalized. Calculation parameters and slips are immutable.")}
                       </span>
                     ) : (
                       'Review salary items, commission, incentives, and attendance days.'
@@ -541,28 +548,28 @@ export default function PayrollPage() {
                 <Table>
                   <TableHead sx={{ backgroundColor: 'action.hover' }}>
                     <TableRow>
-                      <TableCell><strong>Slip #</strong></TableCell>
-                      <TableCell><strong>Employee</strong></TableCell>
-                      <TableCell align="right"><strong>Base Salary</strong></TableCell>
-                      <TableCell align="right"><strong>Allowances</strong></TableCell>
-                      <TableCell align="right"><strong>Commission</strong></TableCell>
-                      <TableCell align="right"><strong>Incentive</strong></TableCell>
-                      <TableCell align="right"><strong>Deductions</strong></TableCell>
-                      <TableCell align="right"><strong>Net Salary</strong></TableCell>
-                      <TableCell align="center"><strong>Attd Days</strong></TableCell>
-                      <TableCell align="center"><strong>Status</strong></TableCell>
-                      <TableCell align="right"><strong>Action</strong></TableCell>
+                      <TableCell><strong>{t("Slip #")}</strong></TableCell>
+                      <TableCell><strong>{t("Employee")}</strong></TableCell>
+                      <TableCell align="right"><strong>{t("Base Salary")}</strong></TableCell>
+                      <TableCell align="right"><strong>{t("Allowances")}</strong></TableCell>
+                      <TableCell align="right"><strong>{t("Commission")}</strong></TableCell>
+                      <TableCell align="right"><strong>{t("Incentive")}</strong></TableCell>
+                      <TableCell align="right"><strong>{t("Deductions")}</strong></TableCell>
+                      <TableCell align="right"><strong>{t("Net Salary")}</strong></TableCell>
+                      <TableCell align="center"><strong>{t("Attd Days")}</strong></TableCell>
+                      <TableCell align="center"><strong>{t("Status")}</strong></TableCell>
+                      <TableCell align="right"><strong>{t("Action")}</strong></TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {loadingSlips ? (
                       <TableRow>
-                        <TableCell colSpan={11} align="center">Loading payroll slips...</TableCell>
+                        <TableCell colSpan={11} align="center">{t("Loading payroll slips...")}</TableCell>
                       </TableRow>
                     ) : periodSlips.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={11} align="center">
-                          No slips generated yet. Click "Calculate" on the period above to calculate compensation.
+                          {t("No slips generated yet. Click \"Calculate\" on the period above to calculate compensation.")}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -583,35 +590,37 @@ export default function PayrollPage() {
                               </Typography>
                             )}
                           </TableCell>
-                          <TableCell align="right">Rp {Number(s.baseSalary).toLocaleString()}</TableCell>
-                          <TableCell align="right">Rp {Number(s.allowances).toLocaleString()}</TableCell>
+                          <TableCell align="right">{t("Rp")} {formatNumber(Number(s.baseSalary))}</TableCell>
+                          <TableCell align="right">{t("Rp")} {formatNumber(Number(s.allowances))}</TableCell>
                           <TableCell align="right" sx={{ color: 'success.main', fontWeight: 500 }}>
-                            Rp {Number(s.salesCommission).toLocaleString()}
+                            {t("Rp")} {formatNumber(Number(s.salesCommission))}
                           </TableCell>
                           <TableCell align="right" sx={{ color: 'info.main', fontWeight: 500 }}>
-                            Rp {Number(s.collectionIncentive).toLocaleString()}
+                            {t("Rp")} {formatNumber(Number(s.collectionIncentive))}
                           </TableCell>
                           <TableCell align="right" sx={{ color: 'error.main' }}>
-                            -Rp {Number(s.deductions).toLocaleString()}
+                            {t("-Rp")} {formatNumber(Number(s.deductions))}
                           </TableCell>
                           <TableCell align="right">
                             <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                              Rp {Number(s.netSalary).toLocaleString()}
+                              {t("Rp")} {formatNumber(Number(s.netSalary))}
                             </Typography>
                           </TableCell>
                           <TableCell align="center">
-                            <Chip label={`${s.attendanceDays} days`} size="small" />
+                            <Chip label={t("{count} days", undefined, {
+                              count: formatNumber(s.attendanceDays),
+                            })} size="small" />
                           </TableCell>
                           <TableCell align="center">
                             <Chip
-                              label={s.paymentStatus}
+                              label={localizeDisplayCode(s.paymentStatus)}
                               size="small"
                               color={s.paymentStatus === 'PAID' ? 'success' : 'default'}
                             />
                           </TableCell>
                           <TableCell align="right">
                             <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", alignItems: "center" }}>
-                              <Tooltip title="Print Official Payroll Slip (Slip Gaji)">
+                              <Tooltip title={t("Print Official Payroll Slip (Slip Gaji)")}>
                                 <IconButton
                                   size="small"
                                   color="primary"
@@ -629,7 +638,7 @@ export default function PayrollPage() {
                                   color="success"
                                   onClick={() => handlePaySlip(s.id)}
                                 >
-                                  Disburse
+                                  {t("Disburse")}
                                 </Button>
                               )}
                             </Box>
@@ -651,13 +660,13 @@ export default function PayrollPage() {
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
               <FormControl size="small" sx={{ minWidth: 200 }}>
-                <InputLabel>Filter by Store</InputLabel>
+                <InputLabel>{t("Filter by Store")}</InputLabel>
                 <Select
                   value={storeFilter}
-                  label="Filter by Store"
+                  label={t("Filter by Store")}
                   onChange={(e) => setStoreFilter(e.target.value)}
                 >
-                  <MenuItem value="">All Stores</MenuItem>
+                  <MenuItem value="">{t("All Stores")}</MenuItem>
                   {stores.map((s) => (
                     <MenuItem key={s.id} value={s.id}>
                       {s.name}
@@ -669,7 +678,7 @@ export default function PayrollPage() {
               <TextField
                 size="small"
                 type="date"
-                label="Filter Work Date"
+                label={t("Filter Work Date")}
                 value={workDateFilter}
                 onChange={(e) => setWorkDateFilter(e.target.value)}
                 slotProps={{ inputLabel: { shrink: true } }}
@@ -682,7 +691,7 @@ export default function PayrollPage() {
                 startIcon={<AddIcon />}
                 onClick={() => setOpenClockInDialog(true)}
               >
-                Record Clock-In
+                {t("Record Clock-In")}
               </Button>
             )}
           </Box>
@@ -691,24 +700,24 @@ export default function PayrollPage() {
             <Table>
               <TableHead sx={{ backgroundColor: 'action.hover' }}>
                 <TableRow>
-                  <TableCell><strong>Employee</strong></TableCell>
-                  <TableCell><strong>Store</strong></TableCell>
-                  <TableCell><strong>Work Date</strong></TableCell>
-                  <TableCell><strong>Check In</strong></TableCell>
-                  <TableCell><strong>Check Out</strong></TableCell>
-                  <TableCell align="center"><strong>Status</strong></TableCell>
-                  <TableCell><strong>Notes</strong></TableCell>
-                  <TableCell align="right"><strong>Actions</strong></TableCell>
+                  <TableCell><strong>{t("Employee")}</strong></TableCell>
+                  <TableCell><strong>{t("Store")}</strong></TableCell>
+                  <TableCell><strong>{t("Work Date")}</strong></TableCell>
+                  <TableCell><strong>{t("Check In")}</strong></TableCell>
+                  <TableCell><strong>{t("Check Out")}</strong></TableCell>
+                  <TableCell align="center"><strong>{t("Status")}</strong></TableCell>
+                  <TableCell><strong>{t("Notes")}</strong></TableCell>
+                  <TableCell align="right"><strong>{t("Actions")}</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loadingAttendance ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center">Loading attendance logs...</TableCell>
+                    <TableCell colSpan={8} align="center">{t("Loading attendance logs...")}</TableCell>
                   </TableRow>
                 ) : attendanceList.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center">No attendance records found for criteria.</TableCell>
+                    <TableCell colSpan={8} align="center">{t("No attendance records found for criteria.")}</TableCell>
                   </TableRow>
                 ) : (
                   attendanceList.map((a) => (
@@ -719,16 +728,16 @@ export default function PayrollPage() {
                         </Typography>
                       </TableCell>
                       <TableCell>{a.storeName}</TableCell>
-                      <TableCell>{a.workDate}</TableCell>
+                      <TableCell>{formatDate(a.workDate)}</TableCell>
                       <TableCell>
-                        {a.checkInTime ? new Date(a.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
+                        {a.checkInTime ? formatDate(new Date(a.checkInTime), undefined, { hour: '2-digit', minute: '2-digit' }) : '-'}
                       </TableCell>
                       <TableCell>
-                        {a.checkOutTime ? new Date(a.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
+                        {a.checkOutTime ? formatDate(new Date(a.checkOutTime), undefined, { hour: '2-digit', minute: '2-digit' }) : '-'}
                       </TableCell>
                       <TableCell align="center">
                         <Chip
-                          label={a.status}
+                          label={localizeDisplayCode(a.status)}
                           size="small"
                           color={getAttendanceColor(a.status)}
                           sx={{ fontWeight: 600 }}
@@ -746,7 +755,7 @@ export default function PayrollPage() {
                             variant="outlined"
                             onClick={() => handleClockOut(a.id)}
                           >
-                            Clock Out
+                            {t("Clock Out")}
                           </Button>
                         )}
                       </TableCell>
@@ -765,16 +774,16 @@ export default function PayrollPage() {
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 2 }}>
             <Box sx={{ display: 'flex', gap: 2 }}>
               <FormControl size="small" sx={{ minWidth: 180 }}>
-                <InputLabel>Status</InputLabel>
+                <InputLabel>{t("Status")}</InputLabel>
                 <Select
                   value={leaveStatusFilter}
-                  label="Status"
+                  label={t("Status")}
                   onChange={(e) => setLeaveStatusFilter(e.target.value as LeaveStatus | '')}
                 >
-                  <MenuItem value="">All Statuses</MenuItem>
-                  <MenuItem value="SUBMITTED">SUBMITTED</MenuItem>
-                  <MenuItem value="APPROVED">APPROVED</MenuItem>
-                  <MenuItem value="REJECTED">REJECTED</MenuItem>
+                  <MenuItem value="">{t("All Statuses")}</MenuItem>
+                  <MenuItem value="SUBMITTED">{t("SUBMITTED")}</MenuItem>
+                  <MenuItem value="APPROVED">{t("APPROVED")}</MenuItem>
+                  <MenuItem value="REJECTED">{t("REJECTED")}</MenuItem>
                 </Select>
               </FormControl>
             </Box>
@@ -784,7 +793,7 @@ export default function PayrollPage() {
               startIcon={<AddIcon />}
               onClick={() => setOpenLeaveDialog(true)}
             >
-              Apply Leave Request
+              {t("Apply Leave Request")}
             </Button>
           </Box>
 
@@ -792,25 +801,25 @@ export default function PayrollPage() {
             <Table>
               <TableHead sx={{ backgroundColor: 'action.hover' }}>
                 <TableRow>
-                  <TableCell><strong>Request #</strong></TableCell>
-                  <TableCell><strong>Employee</strong></TableCell>
-                  <TableCell><strong>Leave Type</strong></TableCell>
-                  <TableCell><strong>Date Range</strong></TableCell>
-                  <TableCell align="center"><strong>Days</strong></TableCell>
-                  <TableCell><strong>Reason</strong></TableCell>
-                  <TableCell align="center"><strong>Status</strong></TableCell>
-                  <TableCell><strong>Approved By</strong></TableCell>
-                  <TableCell align="right"><strong>Actions</strong></TableCell>
+                  <TableCell><strong>{t("Request #")}</strong></TableCell>
+                  <TableCell><strong>{t("Employee")}</strong></TableCell>
+                  <TableCell><strong>{t("Leave Type")}</strong></TableCell>
+                  <TableCell><strong>{t("Date Range")}</strong></TableCell>
+                  <TableCell align="center"><strong>{t("Days")}</strong></TableCell>
+                  <TableCell><strong>{t("Reason")}</strong></TableCell>
+                  <TableCell align="center"><strong>{t("Status")}</strong></TableCell>
+                  <TableCell><strong>{t("Approved By")}</strong></TableCell>
+                  <TableCell align="right"><strong>{t("Actions")}</strong></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loadingLeaves ? (
                   <TableRow>
-                    <TableCell colSpan={9} align="center">Loading leave requests...</TableCell>
+                    <TableCell colSpan={9} align="center">{t("Loading leave requests...")}</TableCell>
                   </TableRow>
                 ) : leaveRequests.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} align="center">No leave requests found.</TableCell>
+                    <TableCell colSpan={9} align="center">{t("No leave requests found.")}</TableCell>
                   </TableRow>
                 ) : (
                   leaveRequests.map((l) => (
@@ -825,15 +834,17 @@ export default function PayrollPage() {
                         <Chip label={l.leaveType} size="small" variant="outlined" />
                       </TableCell>
                       <TableCell>
-                        {l.startDate} &rarr; {l.endDate}
+                        {formatDate(l.startDate)} {t("&rarr;")} {formatDate(l.endDate)}
                       </TableCell>
                       <TableCell align="center">
-                        <Chip label={`${l.daysCount} days`} size="small" />
+                        <Chip label={t("{count} days", undefined, {
+                          count: formatNumber(l.daysCount),
+                        })} size="small" />
                       </TableCell>
                       <TableCell>{l.reason}</TableCell>
                       <TableCell align="center">
                         <Chip
-                          label={l.status}
+                          label={localizeDisplayCode(l.status)}
                           size="small"
                           color={
                             l.status === 'APPROVED'
@@ -863,7 +874,7 @@ export default function PayrollPage() {
                               color="success"
                               onClick={() => handleApproveLeave(l.id, true)}
                             >
-                              Approve
+                              {t("Approve")}
                             </Button>
                             <Button
                               size="small"
@@ -871,7 +882,7 @@ export default function PayrollPage() {
                               color="error"
                               onClick={() => handleApproveLeave(l.id, false)}
                             >
-                              Reject
+                              {t("Reject")}
                             </Button>
                           </Box>
                         )}
@@ -887,30 +898,30 @@ export default function PayrollPage() {
 
       {/* Dialog: Create Payroll Period */}
       <Dialog open={openPeriodDialog} onClose={() => setOpenPeriodDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Create Payroll Period</DialogTitle>
+        <DialogTitle>{t("Create Payroll Period")}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <TextField
-            label="Period Code"
+            label={t("Period Code")}
             value={periodForm.periodCode}
             onChange={(e) => setPeriodForm({ ...periodForm, periodCode: e.target.value })}
             required
             fullWidth
           />
           <TextField
-            label="Period Name"
+            label={t("Period Name")}
             value={periodForm.name}
             onChange={(e) => setPeriodForm({ ...periodForm, name: e.target.value })}
             required
             fullWidth
           />
           <FormControl fullWidth>
-            <InputLabel>Store Scope</InputLabel>
+            <InputLabel>{t("Store Scope")}</InputLabel>
             <Select
               value={periodForm.storeId}
-              label="Store Scope"
+              label={t("Store Scope")}
               onChange={(e) => setPeriodForm({ ...periodForm, storeId: e.target.value })}
             >
-              <MenuItem value="">All Stores (Company Wide)</MenuItem>
+              <MenuItem value="">{t("All Stores (Company Wide)")}</MenuItem>
               {stores.map((s) => (
                 <MenuItem key={s.id} value={s.id}>
                   {s.name}
@@ -919,7 +930,7 @@ export default function PayrollPage() {
             </Select>
           </FormControl>
           <TextField
-            label="Start Date"
+            label={t("Start Date")}
             type="date"
             value={periodForm.startDate}
             onChange={(e) => setPeriodForm({ ...periodForm, startDate: e.target.value })}
@@ -928,7 +939,7 @@ export default function PayrollPage() {
             fullWidth
           />
           <TextField
-            label="End Date"
+            label={t("End Date")}
             type="date"
             value={periodForm.endDate}
             onChange={(e) => setPeriodForm({ ...periodForm, endDate: e.target.value })}
@@ -937,7 +948,7 @@ export default function PayrollPage() {
             fullWidth
           />
           <TextField
-            label="Cutoff Date"
+            label={t("Cutoff Date")}
             type="date"
             value={periodForm.cutoffDate}
             onChange={(e) => setPeriodForm({ ...periodForm, cutoffDate: e.target.value })}
@@ -946,7 +957,7 @@ export default function PayrollPage() {
             fullWidth
           />
           <TextField
-            label="Payout Date"
+            label={t("Payout Date")}
             type="date"
             value={periodForm.payoutDate}
             onChange={(e) => setPeriodForm({ ...periodForm, payoutDate: e.target.value })}
@@ -955,7 +966,7 @@ export default function PayrollPage() {
             fullWidth
           />
           <TextField
-            label="Notes / Description"
+            label={t("Notes / Description")}
             value={periodForm.notes}
             onChange={(e) => setPeriodForm({ ...periodForm, notes: e.target.value })}
             multiline
@@ -964,34 +975,31 @@ export default function PayrollPage() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenPeriodDialog(false)}>Cancel</Button>
+          <Button onClick={() => setOpenPeriodDialog(false)}>{t("Cancel")}</Button>
           <Button
             variant="contained"
             onClick={handleCreatePeriod}
             disabled={!periodForm.periodCode || !periodForm.startDate || !periodForm.endDate || !periodForm.cutoffDate || !periodForm.payoutDate}
           >
-            Create
-          </Button>
+            {t("Create")}</Button>
         </DialogActions>
       </Dialog>
 
       {/* Dialog: Calculate Payroll */}
       <Dialog open={openCalcDialog} onClose={() => setOpenCalcDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Calculate Period Payroll</DialogTitle>
+        <DialogTitle>{t("Calculate Period Payroll")}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <Alert severity="info">
-            Calculating payroll for period <strong>{calcTargetPeriod?.periodCode}</strong>.
-            This computes attendance-prorated base salary, sales commissions on confirmed orders, and collection incentives on verified payments.
-          </Alert>
+            {t("Calculating payroll for period")} <strong>{calcTargetPeriod?.periodCode}</strong>{t(". This computes attendance-prorated base salary, sales commissions on confirmed orders, and collection incentives on verified payments.")}</Alert>
           <TextField
-            label="Default Base Salary (Rp)"
+            label={t("Default Base Salary (Rp)")}
             type="number"
             value={calcForm.defaultBaseSalary}
             onChange={(e) => setCalcForm({ ...calcForm, defaultBaseSalary: Number(e.target.value) })}
             fullWidth
           />
           <TextField
-            label="Default Allowance (Rp)"
+            label={t("Default Allowance (Rp)")}
             type="number"
             value={calcForm.defaultAllowance}
             onChange={(e) => setCalcForm({ ...calcForm, defaultAllowance: Number(e.target.value) })}
@@ -999,27 +1007,27 @@ export default function PayrollPage() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenCalcDialog(false)}>Cancel</Button>
+          <Button onClick={() => setOpenCalcDialog(false)}>{t("Cancel")}</Button>
           <Button
             variant="contained"
             color="primary"
             startIcon={<CalculateIcon />}
             onClick={handleCalculatePeriod}
           >
-            Run Calculation
+            {t("Run Calculation")}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Dialog: Record Clock-In */}
       <Dialog open={openClockInDialog} onClose={() => setOpenClockInDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Record Employee Clock-In</DialogTitle>
+        <DialogTitle>{t("Record Employee Clock-In")}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <FormControl fullWidth required>
-            <InputLabel>Employee</InputLabel>
+            <InputLabel>{t("Employee")}</InputLabel>
             <Select
               value={clockInForm.employeeId}
-              label="Employee"
+              label={t("Employee")}
               onChange={(e) => setClockInForm({ ...clockInForm, employeeId: e.target.value })}
             >
               {employees.map((emp) => (
@@ -1030,10 +1038,10 @@ export default function PayrollPage() {
             </Select>
           </FormControl>
           <FormControl fullWidth required>
-            <InputLabel>Store</InputLabel>
+            <InputLabel>{t("Store")}</InputLabel>
             <Select
               value={clockInForm.storeId}
-              label="Store"
+              label={t("Store")}
               onChange={(e) => setClockInForm({ ...clockInForm, storeId: e.target.value })}
             >
               {stores.map((s) => (
@@ -1044,7 +1052,7 @@ export default function PayrollPage() {
             </Select>
           </FormControl>
           <TextField
-            label="Work Date"
+            label={t("Work Date")}
             type="date"
             value={clockInForm.workDate}
             onChange={(e) => setClockInForm({ ...clockInForm, workDate: e.target.value })}
@@ -1053,47 +1061,47 @@ export default function PayrollPage() {
             fullWidth
           />
           <FormControl fullWidth>
-            <InputLabel>Status</InputLabel>
+            <InputLabel>{t("Status")}</InputLabel>
             <Select
               value={clockInForm.status}
-              label="Status"
+              label={t("Status")}
               onChange={(e) => setClockInForm({ ...clockInForm, status: e.target.value as AttendanceStatus })}
             >
-              <MenuItem value="PRESENT">PRESENT</MenuItem>
-              <MenuItem value="LATE">LATE</MenuItem>
-              <MenuItem value="HALF_DAY">HALF_DAY</MenuItem>
-              <MenuItem value="ON_LEAVE">ON_LEAVE</MenuItem>
-              <MenuItem value="ABSENT">ABSENT</MenuItem>
+              <MenuItem value="PRESENT">{t("PRESENT")}</MenuItem>
+              <MenuItem value="LATE">{t("LATE")}</MenuItem>
+              <MenuItem value="HALF_DAY">{t("HALF_DAY")}</MenuItem>
+              <MenuItem value="ON_LEAVE">{t("ON_LEAVE")}</MenuItem>
+              <MenuItem value="ABSENT">{t("ABSENT")}</MenuItem>
             </Select>
           </FormControl>
           <TextField
-            label="Notes"
+            label={t("Notes")}
             value={clockInForm.notes}
             onChange={(e) => setClockInForm({ ...clockInForm, notes: e.target.value })}
             fullWidth
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenClockInDialog(false)}>Cancel</Button>
+          <Button onClick={() => setOpenClockInDialog(false)}>{t("Cancel")}</Button>
           <Button
             variant="contained"
             onClick={handleClockIn}
             disabled={!clockInForm.employeeId || !clockInForm.storeId || !clockInForm.workDate}
           >
-            Clock In
+            {t("Clock In")}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Dialog: Create Leave Request */}
       <Dialog open={openLeaveDialog} onClose={() => setOpenLeaveDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Apply Leave Request</DialogTitle>
+        <DialogTitle>{t("Apply Leave Request")}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <FormControl fullWidth required>
-            <InputLabel>Employee</InputLabel>
+            <InputLabel>{t("Employee")}</InputLabel>
             <Select
               value={leaveForm.employeeId}
-              label="Employee"
+              label={t("Employee")}
               onChange={(e) => setLeaveForm({ ...leaveForm, employeeId: e.target.value })}
             >
               {employees.map((emp) => (
@@ -1104,21 +1112,21 @@ export default function PayrollPage() {
             </Select>
           </FormControl>
           <FormControl fullWidth required>
-            <InputLabel>Leave Type</InputLabel>
+            <InputLabel>{t("Leave Type")}</InputLabel>
             <Select
               value={leaveForm.leaveType}
-              label="Leave Type"
+              label={t("Leave Type")}
               onChange={(e) => setLeaveForm({ ...leaveForm, leaveType: e.target.value as LeaveType })}
             >
-              <MenuItem value="ANNUAL">ANNUAL</MenuItem>
-              <MenuItem value="SICK">SICK</MenuItem>
-              <MenuItem value="UNPAID">UNPAID</MenuItem>
-              <MenuItem value="MATERNITY">MATERNITY</MenuItem>
-              <MenuItem value="EMERGENCY">EMERGENCY</MenuItem>
+              <MenuItem value="ANNUAL">{t("ANNUAL")}</MenuItem>
+              <MenuItem value="SICK">{t("SICK")}</MenuItem>
+              <MenuItem value="UNPAID">{t("UNPAID")}</MenuItem>
+              <MenuItem value="MATERNITY">{t("MATERNITY")}</MenuItem>
+              <MenuItem value="EMERGENCY">{t("EMERGENCY")}</MenuItem>
             </Select>
           </FormControl>
           <TextField
-            label="Start Date"
+            label={t("Start Date")}
             type="date"
             value={leaveForm.startDate}
             onChange={(e) => setLeaveForm({ ...leaveForm, startDate: e.target.value })}
@@ -1127,7 +1135,7 @@ export default function PayrollPage() {
             fullWidth
           />
           <TextField
-            label="End Date"
+            label={t("End Date")}
             type="date"
             value={leaveForm.endDate}
             onChange={(e) => setLeaveForm({ ...leaveForm, endDate: e.target.value })}
@@ -1136,7 +1144,7 @@ export default function PayrollPage() {
             fullWidth
           />
           <TextField
-            label="Days Count"
+            label={t("Days Count")}
             type="number"
             value={leaveForm.daysCount}
             onChange={(e) => setLeaveForm({ ...leaveForm, daysCount: Number(e.target.value) })}
@@ -1145,7 +1153,7 @@ export default function PayrollPage() {
             fullWidth
           />
           <TextField
-            label="Reason"
+            label={t("Reason")}
             value={leaveForm.reason}
             onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })}
             multiline
@@ -1155,13 +1163,13 @@ export default function PayrollPage() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenLeaveDialog(false)}>Cancel</Button>
+          <Button onClick={() => setOpenLeaveDialog(false)}>{t("Cancel")}</Button>
           <Button
             variant="contained"
             onClick={handleCreateLeave}
             disabled={!leaveForm.employeeId || !leaveForm.startDate || !leaveForm.endDate || !leaveForm.reason}
           >
-            Submit Leave Request
+            {t("Submit Leave Request")}
           </Button>
         </DialogActions>
       </Dialog>

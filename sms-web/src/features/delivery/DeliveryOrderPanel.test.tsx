@@ -1,8 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SalesOrderItem } from "../salesOrders/types";
 import DeliveryOrderPanel from "./DeliveryOrderPanel";
+import { setLanguage } from "../../lib/locale";
 
 vi.mock("notistack", () => ({
   useSnackbar: () => ({
@@ -11,6 +12,10 @@ vi.mock("notistack", () => ({
 }));
 
 const mockCreateDOMutate = vi.fn();
+
+afterEach(() => {
+  setLanguage("en");
+});
 
 vi.mock("./hooks", () => ({
   useDeliveryOrdersBySalesOrder: vi.fn(() => ({
@@ -119,7 +124,7 @@ describe("DeliveryOrderPanel", () => {
 
     expect(screen.getByText(/Deliveries & Outbound/i)).toBeInTheDocument();
     expect(screen.getByText("DO-202610-0001")).toBeInTheDocument();
-    expect(screen.getByText("DELIVERED")).toBeInTheDocument();
+    expect(screen.getByText("Delivered")).toBeInTheDocument();
     expect(screen.getByText(/Trip: TRIP-202610-0001/i)).toBeInTheDocument();
   });
 
@@ -135,12 +140,42 @@ describe("DeliveryOrderPanel", () => {
       />,
     );
 
-    const createBtn = screen.getByRole("button", { name: /\+ Create Delivery Order/i });
+    const createBtn = screen.getByRole("button", { name: /Create Delivery Order/i });
     expect(createBtn).toBeInTheDocument();
 
     await user.click(createBtn);
 
     expect(screen.getByText(/Create Outbound Delivery Order/i)).toBeInTheDocument();
     expect(screen.getByDisplayValue("Jl. Sudirman No. 12, Jakarta")).toBeInTheDocument();
+  });
+
+  it("requires a valid GPS pair and sends coordinates including zero", async () => {
+    setLanguage("id");
+    const user = userEvent.setup();
+    render(
+      <DeliveryOrderPanel
+        salesOrderId="so-1"
+        storeId="store-1"
+        deliveryAddressSnapshot="Destination"
+        items={dummyItems}
+        isReleasedOrConfirmed
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /\+ Buat Pesanan Pengiriman/i }));
+    await user.click(screen.getByText("Unit Stok: su-11112"));
+    const submit = screen.getByRole("button", { name: "Buat Pesanan Pengiriman" });
+    expect(submit).toBeEnabled();
+    await user.type(screen.getByLabelText("Lintang Tujuan"), "0");
+    expect(submit).toBeDisabled();
+    await user.type(screen.getByLabelText("Bujur Tujuan"), "181");
+    expect(submit).toBeDisabled();
+    await user.clear(screen.getByLabelText("Bujur Tujuan"));
+    await user.type(screen.getByLabelText("Bujur Tujuan"), "106.8");
+    expect(submit).toBeEnabled();
+    await user.click(submit);
+    expect(mockCreateDOMutate).toHaveBeenCalledWith(
+      expect.objectContaining({ destinationLatitude: 0, destinationLongitude: 106.8 }),
+      expect.any(Object),
+    );
   });
 });

@@ -10,7 +10,8 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { DataGrid, type GridColDef } from "@mui/x-data-grid";
+import { DataGrid, type GridColDef, type GridRowSelectionModel } from "@mui/x-data-grid";
+import { useSnackbar } from "notistack";
 import SearchIcon from "@mui/icons-material/Search";
 import HistoryIcon from "@mui/icons-material/History";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
@@ -18,13 +19,18 @@ import BlockIcon from "@mui/icons-material/Block";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import { exportStockBalanceToExcel } from "../../lib/exportExcel";
+import { extractSelectedRowIds } from "../../lib/exportDataGrid";
 import { useAuthStore } from "../../store/authStore";
 import { useStores } from "../stores/hooks";
 import ReceiveStockUnitDialog from "./ReceiveStockUnitDialog";
 import TransferStockUnitDialog from "./TransferStockUnitDialog";
 import StockMovementHistoryDrawer from "./StockMovementHistoryDrawer";
-import { useAdjustAvailability, useStockUnits } from "./hooks";
+import { useAdjustAvailability, useBulkAdjustAvailability, useStockUnits } from "./hooks";
 import type { StockAvailability, StockLocationType, StockUnit } from "./types";
+import BulkActionBar from "../../components/BulkActionBar";
+import { t } from "../../lib/locale";
+
+const INITIAL_SELECTION: GridRowSelectionModel = { type: "include", ids: new Set() };
 
 const AVAILABILITIES: StockAvailability[] = [
   "AVAILABLE",
@@ -47,6 +53,8 @@ export default function StockUnitListPage() {
   const [availability, setAvailability] = useState<StockAvailability | "">("");
   const [locationType, setLocationType] = useState<StockLocationType | "">("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedRowIds, setSelectedRowIds] = useState<GridRowSelectionModel>(INITIAL_SELECTION);
+  const { enqueueSnackbar } = useSnackbar();
 
   const { data = [], isLoading } = useStockUnits({
     storeId: storeId || undefined,
@@ -55,6 +63,7 @@ export default function StockUnitListPage() {
 
   const canManage = useAuthStore((s) => s.hasPermission("INVENTORY_MANAGE"));
   const adjustAvailability = useAdjustAvailability();
+  const bulkAdjustAvailability = useBulkAdjustAvailability();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [transferTarget, setTransferTarget] = useState<StockUnit | null>(null);
   const [movementDrawerUnit, setMovementDrawerUnit] = useState<StockUnit | null>(null);
@@ -77,18 +86,19 @@ export default function StockUnitListPage() {
   const columns: GridColDef<StockUnit>[] = [
     {
       field: "manufacturerSerial",
-      headerName: "Serial Number",
+      headerName: t("Serial Number"),
       width: 180,
+      valueGetter: (_, row) => row.manufacturerSerial || "(Non-serialized)",
       renderCell: (params) => (
         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-          {params.value || "Non-serialized"}
+          {params.value}
         </Typography>
       ),
     },
-    { field: "variantName", headerName: "Product Variant", flex: 1, minWidth: 200 },
+    { field: "variantName", headerName: t("Product Variant"), flex: 1, minWidth: 200 },
     {
       field: "locationType",
-      headerName: "Location",
+      headerName: t("Location"),
       width: 150,
       renderCell: (params) => (
         <Chip
@@ -101,7 +111,7 @@ export default function StockUnitListPage() {
     },
     {
       field: "availabilityStatus",
-      headerName: "Availability",
+      headerName: t("Availability"),
       width: 140,
       renderCell: (params) => (
         <Chip
@@ -120,13 +130,13 @@ export default function StockUnitListPage() {
     },
     {
       field: "actions",
-      headerName: "Actions",
+      headerName: t("Actions"),
       width: 220,
       sortable: false,
       renderCell: (params: { row: StockUnit }) => (
         <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
           {/* Movement Ledger Audit */}
-          <Tooltip title="View Stock Movement Audit Trail">
+          <Tooltip title={t("View Stock Movement Audit Trail")}>
             <IconButton
               size="small"
               onClick={() => setMovementDrawerUnit(params.row)}
@@ -138,7 +148,7 @@ export default function StockUnitListPage() {
           {canManage && (
             <>
               {/* Transfer */}
-              <Tooltip title="Transfer Stock Unit">
+              <Tooltip title={t("Transfer Stock Unit")}>
                 <IconButton
                   size="small"
                   color="primary"
@@ -150,12 +160,12 @@ export default function StockUnitListPage() {
 
               {/* Availability Toggle */}
               {params.row.availabilityStatus !== "UNAVAILABLE" ? (
-                <Tooltip title="Mark as Unavailable">
+                <Tooltip title={t("Mark as Unavailable")}>
                   <IconButton
                     size="small"
                     color="error"
                     onClick={() => {
-                      const reason = window.prompt("Reason for marking unavailable?");
+                      const reason = window.prompt(t("Reason for marking unavailable?"));
                       if (reason !== null) {
                         adjustAvailability.mutate({
                           id: params.row.id,
@@ -169,7 +179,7 @@ export default function StockUnitListPage() {
                   </IconButton>
                 </Tooltip>
               ) : (
-                <Tooltip title="Mark as Available">
+                <Tooltip title={t("Mark as Available")}>
                   <IconButton
                     size="small"
                     color="success"
@@ -199,15 +209,16 @@ export default function StockUnitListPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          mb: 2,
+          flexWrap: "wrap",
+          gap: 2,
+          mb: 3,
         }}
       >
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            Stock Units & Ledger
-          </Typography>
+          <Typography variant="h5" sx={{ fontWeight: 600 }}>
+            {t("Stock Units & Ledger")}</Typography>
           <Typography variant="body2" color="text.secondary">
-            Serialized unit tracking, showroom inventory, and physical movement logs
+            {t("Serialized unit tracking, showroom inventory, and physical movement logs")}
           </Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
@@ -222,11 +233,11 @@ export default function StockUnitListPage() {
               })
             }
           >
-            Export Stock Excel (.xlsx)
+            {t("Export Stock Excel (.xlsx)")}
           </Button>
           {canManage && (
             <Button variant="contained" onClick={() => setDialogOpen(true)}>
-              Receive Stock Unit
+              {t("Receive Stock Unit")}
             </Button>
           )}
         </Box>
@@ -243,7 +254,7 @@ export default function StockUnitListPage() {
         }}
       >
         <TextField
-          placeholder="Filter by serial or variant..."
+          placeholder={t("Filter by serial or variant...")}
           size="small"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -261,13 +272,13 @@ export default function StockUnitListPage() {
 
         <TextField
           select
-          label="Store"
+          label={t("Store")}
           size="small"
           sx={{ width: 180 }}
           value={storeId}
           onChange={(e) => setStoreId(e.target.value)}
         >
-          <MenuItem value="">All Stores</MenuItem>
+          <MenuItem value="">{t("All Stores")}</MenuItem>
           {(stores ?? []).map((s) => (
             <MenuItem key={s.id} value={s.id}>
               {s.name}
@@ -277,7 +288,7 @@ export default function StockUnitListPage() {
 
         <TextField
           select
-          label="Availability"
+          label={t("Availability")}
           size="small"
           sx={{ width: 160 }}
           value={availability}
@@ -285,7 +296,7 @@ export default function StockUnitListPage() {
             setAvailability(e.target.value as StockAvailability | "")
           }
         >
-          <MenuItem value="">All Statuses</MenuItem>
+          <MenuItem value="">{t("All Statuses")}</MenuItem>
           {AVAILABILITIES.map((a) => (
             <MenuItem key={a} value={a}>
               {a}
@@ -295,7 +306,7 @@ export default function StockUnitListPage() {
 
         <TextField
           select
-          label="Location Type"
+          label={t("Location Type")}
           size="small"
           sx={{ width: 170 }}
           value={locationType}
@@ -303,7 +314,7 @@ export default function StockUnitListPage() {
             setLocationType(e.target.value as StockLocationType | "")
           }
         >
-          <MenuItem value="">All Locations</MenuItem>
+          <MenuItem value="">{t("All Locations")}</MenuItem>
           {LOCATION_TYPES.map((loc) => (
             <MenuItem key={loc} value={loc}>
               {loc}
@@ -312,8 +323,7 @@ export default function StockUnitListPage() {
         </TextField>
 
         <Typography variant="caption" color="text.secondary" sx={{ ml: "auto" }}>
-          Showing {filteredRows.length} of {data.length} units
-        </Typography>
+          {t("Showing")} {filteredRows.length} {t("of")}{data.length} {t("units")}</Typography>
       </Box>
 
       {/* High-Performance Virtualized Data Grid */}
@@ -327,6 +337,9 @@ export default function StockUnitListPage() {
           initialState={{
             pagination: { paginationModel: { pageSize: 25, page: 0 } },
           }}
+          checkboxSelection
+          rowSelectionModel={selectedRowIds}
+          onRowSelectionModelChange={(newModel) => setSelectedRowIds(newModel)}
           disableRowSelectionOnClick
           density="standard"
         />
@@ -346,6 +359,52 @@ export default function StockUnitListPage() {
         stockUnit={movementDrawerUnit}
         open={!!movementDrawerUnit}
         onClose={() => setMovementDrawerUnit(null)}
+      />
+
+      {/* Bulk Operations Bar */}
+      <BulkActionBar
+        selectedRowIds={selectedRowIds}
+        totalCount={filteredRows.length}
+        onClearSelection={() => setSelectedRowIds(INITIAL_SELECTION)}
+        columns={columns}
+        rows={filteredRows}
+        exportFilename="stock_units_inventory"
+        exportTitle="INVENTARIS UNIT FISIK (STOCK UNITS & LEDGER)"
+        statusUpdate={{
+          title: t("Pembaruan Ketersediaan Unit Massal"),
+          statusOptions: [
+            {
+              value: "AVAILABLE",
+              label: t("Available (Siap Dijual / Display)"),
+              description: t("Unit siap dipajang di showroom atau dialokasikan ke pesanan."),
+            },
+            {
+              value: "RESERVED",
+              label: t("Reserved (Dipesan)"),
+              description: t("Unit dikunci untuk pesanan pelanggan / sedang diproses."),
+            },
+            {
+              value: "UNAVAILABLE",
+              label: t("Unavailable (Karantina / Rusak / Servis)"),
+              description: t("Unit cacat fisik atau membutuhkan perbaikan teknis."),
+            },
+          ],
+          requireReason: true,
+          reasonLabel: "Alasan Penyesuaian Ketersediaan Stok (Audit Log)",
+          onConfirm: async (status, reason) => {
+            const unitIds = extractSelectedRowIds(selectedRowIds, filteredRows) as string[];
+            const res = await bulkAdjustAvailability.mutateAsync({
+              ids: unitIds,
+              availability: status as StockAvailability,
+              reason,
+            });
+            setSelectedRowIds(INITIAL_SELECTION);
+            enqueueSnackbar(
+              t("Bulk stock update complete: {success} successful, {failure} failed.", undefined, { success: res.successCount, failure: res.failureCount }),
+              { variant: res.failureCount > 0 ? "warning" : "success" }
+            );
+          },
+        }}
       />
     </Box>
   );

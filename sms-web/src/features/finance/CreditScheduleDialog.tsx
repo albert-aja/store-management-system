@@ -18,6 +18,7 @@ import {
   Typography,
 } from "@mui/material";
 import type { Receivable } from "./types";
+import { t , formatDate, formatNumber, localizeDisplayCode} from "../../lib/locale";
 
 interface CreditScheduleDialogProps {
   receivable: Receivable | null;
@@ -46,14 +47,14 @@ export default function CreditScheduleDialog({
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 600 }}>
-              Credit Account: {receivable.receivableNumber}
+              {t("Credit Account:")} {receivable.receivableNumber}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Customer: {receivable.customerName} · Order: {receivable.salesOrderNumber}
+              {t("Customer:")} {receivable.customerName} {t("· Order:")} {receivable.salesOrderNumber}
             </Typography>
           </Box>
           <Chip
-            label={receivable.status}
+            label={localizeDisplayCode(receivable.status)}
             color={
               receivable.status === "PAID_IN_FULL"
                 ? "success"
@@ -78,38 +79,38 @@ export default function CreditScheduleDialog({
           >
             <Paper variant="outlined" sx={{ p: 1.5 }}>
               <Typography variant="caption" color="text.secondary">
-                Total Obligation
+                {t("Total Obligation")}
               </Typography>
               <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                IDR {receivable.totalAmount.toLocaleString()}
+                {t("IDR")} {formatNumber(receivable.totalAmount)}
               </Typography>
             </Paper>
             <Paper variant="outlined" sx={{ p: 1.5 }}>
               <Typography variant="caption" color="text.secondary">
-                Down Payment
+                {t("Down Payment")}
               </Typography>
               <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                IDR {receivable.downPaymentAmount.toLocaleString()}
+                {t("IDR")} {formatNumber(receivable.downPaymentAmount)}
               </Typography>
             </Paper>
             <Paper variant="outlined" sx={{ p: 1.5 }}>
               <Typography variant="caption" color="text.secondary">
-                Total Paid
+                {t("Total Paid")}
               </Typography>
               <Typography variant="body1" color="success.main" sx={{ fontWeight: 600 }}>
-                IDR {receivable.totalPaid.toLocaleString()}
+                {t("IDR")} {formatNumber(receivable.totalPaid)}
               </Typography>
             </Paper>
             <Paper variant="outlined" sx={{ p: 1.5 }}>
               <Typography variant="caption" color="text.secondary">
-                Remaining Balance
+                {t("Remaining Balance")}
               </Typography>
               <Typography
                 variant="body1"
                 color={receivable.remainingBalance > 0 ? "error.main" : "text.primary"}
                 sx={{ fontWeight: 600 }}
               >
-                IDR {receivable.remainingBalance.toLocaleString()}
+                {t("IDR")} {formatNumber(receivable.remainingBalance)}
               </Typography>
             </Paper>
           </Box>
@@ -124,7 +125,7 @@ export default function CreditScheduleDialog({
               />
             </Box>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {progress}% Paid
+              {progress}{t("% Paid")}
             </Typography>
           </Box>
         </Box>
@@ -133,7 +134,7 @@ export default function CreditScheduleDialog({
 
         {/* Installment Schedule Table */}
         <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
-          Installment Schedule ({receivable.installments.length} Months)
+          {t("Installment Schedule (")}{receivable.installments.length} {t("Months)")}
         </Typography>
 
         <TableContainer component={Paper} variant="outlined">
@@ -141,12 +142,12 @@ export default function CreditScheduleDialog({
             <TableHead>
               <TableRow>
                 <TableCell>#</TableCell>
-                <TableCell>Due Date</TableCell>
-                <TableCell align="right">Amount Due</TableCell>
-                <TableCell align="right">Amount Paid</TableCell>
-                <TableCell align="right">Remaining</TableCell>
-                <TableCell align="center">Status</TableCell>
-                <TableCell>Overdue Note</TableCell>
+                <TableCell>{t("Due Date")}</TableCell>
+                <TableCell align="right">{t("Amount Due")}</TableCell>
+                <TableCell align="right">{t("Amount Paid")}</TableCell>
+                <TableCell align="right">{t("Remaining")}</TableCell>
+                <TableCell align="center">{t("Status")}</TableCell>
+                <TableCell>{t("Overdue Note")}</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -163,20 +164,20 @@ export default function CreditScheduleDialog({
                     }}
                   >
                     <TableCell sx={{ fontWeight: 600 }}>{inst.installmentNumber}</TableCell>
-                    <TableCell>{new Date(inst.dueDate).toLocaleDateString()}</TableCell>
+                    <TableCell>{formatDate(new Date(inst.dueDate), undefined, { dateStyle: "medium" })}</TableCell>
                     <TableCell align="right">
-                      IDR {inst.amountDue.toLocaleString()}
+                      {t("IDR")} {formatNumber(inst.amountDue)}
                     </TableCell>
                     <TableCell align="right">
-                      IDR {inst.amountPaid.toLocaleString()}
+                      {t("IDR")} {formatNumber(inst.amountPaid)}
                     </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600 }}>
-                      IDR {remaining.toLocaleString()}
+                      {t("IDR")} {formatNumber(remaining)}
                     </TableCell>
                     <TableCell align="center">
                       <Chip
                         size="small"
-                        label={inst.status}
+                        label={localizeDisplayCode(inst.status)}
                         color={
                           inst.status === "PAID"
                             ? "success"
@@ -191,7 +192,7 @@ export default function CreditScheduleDialog({
                     <TableCell>
                       {inst.daysOverdue > 0 && inst.status !== "PAID" ? (
                         <Typography variant="caption" color="error.main" sx={{ fontWeight: 600 }}>
-                          ⚠ {inst.daysOverdue} days overdue
+                          ⚠ {inst.daysOverdue} {t("days overdue")}
                         </Typography>
                       ) : (
                         "—"
@@ -215,10 +216,10 @@ export default function CreditScheduleDialog({
               onRecordPayment(receivable);
             }}
           >
-            Record Payment for Account
+            {t("Record Payment for Account")}
           </Button>
         )}
-        <Button onClick={onClose}>Close</Button>
+        <Button onClick={onClose}>{t("Close")}</Button>
       </DialogActions>
     </Dialog>
   );

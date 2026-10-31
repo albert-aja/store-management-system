@@ -12,6 +12,7 @@ import {
   useUpdateEmployee,
 } from "./hooks";
 import type { Employee } from "./types";
+import { t } from "../../lib/locale";
 
 export default function EmployeeListPage() {
   const { data, isLoading } = useEmployees();
@@ -26,11 +27,11 @@ export default function EmployeeListPage() {
   const [editing, setEditing] = useState<Employee | null>(null);
 
   const columns: GridColDef<Employee>[] = [
-    { field: "employeeNumber", headerName: "Employee #", width: 130 },
-    { field: "fullName", headerName: "Full Name", flex: 1 },
+    { field: "employeeNumber", headerName: t("Employee #"), width: 130 },
+    { field: "fullName", headerName: t("Full Name"), flex: 1 },
     {
       field: "roleCodes",
-      headerName: "Roles",
+      headerName: t("Roles"),
       flex: 1,
       renderCell: (params) =>
         params.row.roleCodes.map((code) => (
@@ -39,7 +40,7 @@ export default function EmployeeListPage() {
     },
     {
       field: "employmentStatus",
-      headerName: "Active",
+      headerName: t("Active"),
       width: 100,
       renderCell: (params) => (
         <Switch
@@ -66,8 +67,7 @@ export default function EmployeeListPage() {
                     setFormOpen(true);
                   }}
                 >
-                  Edit
-                </Button>
+                  {t("Edit")}</Button>
                 <Button
                   size="small"
                   onClick={() => {
@@ -75,7 +75,7 @@ export default function EmployeeListPage() {
                     setAssignOpen(true);
                   }}
                 >
-                  Assignments
+                  {t("Assignments")}
                 </Button>
               </>
             ),
@@ -91,10 +91,12 @@ export default function EmployeeListPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          mb: 2,
+          flexWrap: "wrap",
+          gap: 2,
+          mb: 3,
         }}
       >
-        <Typography variant="h5">Employees</Typography>
+        <Typography variant="h5">{t("Employees")}</Typography>
         {canManage && (
           <Button
             variant="contained"
@@ -103,7 +105,7 @@ export default function EmployeeListPage() {
               setFormOpen(true);
             }}
           >
-            New Employee
+            {t("New Employee")}
           </Button>
         )}
       </Box>
@@ -131,7 +133,7 @@ export default function EmployeeListPage() {
             ? updateEmployee.mutateAsync({ id: editing.id, input })
             : createEmployee.mutateAsync(input);
           action.then(() => {
-            enqueueSnackbar(editing ? "Employee updated" : "Employee created", {
+            enqueueSnackbar(editing ? t("Employee updated") : t("Employee created"), {
               variant: "success",
             });
             setFormOpen(false);

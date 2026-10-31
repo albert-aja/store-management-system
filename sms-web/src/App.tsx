@@ -24,11 +24,13 @@ const PurchaseOrderListPage = lazy(() => import("./features/procurement/Purchase
 const PurchaseOrderDetailPage = lazy(() => import("./features/procurement/PurchaseOrderDetailPage"));
 const DeliveryTripListPage = lazy(() => import("./features/delivery/DeliveryTripListPage"));
 const DeliveryTripDetailPage = lazy(() => import("./features/delivery/DeliveryTripDetailPage"));
+const FleetMonitoringPage = lazy(() => import("./features/fleet/FleetMonitoringPage"));
 const FinancePage = lazy(() => import("./features/finance/FinancePage"));
 const ExpenseBudgetPage = lazy(() => import("./features/expense/ExpenseBudgetPage"));
 const RepossessionWarrantyPage = lazy(() => import("./features/repossession/RepossessionWarrantyPage"));
 const PayrollPage = lazy(() => import("./features/payroll/PayrollPage"));
 const DashboardPage = lazy(() => import("./features/reporting/DashboardPage"));
+const PriceListPage = lazy(() => import("./features/pricing/PriceListPage"));
 
 export default function App() {
   useSessionBootstrap();
@@ -83,6 +85,16 @@ export default function App() {
             <ProtectedRoute>
               <AppLayout>
                 <ProductDetailPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/price-list"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <PriceListPage />
               </AppLayout>
             </ProtectedRoute>
           }
@@ -203,6 +215,16 @@ export default function App() {
             <ProtectedRoute>
               <AppLayout>
                 <DeliveryTripDetailPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/fleet"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <FleetMonitoringPage />
               </AppLayout>
             </ProtectedRoute>
           }

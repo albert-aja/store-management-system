@@ -24,6 +24,7 @@ export interface DeliveryTrip {
   helperName: string | null;
   vehiclePlate: string | null;
   scheduledDate: string;
+  plannedDispatchAt?: string | null;
   status: DeliveryTripStatus;
   departedAt: string | null;
   completedAt: string | null;
@@ -37,6 +38,7 @@ export interface CreateDeliveryTripInput {
   helperEmployeeId?: string;
   vehiclePlate?: string;
   scheduledDate?: string;
+  plannedDispatchAt?: string;
   notes?: string;
 }
 
@@ -61,6 +63,9 @@ export interface DeliveryOrder {
   deliveryTripId: string | null;
   tripNumber: string | null;
   destinationAddress: string;
+  destinationLatitude?: number | null;
+  destinationLongitude?: number | null;
+  deliveryWindow?: "MORNING" | "AFTERNOON" | null;
   recipientName: string | null;
   recipientPhone: string | null;
   stopSequence: number;
@@ -83,6 +88,8 @@ export interface CreateDeliveryOrderInput {
   salesOrderId: string;
   deliveryTripId?: string;
   destinationAddress?: string;
+  destinationLatitude?: number;
+  destinationLongitude?: number;
   recipientName?: string;
   recipientPhone?: string;
   stopSequence?: number;

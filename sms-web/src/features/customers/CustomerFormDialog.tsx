@@ -19,6 +19,7 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import type { Customer, DuplicateCheckInput, DuplicateMatchResultItem } from "./types";
+import { formatNumber, t } from "../../lib/locale";
 
 const schema = z.object({
   fullName: z.string().min(1, "Full name is required"),
@@ -97,25 +98,25 @@ export default function CustomerFormDialog({
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogTitle>{initial ? "Edit Customer" : "New Customer"}</DialogTitle>
+        <DialogTitle>{initial ? t("Edit Customer") : t("New Customer")}</DialogTitle>
         <DialogContent
           sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}
         >
           <TextField
-            label="Full Name"
+            label={t("Full Name")}
             fullWidth
             {...register("fullName")}
             error={!!errors.fullName}
             helperText={errors.fullName?.message}
           />
-          <TextField label="NIK" fullWidth {...register("nik")} />
+          <TextField label={t("NIK")} fullWidth {...register("nik")} />
           <TextField
-            label="Primary Phone"
+            label={t("Primary Phone")}
             fullWidth
             {...register("primaryPhone")}
           />
           <TextField
-            label="Primary Email"
+            label={t("Primary Email")}
             fullWidth
             {...register("primaryEmail")}
             error={!!errors.primaryEmail}
@@ -124,21 +125,21 @@ export default function CustomerFormDialog({
 
           <Box sx={{ display: "flex", gap: 2 }}>
             <TextField
-              label="Mother's Maiden Name"
+              label={t("Mother's Maiden Name")}
               fullWidth
               size="small"
               {...register("motherMaidenName")}
-              helperText="Verifikasi duplikasi & PDP (J.4)"
+              helperText={t("Verifikasi duplikasi & PDP (J.4)")}
             />
             <TextField
-              label="Birth Place"
+              label={t("Birth Place")}
               fullWidth
               size="small"
               {...register("birthPlace")}
             />
           </Box>
           <TextField
-            label="Date of Birth"
+            label={t("Date of Birth")}
             type="date"
             fullWidth
             size="small"
@@ -151,7 +152,7 @@ export default function CustomerFormDialog({
             <Box sx={{ border: "1px dashed #94a3b8", borderRadius: 1.5, p: 1.5, bgcolor: "#f8fafc" }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Typography variant="body2" sx={{ fontWeight: 600, color: "#334155" }}>
-                  Pemeriksaan Duplikasi Otomatis (J.4)
+                  {t("Pemeriksaan Duplikasi Otomatis (J.4)")}
                 </Typography>
                 <Button
                   size="small"
@@ -160,14 +161,14 @@ export default function CustomerFormDialog({
                   onClick={handleRunDuplicateCheck}
                   disabled={isChecking}
                 >
-                  {isChecking ? "Memeriksa..." : "Cek Duplikasi"}
+                  {isChecking ? t("Memeriksa...") : t("Cek Duplikasi")}
                 </Button>
               </Box>
 
               <Collapse in={checked}>
                 {duplicateMatches.length === 0 ? (
                   <Alert severity="success" sx={{ mt: 1 }}>
-                    Tidak ditemukan pelanggan ganda. Data aman untuk disimpan.
+                    {t("Tidak ditemukan pelanggan ganda. Data aman untuk disimpan.")}
                   </Alert>
                 ) : (
                   <Alert
@@ -176,7 +177,7 @@ export default function CustomerFormDialog({
                     sx={{ mt: 1 }}
                   >
                     <AlertTitle sx={{ fontWeight: 700 }}>
-                      Perhatian: Ditemukan {duplicateMatches.length} Data Mirip!
+                      {t("Perhatian: Ditemukan")} {duplicateMatches.length} {t("Data Mirip!")}
                     </AlertTitle>
                     {duplicateMatches.map((m) => (
                       <Box key={m.matchedCustomerId} sx={{ mt: 1, p: 1, bgcolor: "rgba(255,255,255,0.7)", borderRadius: 1 }}>
@@ -185,13 +186,15 @@ export default function CustomerFormDialog({
                             {m.matchedCustomerName}
                           </Typography>
                           <Chip
-                            label={`${m.matchScorePercent}% Match`}
+                            label={t("{percent}% Match", undefined, {
+                              percent: formatNumber(m.matchScorePercent),
+                            })}
                             color={m.matchScorePercent >= 80 ? "error" : "warning"}
                             size="small"
                           />
                         </Box>
                         <Typography variant="caption" sx={{ display: "block", color: "text.secondary" }}>
-                          NIK: {m.matchedNik ?? "—"} • Telp: {m.matchedPhone ?? "—"}
+                          {t("NIK:")} {m.matchedNik ?? "—"} {t("• Telp:")} {m.matchedPhone ?? "—"}
                         </Typography>
                         <Box sx={{ mt: 0.5, display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                           {m.matchReasons.map((r, idx) => (
@@ -207,10 +210,9 @@ export default function CustomerFormDialog({
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t("Cancel")}</Button>
           <Button type="submit" variant="contained">
-            Save
-          </Button>
+            {t("Save")}</Button>
         </DialogActions>
       </form>
     </Dialog>

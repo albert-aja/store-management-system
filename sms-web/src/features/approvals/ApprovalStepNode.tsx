@@ -2,6 +2,7 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Box, Chip, Paper, Typography, useTheme } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { formatNumber, t } from "../../lib/locale";
 
 export interface ApprovalStepNodeData extends Record<string, unknown> {
   stepOrder: number;
@@ -56,7 +57,9 @@ export default function ApprovalStepNode({
         }}
       >
         <Chip
-          label={`Step #${data.stepOrder}`}
+          label={t("Step #{stepOrder}", undefined, {
+            stepOrder: formatNumber(data.stepOrder),
+          })}
           size="small"
           color="primary"
           sx={{ fontSize: "0.7rem", height: 20, fontWeight: 700 }}

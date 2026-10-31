@@ -56,6 +56,7 @@ import type {
   ExpensePaymentMethod,
   ExpenseActivityType,
 } from './types';
+import { formatDate, formatNumber, localizeDisplayCode, t } from "../../lib/locale";
 
 export default function ExpenseBudgetPage() {
   const [activeTab, setActiveTab] = useState(0);
@@ -207,24 +208,24 @@ export default function ExpenseBudgetPage() {
   };
 
   return (
-    <Container maxWidth="xl" sx={{ mt: 3, mb: 4 }}>
+    <Container maxWidth={false} disableGutters>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary' }}>
-            Store Expenses & Budgets
+          <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
+            {t("Store Expenses & Budgets")}
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
-            Operational disbursements, budget caps, overrun approvals, and petty cash tracking
+            {t("Operational disbursements, budget caps, overrun approvals, and petty cash tracking")}
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           <FormControl size="small" sx={{ minWidth: 160 }}>
-            <InputLabel id="store-select-label">Store</InputLabel>
+            <InputLabel id="store-select-label">{t("Store")}</InputLabel>
             <Select
               labelId="store-select-label"
               value={selectedStoreId}
-              label="Store"
+              label={t("Store")}
               onChange={(e) => setStoreFilter(e.target.value)}
             >
               {stores.map((s) => (
@@ -235,26 +236,26 @@ export default function ExpenseBudgetPage() {
             </Select>
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 110 }}>
-            <InputLabel id="month-select-label">Month</InputLabel>
+            <InputLabel id="month-select-label">{t("Month")}</InputLabel>
             <Select
               labelId="month-select-label"
               value={selectedMonth}
-              label="Month"
+              label={t("Month")}
               onChange={(e) => setSelectedMonth(Number(e.target.value))}
             >
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
                 <MenuItem key={m} value={m}>
-                  Month {m}
+                  {t("Month")} {m}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
           <FormControl size="small" sx={{ minWidth: 100 }}>
-            <InputLabel id="year-select-label">Year</InputLabel>
+            <InputLabel id="year-select-label">{t("Year")}</InputLabel>
             <Select
               labelId="year-select-label"
               value={selectedYear}
-              label="Year"
+              label={t("Year")}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
             >
               {[2025, 2026, 2027].map((y) => (
@@ -270,7 +271,7 @@ export default function ExpenseBudgetPage() {
             startIcon={<AddIcon />}
             onClick={handleOpenRecordExpense}
           >
-            Record Expense
+            {t("Record Expense")}
           </Button>
         </Box>
       </Box>
@@ -280,33 +281,33 @@ export default function ExpenseBudgetPage() {
         <Card>
           <CardContent>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-              MONTHLY BUDGET
+              {t("MONTHLY BUDGET")}
             </Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, mt: 1 }}>
-              IDR {totalAllocated.toLocaleString()}
+              {t("IDR")} {formatNumber(totalAllocated)}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              Allocated across all categories
+              {t("Allocated across all categories")}
             </Typography>
           </CardContent>
         </Card>
         <Card>
           <CardContent>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-              MONTH-TO-DATE SPENT
+              {t("MONTH-TO-DATE SPENT")}
             </Typography>
             <Typography variant="h5" sx={{ fontWeight: 700, mt: 1, color: 'primary.main' }}>
-              IDR {totalSpent.toLocaleString()}
+              {t("IDR")} {formatNumber(totalSpent)}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              Approved and disbursed
+              {t("Approved and disbursed")}
             </Typography>
           </CardContent>
         </Card>
         <Card>
           <CardContent>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-              REMAINING BUDGET
+              {t("REMAINING BUDGET")}
             </Typography>
             <Typography
               variant="h5"
@@ -316,17 +317,17 @@ export default function ExpenseBudgetPage() {
                 color: netRemaining < 0 ? 'error.main' : 'success.main',
               }}
             >
-              IDR {netRemaining.toLocaleString()}
+              {t("IDR")} {formatNumber(netRemaining)}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              {netRemaining < 0 ? 'Overall overrun' : 'Available balance'}
+              {netRemaining < 0 ? t("Overall overrun") : t("Available balance")}
             </Typography>
           </CardContent>
         </Card>
         <Card>
           <CardContent>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-              OVERRUN ALERTS
+              {t("OVERRUN ALERTS")}
             </Typography>
             <Typography
               variant="h5"
@@ -336,10 +337,10 @@ export default function ExpenseBudgetPage() {
                 color: overrunCount > 0 ? 'error.main' : 'text.primary',
               }}
             >
-              {overrunCount} Categories
+              {overrunCount} {t("Categories")}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              Requires manager authorization
+              {t("Requires manager authorization")}
             </Typography>
           </CardContent>
         </Card>
@@ -352,10 +353,10 @@ export default function ExpenseBudgetPage() {
           onChange={(_, val) => setActiveTab(val)}
           sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}
         >
-          <Tab icon={<ReceiptLongIcon />} iconPosition="start" label={`Expenses (${expenses.length})`} />
-          <Tab icon={<PieChartIcon />} iconPosition="start" label="Budget Consumption" />
-          <Tab icon={<AccountBalanceWalletIcon />} iconPosition="start" label={`Budget Requests (${budgetRequests.length})`} />
-          <Tab icon={<CategoryIcon />} iconPosition="start" label={`Categories (${categories.length})`} />
+          <Tab icon={<ReceiptLongIcon />} iconPosition="start" label={t("Expenses ({count})", undefined, { count: formatNumber(expenses.length) })} />
+          <Tab icon={<PieChartIcon />} iconPosition="start" label={t("Budget Consumption")} />
+          <Tab icon={<AccountBalanceWalletIcon />} iconPosition="start" label={t("Budget Requests ({count})", undefined, { count: formatNumber(budgetRequests.length) })} />
+          <Tab icon={<CategoryIcon />} iconPosition="start" label={t("Categories ({count})", undefined, { count: formatNumber(categories.length) })} />
         </Tabs>
 
         <CardContent sx={{ p: 0 }}>
@@ -367,32 +368,32 @@ export default function ExpenseBudgetPage() {
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={{ bgcolor: 'action.hover' }}>
-                      <TableCell sx={{ fontWeight: 600 }}>Expense #</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Amount (IDR)</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Method</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Payee / Desc</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Overrun</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Expense #")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Date")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Category")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Amount (IDR)")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Method")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Payee / Desc")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Status")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Overrun")}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600 }}>{t("Actions")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {expenses.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={9} align="center" sx={{ py: 3, color: 'text.secondary' }}>
-                          No expenses recorded for this store.
+                          {t("No expenses recorded for this store.")}
                         </TableCell>
                       </TableRow>
                     ) : (
                       expenses.map((e) => (
                         <TableRow key={e.id} hover>
                           <TableCell sx={{ fontWeight: 600 }}>{e.expenseNumber}</TableCell>
-                          <TableCell>{e.expenseDate}</TableCell>
+                          <TableCell>{formatDate(e.expenseDate)}</TableCell>
                           <TableCell>{e.expenseCategoryName}</TableCell>
                           <TableCell sx={{ fontWeight: 600 }}>
-                            IDR {(e.amount || 0).toLocaleString()}
+                            {t("IDR")} {formatNumber((e.amount || 0))}
                           </TableCell>
                           <TableCell>
                             <Chip size="small" variant="outlined" label={e.paymentMethod.replace(/_/g, ' ')} />
@@ -408,7 +409,7 @@ export default function ExpenseBudgetPage() {
                           <TableCell>
                             <Chip
                               size="small"
-                              label={e.status.replace(/_/g, ' ')}
+                              label={localizeDisplayCode(e.status)}
                               color={
                                 e.status === 'PAID'
                                   ? 'success'
@@ -427,12 +428,12 @@ export default function ExpenseBudgetPage() {
                               <Chip
                                 size="small"
                                 icon={<WarningAmberIcon />}
-                                label="Overrun"
+                                label={t("Overrun")}
                                 color="error"
                               />
                             ) : (
                               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                Normal
+                                {t("Normal")}
                               </Typography>
                             )}
                           </TableCell>
@@ -445,7 +446,7 @@ export default function ExpenseBudgetPage() {
                                 onClick={() => handleApproveExpense(e)}
                                 sx={{ mr: 1 }}
                               >
-                                Approve Overrun
+                                {t("Approve Overrun")}
                               </Button>
                             )}
                             {canManage && e.status === 'APPROVED' && (
@@ -456,7 +457,7 @@ export default function ExpenseBudgetPage() {
                                 startIcon={<CheckCircleIcon />}
                                 onClick={() => handlePayExpense(e)}
                               >
-                                Mark Paid
+                                {t("Mark Paid")}
                               </Button>
                             )}
                           </TableCell>
@@ -474,7 +475,7 @@ export default function ExpenseBudgetPage() {
             <Box sx={{ p: 3 }}>
               {consumptions.length === 0 ? (
                 <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', py: 4 }}>
-                  No budget consumption data available for this store and period.
+                  {t("No budget consumption data available for this store and period.")}
                 </Typography>
               ) : (
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
@@ -486,9 +487,19 @@ export default function ExpenseBudgetPage() {
                             {c.categoryName}
                           </Typography>
                           {c.overrun ? (
-                            <Chip size="small" label="Budget Overrun" color="error" icon={<WarningAmberIcon />} />
+                            <Chip size="small" label={t("Budget Overrun")} color="error" icon={<WarningAmberIcon />} />
                           ) : (
-                            <Chip size="small" label={`${c.consumptionPercent.toFixed(1)}% Used`} color="primary" variant="outlined" />
+                            <Chip
+                              size="small"
+                              label={t("{percent}% Used", undefined, {
+                                percent: formatNumber(c.consumptionPercent, undefined, {
+                                  minimumFractionDigits: 1,
+                                  maximumFractionDigits: 1,
+                                }),
+                              })}
+                              color="primary"
+                              variant="outlined"
+                            />
                           )}
                         </Box>
                         <LinearProgress
@@ -499,10 +510,10 @@ export default function ExpenseBudgetPage() {
                         />
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
                           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            Spent: IDR {(c.totalSpent || 0).toLocaleString()}
+                            {t("Spent: IDR")} {formatNumber((c.totalSpent || 0))}
                           </Typography>
                           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            Budget: IDR {(c.allocatedBudget || 0).toLocaleString()}
+                            {t("Budget: IDR")} {formatNumber((c.allocatedBudget || 0))}
                           </Typography>
                         </Box>
                         <Typography
@@ -514,7 +525,7 @@ export default function ExpenseBudgetPage() {
                             fontWeight: 600,
                           }}
                         >
-                          Remaining: IDR {(c.remainingBudget || 0).toLocaleString()}
+                          {t("Remaining: IDR")} {formatNumber((c.remainingBudget || 0))}
                         </Typography>
                       </CardContent>
                     </Card>
@@ -530,29 +541,29 @@ export default function ExpenseBudgetPage() {
               {loadingBudgets && <LinearProgress />}
               <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end' }}>
                 <Button variant="outlined" startIcon={<AddIcon />} onClick={handleOpenRequestBudget}>
-                  New Budget Request
+                  {t("New Budget Request")}
                 </Button>
               </Box>
               <TableContainer component={Paper} elevation={0}>
                 <Table size="small">
                   <TableHead>
                     <TableRow sx={{ bgcolor: 'action.hover' }}>
-                      <TableCell sx={{ fontWeight: 600 }}>Request #</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Category</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Period</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Requested (IDR)</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Approved (IDR)</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Requested By</TableCell>
-                      <TableCell sx={{ fontWeight: 600 }}>Justification</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Request #")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Category")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Period")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Requested (IDR)")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Approved (IDR)")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Status")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Requested By")}</TableCell>
+                      <TableCell sx={{ fontWeight: 600 }}>{t("Justification")}</TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 600 }}>{t("Actions")}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {budgetRequests.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={9} align="center" sx={{ py: 3, color: 'text.secondary' }}>
-                          No budget allocation requests found for this period.
+                          {t("No budget allocation requests found for this period.")}
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -561,12 +572,12 @@ export default function ExpenseBudgetPage() {
                           <TableCell sx={{ fontWeight: 600 }}>{b.requestNumber}</TableCell>
                           <TableCell>{b.expenseCategoryName}</TableCell>
                           <TableCell>{b.periodMonth}/{b.periodYear}</TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>IDR {(b.requestedAmount || 0).toLocaleString()}</TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>IDR {(b.approvedAmount || 0).toLocaleString()}</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>{t("IDR")} {formatNumber((b.requestedAmount || 0))}</TableCell>
+                          <TableCell sx={{ fontWeight: 600 }}>{t("IDR")} {formatNumber((b.approvedAmount || 0))}</TableCell>
                           <TableCell>
                             <Chip
                               size="small"
-                              label={b.status}
+                              label={localizeDisplayCode(b.status)}
                               color={b.status === 'APPROVED' ? 'success' : b.status === 'REJECTED' ? 'error' : 'warning'}
                             />
                           </TableCell>
@@ -582,7 +593,7 @@ export default function ExpenseBudgetPage() {
                                 color="primary"
                                 onClick={() => handleOpenApproveBudget(b)}
                               >
-                                Review & Approve
+                                {t("Review & Approve")}
                               </Button>
                             )}
                           </TableCell>
@@ -601,12 +612,12 @@ export default function ExpenseBudgetPage() {
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'action.hover' }}>
-                    <TableCell sx={{ fontWeight: 600 }}>Code</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Category Name</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Baseline Monthly Cap</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Requires Receipt</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("Code")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("Category Name")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("Baseline Monthly Cap")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("Requires Receipt")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("Status")}</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>{t("Description")}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -615,17 +626,17 @@ export default function ExpenseBudgetPage() {
                       <TableCell sx={{ fontWeight: 600 }}>{c.code}</TableCell>
                       <TableCell>{c.name}</TableCell>
                       <TableCell>
-                        {c.monthlyLimit != null ? `IDR ${c.monthlyLimit.toLocaleString()}` : 'No cap'}
+                        {c.monthlyLimit != null ? `IDR ${formatNumber(c.monthlyLimit)}` : t("No cap")}
                       </TableCell>
                       <TableCell>
                         <Chip
                           size="small"
-                          label={c.requiresReceipt ? 'Mandatory' : 'Optional'}
+                          label={c.requiresReceipt ? t("Mandatory") : t("Optional")}
                           color={c.requiresReceipt ? 'info' : 'default'}
                         />
                       </TableCell>
                       <TableCell>
-                        <Chip size="small" label={c.active ? 'Active' : 'Inactive'} color={c.active ? 'success' : 'default'} />
+                        <Chip size="small"                         label={c.active ? t("Active") : t("Inactive")} color={c.active ? 'success' : 'default'} />
                       </TableCell>
                       <TableCell sx={{ color: 'text.secondary' }}>{c.description || '-'}</TableCell>
                     </TableRow>
@@ -639,15 +650,15 @@ export default function ExpenseBudgetPage() {
 
       {/* Record Expense Dialog */}
       <Dialog open={recordExpenseOpen} onClose={() => setRecordExpenseOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Record Store Expense</DialogTitle>
+        <DialogTitle>{t("Record Store Expense")}</DialogTitle>
         <DialogContent dividers>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
             <FormControl fullWidth size="small">
-              <InputLabel id="exp-cat-label">Expense Category</InputLabel>
+              <InputLabel id="exp-cat-label">{t("Expense Category")}</InputLabel>
               <Select
                 labelId="exp-cat-label"
                 value={expCategoryId}
-                label="Expense Category"
+                label={t("Expense Category")}
                 onChange={(e) => setExpCategoryId(e.target.value)}
               >
                 {categories.map((c) => (
@@ -660,7 +671,7 @@ export default function ExpenseBudgetPage() {
             <TextField
               fullWidth
               size="small"
-              label="Amount (IDR)"
+              label={t("Amount (IDR)")}
               type="number"
               value={expAmount}
               onChange={(e) => setExpAmount(e.target.value)}
@@ -669,38 +680,38 @@ export default function ExpenseBudgetPage() {
             <TextField
               fullWidth
               size="small"
-              label="Expense Date"
+              label={t("Expense Date")}
               type="date"
               value={expDate}
               onChange={(e) => setExpDate(e.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}
             />
             <FormControl fullWidth size="small">
-              <InputLabel id="payment-method-label">Payment Method</InputLabel>
+              <InputLabel id="payment-method-label">{t("Payment Method")}</InputLabel>
               <Select
                 labelId="payment-method-label"
                 value={expMethod}
-                label="Payment Method"
+                label={t("Payment Method")}
                 onChange={(e) => setExpMethod(e.target.value as ExpensePaymentMethod)}
               >
-                <MenuItem value="CASH_PETTY">Petty Cash</MenuItem>
-                <MenuItem value="BANK_TRANSFER">Bank Transfer</MenuItem>
-                <MenuItem value="CREDIT_CARD">Credit Card / Corporate</MenuItem>
+                <MenuItem value="CASH_PETTY">{t("Petty Cash")}</MenuItem>
+                <MenuItem value="BANK_TRANSFER">{t("Bank Transfer")}</MenuItem>
+                <MenuItem value="CREDIT_CARD">{t("Credit Card / Corporate")}</MenuItem>
               </Select>
             </FormControl>
             <TextField
               fullWidth
               size="small"
-              label="Payee / Recipient"
+              label={t("Payee / Recipient")}
               value={expPayee}
               onChange={(e) => setExpPayee(e.target.value)}
-              placeholder="e.g. SPBU Pertamina, PLN, Toko Bangunan"
+              placeholder={t("e.g. SPBU Pertamina, PLN, Toko Bangunan")}
               sx={{ gridColumn: { xs: 'span 1', sm: 'span 2' } }}
             />
             <TextField
               fullWidth
               size="small"
-              label="Description & Purpose"
+              label={t("Description & Purpose")}
               value={expDescription}
               onChange={(e) => setExpDescription(e.target.value)}
               multiline
@@ -711,40 +722,40 @@ export default function ExpenseBudgetPage() {
             <TextField
               fullWidth
               size="small"
-              label="Receipt / Voucher URL or Path"
+              label={t("Receipt / Voucher URL or Path")}
               value={expReceiptUrl}
               onChange={(e) => setExpReceiptUrl(e.target.value)}
-              placeholder="https://..."
+              placeholder={t("https://...")}
               sx={{ gridColumn: { xs: 'span 1', sm: 'span 2' } }}
             />
           </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRecordExpenseOpen(false)}>Cancel</Button>
+          <Button onClick={() => setRecordExpenseOpen(false)}>{t("Cancel")}</Button>
           <Button
             variant="contained"
             color="primary"
             onClick={handleConfirmRecordExpense}
             disabled={createExpenseMutation.isPending || !expAmount || !expDescription.trim()}
           >
-            Submit Expense
+            {t("Submit Expense")}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Request Budget Dialog */}
       <Dialog open={requestBudgetOpen} onClose={() => setRequestBudgetOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Request Monthly Budget Allocation</DialogTitle>
+        <DialogTitle>{t("Request Monthly Budget Allocation")}</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            Allocate monthly budget for period <strong>{selectedMonth}/{selectedYear}</strong>.
+            {t("Allocate monthly budget for period")} <strong>{selectedMonth}/{selectedYear}</strong>.
           </Typography>
           <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-            <InputLabel id="req-cat-label">Expense Category</InputLabel>
+            <InputLabel id="req-cat-label">{t("Expense Category")}</InputLabel>
             <Select
               labelId="req-cat-label"
               value={budgetCatId}
-              label="Expense Category"
+              label={t("Expense Category")}
               onChange={(e) => setBudgetCatId(e.target.value)}
             >
               {categories.map((c) => (
@@ -757,7 +768,7 @@ export default function ExpenseBudgetPage() {
           <TextField
             fullWidth
             size="small"
-            label="Requested Amount (IDR)"
+            label={t("Requested Amount (IDR)")}
             type="number"
             value={budgetAmount}
             onChange={(e) => setBudgetAmount(e.target.value)}
@@ -767,38 +778,38 @@ export default function ExpenseBudgetPage() {
           <TextField
             fullWidth
             size="small"
-            label="Business Justification"
+            label={t("Business Justification")}
             value={budgetJustification}
             onChange={(e) => setBudgetJustification(e.target.value)}
             multiline
             rows={3}
-            placeholder="Explain necessity for this budget allocation..."
+            placeholder={t("Explain necessity for this budget allocation...")}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setRequestBudgetOpen(false)}>Cancel</Button>
+          <Button onClick={() => setRequestBudgetOpen(false)}>{t("Cancel")}</Button>
           <Button
             variant="contained"
             color="primary"
             onClick={handleConfirmRequestBudget}
             disabled={createBudgetMutation.isPending || !budgetAmount}
           >
-            Submit Budget Request
+            {t("Submit Budget Request")}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Review & Approve Budget Dialog */}
       <Dialog open={Boolean(approveBudgetTarget)} onClose={() => setApproveBudgetTarget(null)} maxWidth="sm" fullWidth>
-        <DialogTitle>Review Budget Request</DialogTitle>
+        <DialogTitle>{t("Review Budget Request")}</DialogTitle>
         <DialogContent dividers>
           <Typography variant="body2" sx={{ mb: 2 }}>
-            Reviewing request <strong>{approveBudgetTarget?.requestNumber}</strong> for {approveBudgetTarget?.expenseCategoryName}.
+            {t("Reviewing request")} <strong>{approveBudgetTarget?.requestNumber}</strong> {t("for")} {approveBudgetTarget?.expenseCategoryName}.
           </Typography>
           <TextField
             fullWidth
             size="small"
-            label="Approved Amount (IDR)"
+            label={t("Approved Amount (IDR)")}
             type="number"
             value={approvedBudgetAmt}
             onChange={(e) => setApprovedBudgetAmt(e.target.value)}
@@ -806,13 +817,13 @@ export default function ExpenseBudgetPage() {
           />
           {approveBudgetTarget?.justification && (
             <Alert severity="info" sx={{ mb: 2 }}>
-              Justification: {approveBudgetTarget.justification}
+              {t("Justification:")} {approveBudgetTarget.justification}
             </Alert>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => handleConfirmApproveBudget(false)} color="error">
-            Reject
+            {t("Reject")}
           </Button>
           <Button
             variant="contained"
@@ -820,7 +831,7 @@ export default function ExpenseBudgetPage() {
             onClick={() => handleConfirmApproveBudget(true)}
             disabled={approveBudgetMutation.isPending}
           >
-            Approve Allocation
+            {t("Approve Allocation")}
           </Button>
         </DialogActions>
       </Dialog>

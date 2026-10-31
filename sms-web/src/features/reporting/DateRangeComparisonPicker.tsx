@@ -9,6 +9,7 @@ import {
 } from "@mui/material";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import DateRangeIcon from "@mui/icons-material/DateRange";
+import { t } from "../../lib/locale";
 
 export type ComparisonPreset =
   | "last_30_vs_prior_30"
@@ -166,34 +167,34 @@ export default function DateRangeComparisonPicker({
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <DateRangeIcon color="primary" fontSize="small" />
           <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-            Comparison Date Range
+            {t("Comparison Date Range")}
           </Typography>
         </Box>
 
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
           <Chip
-            label="Last 30 Days vs Prior 30"
+            label={t("Last 30 Days vs Prior 30")}
             size="small"
             clickable
             color={preset === "last_30_vs_prior_30" ? "primary" : "default"}
             onClick={() => handleSelectPreset("last_30_vs_prior_30")}
           />
           <Chip
-            label="This Month vs Last Month"
+            label={t("This Month vs Last Month")}
             size="small"
             clickable
             color={preset === "this_month_vs_last_month" ? "primary" : "default"}
             onClick={() => handleSelectPreset("this_month_vs_last_month")}
           />
           <Chip
-            label="This Quarter vs Last Quarter"
+            label={t("This Quarter vs Last Quarter")}
             size="small"
             clickable
             color={preset === "this_quarter_vs_last_quarter" ? "primary" : "default"}
             onClick={() => handleSelectPreset("this_quarter_vs_last_quarter")}
           />
           <Chip
-            label="Custom Range"
+            label={t("Custom Range")}
             size="small"
             clickable
             color={preset === "custom" ? "primary" : "default"}
@@ -222,13 +223,13 @@ export default function DateRangeComparisonPicker({
           }}
         >
           <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.main", display: "block", mb: 1 }}>
-            PRIMARY PERIOD (TARGET)
+            {t("PRIMARY PERIOD (TARGET)")}
           </Typography>
           <Box sx={{ display: "flex", gap: 1 }}>
             <TextField
               size="small"
               type="date"
-              label="From"
+              label={t("From")}
               value={primaryStart}
               onChange={(e) => {
                 setPrimaryStart(e.target.value);
@@ -240,7 +241,7 @@ export default function DateRangeComparisonPicker({
             <TextField
               size="small"
               type="date"
-              label="To"
+              label={t("To")}
               value={primaryEnd}
               onChange={(e) => {
                 setPrimaryEnd(e.target.value);
@@ -267,13 +268,13 @@ export default function DateRangeComparisonPicker({
           }}
         >
           <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary", display: "block", mb: 1 }}>
-            COMPARISON PERIOD (BENCHMARK)
+            {t("COMPARISON PERIOD (BENCHMARK)")}
           </Typography>
           <Box sx={{ display: "flex", gap: 1 }}>
             <TextField
               size="small"
               type="date"
-              label="From"
+              label={t("From")}
               value={compareStart}
               onChange={(e) => {
                 setCompareStart(e.target.value);
@@ -285,7 +286,7 @@ export default function DateRangeComparisonPicker({
             <TextField
               size="small"
               type="date"
-              label="To"
+              label={t("To")}
               value={compareEnd}
               onChange={(e) => {
                 setCompareEnd(e.target.value);
@@ -305,8 +306,7 @@ export default function DateRangeComparisonPicker({
             onClick={handleCustomApply}
             sx={{ height: 40 }}
           >
-            Apply
-          </Button>
+            {t("Apply")}</Button>
         )}
       </Box>
     </Paper>

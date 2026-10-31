@@ -18,6 +18,7 @@ import { useEmployees } from "../employees/hooks";
 import { useStores } from "../stores/hooks";
 import { useRecordCollectionAttempt } from "./hooks";
 import type { CollectionOutcome, Receivable } from "./types";
+import { t } from "../../lib/locale";
 
 interface CollectionAttemptDialogProps {
   open: boolean;
@@ -54,7 +55,7 @@ export default function CollectionAttemptDialog({
 
   const handleSubmit = async () => {
     if (!storeId || !customerId || !assignedEmployeeId || !visitDate) {
-      enqueueSnackbar("Please fill required fields (store, customer, collector, date)", {
+      enqueueSnackbar(t("Please fill required fields (store, customer, collector, date)"), {
         variant: "warning",
       });
       return;
@@ -72,10 +73,10 @@ export default function CollectionAttemptDialog({
         customerAddressVisited: customerAddressVisited || undefined,
         notes: notes || undefined,
       });
-      enqueueSnackbar("Collection visit record logged", { variant: "success" });
+      enqueueSnackbar(t("Collection visit record logged"), { variant: "success" });
       onClose();
     } catch {
-      enqueueSnackbar("Failed to log collection visit", { variant: "error" });
+      enqueueSnackbar(t("Failed to log collection visit"), { variant: "error" });
     }
   };
 
@@ -83,13 +84,13 @@ export default function CollectionAttemptDialog({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Log Operational Collection Visit / Attempt</DialogTitle>
+      <DialogTitle>{t("Log Operational Collection Visit / Attempt")}</DialogTitle>
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
         <FormControl fullWidth size="small">
-          <InputLabel>Store</InputLabel>
+          <InputLabel>{t("Store")}</InputLabel>
           <Select
             value={storeId}
-            label="Store"
+            label={t("Store")}
             onChange={(e) => setStoreId(e.target.value)}
           >
             {stores.map((s) => (
@@ -101,10 +102,10 @@ export default function CollectionAttemptDialog({
         </FormControl>
 
         <FormControl fullWidth size="small">
-          <InputLabel>Customer</InputLabel>
+          <InputLabel>{t("Customer")}</InputLabel>
           <Select
             value={customerId}
-            label="Customer"
+            label={t("Customer")}
             onChange={(e) => setCustomerId(e.target.value)}
           >
             {customers.map((c: Customer) => (
@@ -116,10 +117,10 @@ export default function CollectionAttemptDialog({
         </FormControl>
 
         <FormControl fullWidth size="small">
-          <InputLabel>Visiting Collector / Staff</InputLabel>
+          <InputLabel>{t("Visiting Collector / Staff")}</InputLabel>
           <Select
             value={assignedEmployeeId}
-            label="Visiting Collector / Staff"
+            label={t("Visiting Collector / Staff")}
             onChange={(e) => setAssignedEmployeeId(e.target.value)}
           >
             {activeEmployees.map((e) => (
@@ -131,7 +132,7 @@ export default function CollectionAttemptDialog({
         </FormControl>
 
         <TextField
-          label="Visit Date"
+          label={t("Visit Date")}
           type="date"
           size="small"
           fullWidth
@@ -142,36 +143,36 @@ export default function CollectionAttemptDialog({
         />
 
         <FormControl fullWidth size="small">
-          <InputLabel>Visit Outcome</InputLabel>
+          <InputLabel>{t("Visit Outcome")}</InputLabel>
           <Select
             value={outcome}
-            label="Visit Outcome"
+            label={t("Visit Outcome")}
             onChange={(e) => setOutcome(e.target.value as CollectionOutcome)}
           >
-            <MenuItem value="PAID">Paid in Full</MenuItem>
-            <MenuItem value="PARTIAL_PAID">Partial Payment</MenuItem>
-            <MenuItem value="PROMISED_TO_PAY">Promised to Pay (Schedule Follow-up)</MenuItem>
-            <MenuItem value="CUSTOMER_UNAVAILABLE">Customer Unavailable / Not Home</MenuItem>
-            <MenuItem value="REFUSED">Refused to Pay</MenuItem>
-            <MenuItem value="RESCHEDULED">Rescheduled Visit</MenuItem>
+            <MenuItem value="PAID">{t("Paid in Full")}</MenuItem>
+            <MenuItem value="PARTIAL_PAID">{t("Partial Payment")}</MenuItem>
+            <MenuItem value="PROMISED_TO_PAY">{t("Promised to Pay (Schedule Follow-up)")}</MenuItem>
+            <MenuItem value="CUSTOMER_UNAVAILABLE">{t("Customer Unavailable / Not Home")}</MenuItem>
+            <MenuItem value="REFUSED">{t("Refused to Pay")}</MenuItem>
+            <MenuItem value="RESCHEDULED">{t("Rescheduled Visit")}</MenuItem>
           </Select>
         </FormControl>
 
         {outcome === "PROMISED_TO_PAY" && (
           <TextField
-            label="Promised Payment Date (Original Due Date Unchanged)"
+            label={t("Promised Payment Date (Original Due Date Unchanged)")}
             type="date"
             size="small"
             fullWidth
             value={promisedPaymentDate}
             onChange={(e) => setPromisedPaymentDate(e.target.value)}
             slotProps={{ inputLabel: { shrink: true } }}
-            helperText="Note: Recording a promised date does NOT postpone or shift the legal contract due dates (README 12.3)."
+            helperText={t("Note: Recording a promised date does NOT postpone or shift the legal contract due dates (README 12.3).")}
           />
         )}
 
         <TextField
-          label="Customer Address Visited"
+          label={t("Customer Address Visited")}
           size="small"
           fullWidth
           value={customerAddressVisited}
@@ -179,7 +180,7 @@ export default function CollectionAttemptDialog({
         />
 
         <TextField
-          label="Field Observations / Notes"
+          label={t("Field Observations / Notes")}
           size="small"
           fullWidth
           multiline
@@ -189,13 +190,13 @@ export default function CollectionAttemptDialog({
         />
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t("Cancel")}</Button>
         <Button
           variant="contained"
           onClick={handleSubmit}
           disabled={recordAttempt.isPending}
         >
-          {recordAttempt.isPending ? "Logging..." : "Save Visit Record"}
+          {recordAttempt.isPending ? t("Logging...") : t("Save Visit Record")}
         </Button>
       </DialogActions>
     </Dialog>

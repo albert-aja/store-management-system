@@ -6,16 +6,23 @@ import {
   DialogContent,
   DialogTitle,
 } from "@mui/material";
-import { DataGrid, type GridColDef } from "@mui/x-data-grid";
+import { DataGrid, type GridColDef, type GridRowSelectionModel } from "@mui/x-data-grid";
 import { useNavigate } from "react-router-dom";
+import { useSnackbar } from "notistack";
 import { useAuthStore } from "../../store/authStore";
 import { useStores } from "../stores/hooks";
 import {
+  useBulkUpdatePurchaseOrders,
   useCreatePurchaseOrder,
   usePurchaseOrders,
   useSupplierSearch,
 } from "./hooks";
 import type { PurchaseOrder, PurchaseOrderStatus } from "./types";
+import BulkActionBar from "../../components/BulkActionBar";
+import { extractSelectedRowIds } from "../../lib/exportDataGrid";
+import { t } from "../../lib/locale";
+
+const INITIAL_SELECTION: GridRowSelectionModel = { type: "include", ids: new Set() };
 
 const STATUSES: PurchaseOrderStatus[] = [
   "DRAFT",
@@ -35,13 +42,13 @@ function NewPurchaseOrderDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog open onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>New Draft Purchase Order</DialogTitle>
+      <DialogTitle>{t("New Draft Purchase Order")}</DialogTitle>
       <DialogContent
         sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}
       >
         <TextField
           select
-          label="Store"
+          label={t("Store")}
           fullWidth
           value={storeId}
           onChange={(e) => setStoreId(e.target.value)}
@@ -54,7 +61,7 @@ function NewPurchaseOrderDialog({ onClose }: { onClose: () => void }) {
         </TextField>
         <TextField
           select
-          label="Supplier"
+          label={t("Supplier")}
           fullWidth
           value={supplierId}
           onChange={(e) => setSupplierId(e.target.value)}
@@ -69,7 +76,7 @@ function NewPurchaseOrderDialog({ onClose }: { onClose: () => void }) {
         </TextField>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={onClose}>{t("Cancel")}</Button>
         <Button
           variant="contained"
           disabled={!storeId || !supplierId}
@@ -80,7 +87,7 @@ function NewPurchaseOrderDialog({ onClose }: { onClose: () => void }) {
             })
           }
         >
-          Create Draft
+          {t("Create Draft")}
         </Button>
       </DialogActions>
     </Dialog>
@@ -93,24 +100,29 @@ export default function PurchaseOrderListPage() {
   const [storeId, setStoreId] = useState("");
   const [supplierId, setSupplierId] = useState("");
   const [status, setStatus] = useState<PurchaseOrderStatus | "">("");
+  const [selectedRowIds, setSelectedRowIds] = useState<GridRowSelectionModel>(INITIAL_SELECTION);
+  const { enqueueSnackbar } = useSnackbar();
+
   const { data, isLoading } = usePurchaseOrders({
     storeId: storeId || undefined,
     supplierId: supplierId || undefined,
     status: status || undefined,
   });
+
   const canManage = useAuthStore((s) => s.hasPermission("PROCUREMENT_MANAGE"));
+  const bulkUpdateMutation = useBulkUpdatePurchaseOrders();
   const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const columns: GridColDef<PurchaseOrder>[] = [
     {
       field: "number",
-      headerName: "Number",
+      headerName: t("Number"),
       width: 200,
       valueGetter: (_, row) => row.number ?? "(Draft)",
     },
-    { field: "supplierName", headerName: "Supplier", flex: 1 },
-    { field: "status", headerName: "Status", width: 180 },
+    { field: "supplierName", headerName: t("Supplier"), flex: 1 },
+    { field: "status", headerName: t("Status"), width: 180 },
     {
       field: "actions",
       headerName: "",
@@ -120,8 +132,7 @@ export default function PurchaseOrderListPage() {
           size="small"
           onClick={() => navigate(`/purchase-orders/${params.row.id}`)}
         >
-          Open
-        </Button>
+          {t("Open")}</Button>
       ),
     },
   ];
@@ -133,26 +144,28 @@ export default function PurchaseOrderListPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          mb: 2,
+          flexWrap: "wrap",
+          gap: 2,
+          mb: 3,
         }}
       >
-        <Typography variant="h5">Purchase Orders</Typography>
+        <Typography variant="h5">{t("Purchase Orders")}</Typography>
         {canManage && (
           <Button variant="contained" onClick={() => setDialogOpen(true)}>
-            New Draft PO
+            {t("New Draft PO")}
           </Button>
         )}
       </Box>
       <Box sx={{ display: "flex", gap: 2, mb: 2, flexWrap: "wrap" }}>
         <TextField
           select
-          label="Store"
+          label={t("Store")}
           size="small"
           sx={{ width: 220 }}
           value={storeId}
           onChange={(e) => setStoreId(e.target.value)}
         >
-          <MenuItem value="">All Stores</MenuItem>
+          <MenuItem value="">{t("All Stores")}</MenuItem>
           {(stores ?? []).map((s) => (
             <MenuItem key={s.id} value={s.id}>
               {s.name}
@@ -161,13 +174,13 @@ export default function PurchaseOrderListPage() {
         </TextField>
         <TextField
           select
-          label="Supplier"
+          label={t("Supplier")}
           size="small"
           sx={{ width: 220 }}
           value={supplierId}
           onChange={(e) => setSupplierId(e.target.value)}
         >
-          <MenuItem value="">All Suppliers</MenuItem>
+          <MenuItem value="">{t("All Suppliers")}</MenuItem>
           {(suppliers ?? []).map((s) => (
             <MenuItem key={s.id} value={s.id}>
               {s.name}
@@ -176,13 +189,13 @@ export default function PurchaseOrderListPage() {
         </TextField>
         <TextField
           select
-          label="Status"
+          label={t("Status")}
           size="small"
           sx={{ width: 220 }}
           value={status}
           onChange={(e) => setStatus(e.target.value as PurchaseOrderStatus | "")}
         >
-          <MenuItem value="">All Statuses</MenuItem>
+          <MenuItem value="">{t("All Statuses")}</MenuItem>
           {STATUSES.map((s) => (
             <MenuItem key={s} value={s}>
               {s}
@@ -196,11 +209,54 @@ export default function PurchaseOrderListPage() {
         loading={isLoading}
         getRowId={(row) => row.id}
         autoHeight
+        checkboxSelection
+        rowSelectionModel={selectedRowIds}
+        onRowSelectionModelChange={(newModel) => setSelectedRowIds(newModel)}
         disableRowSelectionOnClick
       />
       {dialogOpen && (
         <NewPurchaseOrderDialog onClose={() => setDialogOpen(false)} />
       )}
+
+      {/* Bulk Operations Bar */}
+      <BulkActionBar
+        selectedRowIds={selectedRowIds}
+        totalCount={data?.length ?? 0}
+        onClearSelection={() => setSelectedRowIds(INITIAL_SELECTION)}
+        columns={columns}
+        rows={data ?? []}
+        exportFilename="purchase_orders"
+        exportTitle="DAFTAR PURCHASE ORDER PENGADAAN (SUPPLIER PROCUREMENT)"
+        statusUpdate={{
+          title: t("Pembaruan Status Purchase Order Massal"),
+          statusOptions: [
+            {
+              value: "ISSUE",
+              label: t("Issue (Terbitkan Nomor PO)"),
+              description: t("Terbitkan Purchase Order yang telah disetujui (Approved) ke distributor."),
+            },
+            {
+              value: "CANCEL",
+              label: t("Cancel (Batalkan Purchase Order)"),
+              description: t("Batalkan draft PO atau PO tanpa dokumen penerimaan barang."),
+            },
+          ],
+          requireReason: false,
+          onConfirm: async (action, reason) => {
+            const poIds = extractSelectedRowIds(selectedRowIds, data ?? []) as string[];
+            const res = await bulkUpdateMutation.mutateAsync({
+              ids: poIds,
+              action,
+              reason,
+            });
+            setSelectedRowIds(INITIAL_SELECTION);
+            enqueueSnackbar(
+              t("Bulk PO update complete: {success} successful, {failure} failed.", undefined, { success: res.successCount, failure: res.failureCount }),
+              { variant: res.failureCount > 0 ? "warning" : "success" }
+            );
+          },
+        }}
+      />
     </Box>
   );
 }

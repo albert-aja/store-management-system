@@ -22,6 +22,7 @@ import {
   useSupplierContacts,
 } from "./hooks";
 import type { SupplierContactInput } from "./types";
+import { t , localizeDisplayCode} from "../../lib/locale";
 
 export default function SupplierDetailPage() {
   const { id = "" } = useParams();
@@ -45,13 +46,13 @@ export default function SupplierDetailPage() {
         {supplier.name}
       </Typography>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
-        Code: {supplier.code ?? "—"} · Address: {supplier.address ?? "—"}
+        {t("Code:")} {supplier.code ?? "—"} {t("· Address:")} {supplier.address ?? "—"}
       </Typography>
 
       <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap", alignItems: "flex-start" }}>
         <Paper sx={{ p: 2, width: { xs: "100%", md: 380 } }}>
           <Typography variant="subtitle1" sx={{ mb: 1 }}>
-            Contacts
+            {t("Contacts")}
           </Typography>
           <List dense>
             {(contacts ?? [])
@@ -65,7 +66,7 @@ export default function SupplierDetailPage() {
                         size="small"
                         onClick={() => deactivateContact.mutate(contact.id)}
                       >
-                        Remove
+                        {t("Remove")}
                       </Button>
                     )
                   }
@@ -90,40 +91,40 @@ export default function SupplierDetailPage() {
               >
                 <TextField
                   select
-                  label="Type"
+                  label={t("Type")}
                   size="small"
                   defaultValue="PHONE"
                   {...form.register("contactType")}
                 >
-                  <MenuItem value="PHONE">Phone</MenuItem>
-                  <MenuItem value="EMAIL">Email</MenuItem>
-                  <MenuItem value="OTHER">Other</MenuItem>
+                  <MenuItem value="PHONE">{t("Phone")}</MenuItem>
+                  <MenuItem value="EMAIL">{t("Email")}</MenuItem>
+                  <MenuItem value="OTHER">{t("Other")}</MenuItem>
                 </TextField>
                 <TextField
-                  label="Label"
+                  label={t("Label")}
                   size="small"
                   {...form.register("label")}
                 />
                 <TextField
-                  label="Value"
+                  label={t("Value")}
                   size="small"
                   required
                   {...form.register("value", { required: true })}
                 />
                 <Button type="submit" variant="contained" size="small">
-                  Add Contact
+                  {t("Add Contact")}
                 </Button>
               </Box>
             ) : (
               <Button size="small" onClick={() => setShowForm(true)} sx={{ mt: 1 }}>
-                Add Contact
+                {t("Add Contact")}
               </Button>
             ))}
         </Paper>
 
         <Paper sx={{ p: 2, flex: 1, minWidth: { xs: "100%", md: 450 } }}>
           <Typography variant="subtitle1" sx={{ mb: 1 }}>
-            Purchase Orders ({(purchaseOrders ?? []).length})
+            {t("Purchase Orders (")}{(purchaseOrders ?? []).length})
           </Typography>
           <List dense>
             {(purchaseOrders ?? []).map((po) => (
@@ -134,8 +135,7 @@ export default function SupplierDetailPage() {
                     size="small"
                     onClick={() => navigate(`/purchase-orders/${po.id}`)}
                   >
-                    Open
-                  </Button>
+                    {t("Open")}</Button>
                 }
               >
                 <ListItemText
@@ -145,7 +145,7 @@ export default function SupplierDetailPage() {
                         {po.number ?? "(Draft)"}
                       </Typography>
                       <Chip
-                        label={po.status}
+                        label={localizeDisplayCode(po.status)}
                         size="small"
                         color={
                           po.status === "ISSUED"
@@ -163,7 +163,7 @@ export default function SupplierDetailPage() {
             ))}
             {(purchaseOrders ?? []).length === 0 && (
               <Typography variant="body2" color="text.secondary">
-                No purchase orders recorded for this supplier.
+                {t("No purchase orders recorded for this supplier.")}
               </Typography>
             )}
           </List>

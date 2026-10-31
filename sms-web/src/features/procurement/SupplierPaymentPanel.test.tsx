@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import SupplierPaymentPanel from "./SupplierPaymentPanel";
+import { formatNumber } from "../../lib/locale";
 
 vi.mock("notistack", () => ({
   useSnackbar: () => ({
@@ -41,8 +42,8 @@ describe("SupplierPaymentPanel", () => {
       />,
     );
 
-    const paidFormatted = (500000).toLocaleString();
-    const totalFormatted = (1000000).toLocaleString();
+    const paidFormatted = formatNumber(500000, "en");
+    const totalFormatted = formatNumber(1000000, "en");
 
     expect(screen.getByText(/Supplier Payments/i)).toBeInTheDocument();
     expect(screen.getAllByText(new RegExp(paidFormatted)).length).toBeGreaterThan(0);
