@@ -12,5 +12,8 @@ public interface VehicleRepository extends JpaRepository<Vehicle, UUID> {
     List<Vehicle> findByStoreId(UUID storeId);
     List<Vehicle> findByStatus(VehicleStatus status);
     List<Vehicle> findByStoreIdAndStatus(UUID storeId, VehicleStatus status);
+    Optional<Vehicle> findByAssignedDriverId(UUID driverId);
+    boolean existsByAssignedDriverId(UUID driverId);
+    boolean existsByAssignedDriverIdAndIdNot(UUID driverId, UUID id);
 }
 

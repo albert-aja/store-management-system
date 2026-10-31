@@ -4,13 +4,16 @@ import com.sms.foundation.employee.Employee;
 import com.sms.foundation.employee.EmployeeRepository;
 import com.sms.foundation.employee.EmployeeRole;
 import com.sms.foundation.employee.EmployeeRoleRepository;
+import com.sms.foundation.employee.EmploymentStatus;
 import com.sms.foundation.store.Store;
 import com.sms.foundation.store.StoreRepository;
+import com.sms.foundation.notification.NotificationService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import org.springframework.scheduling.annotation.Scheduled;
 import java.util.List;
@@ -27,6 +30,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class FleetService {
 
     private final VehicleRepository vehicleRepository;
+    private final VehiclePlateHistoryRepository vehiclePlateHistoryRepository;
+    private final VehicleServiceLogRepository vehicleServiceLogRepository;
+    private final VehicleMonthlyHealthCheckRepository vehicleMonthlyHealthCheckRepository;
+    private final DriverLicenseRepository driverLicenseRepository;
+    private final NotificationService notificationService;
     private final BreakScheduleRepository breakScheduleRepository;
     private final TrackingSessionRepository trackingSessionRepository;
     private final TrackingSessionEventRepository trackingSessionEventRepository;
@@ -79,12 +87,25 @@ public class FleetService {
         v.setMaxPayloadKg(request.getMaxPayloadKg());
         v.setMaxVolumeCbm(request.getMaxVolumeCbm());
         v.setStnkExpiryDate(request.getStnkExpiryDate());
+        v.setTaxDueDate(request.getTaxDueDate());
         v.setKirExpiryDate(request.getKirExpiryDate());
         v.setLastServiceOdometerKm(request.getLastServiceOdometerKm() != null ? request.getLastServiceOdometerKm() : 0);
         v.setLastServiceDate(request.getLastServiceDate());
         v.setServiceIntervalKm(request.getServiceIntervalKm() != null ? request.getServiceIntervalKm() : 10000);
         v.setStatus(VehicleStatus.AVAILABLE);
         v.setStore(store);
+
+        if (request.getDriverEmployeeId() != null) {
+            if (vehicleRepository.existsByAssignedDriverId(request.getDriverEmployeeId())) {
+                throw new IllegalArgumentException("Driver is already assigned to another vehicle");
+            }
+            Employee driver = employeeRepository.findById(request.getDriverEmployeeId())
+                    .orElseThrow(() -> new IllegalArgumentException("Driver not found: " + request.getDriverEmployeeId()));
+            if (driver.getEmploymentStatus() != EmploymentStatus.ACTIVE) {
+                throw new IllegalArgumentException("Assigned driver must be active");
+            }
+            v.setAssignedDriver(driver);
+        }
 
         Vehicle saved = vehicleRepository.save(v);
         return toVehicleDto(saved);
@@ -96,6 +117,194 @@ public class FleetService {
                 .orElseThrow(() -> new IllegalArgumentException("Vehicle not found: " + id));
         v.setStatus(status);
         return toVehicleDto(vehicleRepository.save(v));
+    }
+
+    @Transactional(readOnly = true)
+    public VehicleDto getVehicleById(UUID id) {
+        Vehicle v = vehicleRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Vehicle not found: " + id));
+        return toVehicleDto(v);
+    }
+
+    @Transactional
+    public VehicleDto updateVehicle(UUID id, UpdateVehicleRequest request) {
+        Vehicle v = vehicleRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Vehicle not found: " + id));
+
+        Store store = null;
+        if (request.getStoreId() != null) {
+            store = storeRepository.findById(request.getStoreId()).orElse(null);
+        }
+        v.setStore(store);
+        v.setVehicleType(request.getVehicleType());
+        v.setBrandModel(request.getBrandModel());
+        v.setChassisNumber(request.getChassisNumber());
+        v.setEngineNumber(request.getEngineNumber());
+        if (request.getStatus() != null) {
+            v.setStatus(request.getStatus());
+        }
+        v.setMaxPayloadKg(request.getMaxPayloadKg());
+        v.setMaxVolumeCbm(request.getMaxVolumeCbm());
+        v.setFuelType(request.getFuelType());
+        if (request.getOdometerKm() != null) {
+            v.setOdometerKm(request.getOdometerKm());
+        }
+        v.setTaxDueDate(request.getTaxDueDate());
+        v.setStnkExpiryDate(request.getStnkExpiryDate());
+        v.setKirExpiryDate(request.getKirExpiryDate());
+        if (request.getServiceIntervalKm() != null) {
+            v.setServiceIntervalKm(request.getServiceIntervalKm());
+        }
+
+        if (request.getDriverEmployeeId() == null) {
+            v.setAssignedDriver(null);
+        } else {
+            UUID currentDriverId = v.getAssignedDriver() != null ? v.getAssignedDriver().getId() : null;
+            if (!request.getDriverEmployeeId().equals(currentDriverId)) {
+                if (vehicleRepository.existsByAssignedDriverIdAndIdNot(request.getDriverEmployeeId(), id)) {
+                    throw new IllegalArgumentException("Driver is already assigned to another vehicle");
+                }
+                Employee driver = employeeRepository.findById(request.getDriverEmployeeId())
+                        .orElseThrow(() -> new IllegalArgumentException("Driver not found: " + request.getDriverEmployeeId()));
+                if (driver.getEmploymentStatus() != EmploymentStatus.ACTIVE) {
+                    throw new IllegalArgumentException("Assigned driver must be active");
+                }
+                v.setAssignedDriver(driver);
+            }
+        }
+
+        Vehicle saved = vehicleRepository.save(v);
+        return toVehicleDto(saved);
+    }
+
+    @Transactional
+    public VehicleDto assignDriver(UUID vehicleId, UUID driverEmployeeId) {
+        Vehicle v = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new IllegalArgumentException("Vehicle not found: " + vehicleId));
+
+        if (driverEmployeeId == null) {
+            v.setAssignedDriver(null);
+        } else {
+            if (vehicleRepository.existsByAssignedDriverIdAndIdNot(driverEmployeeId, vehicleId)) {
+                throw new IllegalArgumentException("Driver is already assigned to another vehicle");
+            }
+            Employee driver = employeeRepository.findById(driverEmployeeId)
+                    .orElseThrow(() -> new IllegalArgumentException("Driver not found: " + driverEmployeeId));
+            if (driver.getEmploymentStatus() != EmploymentStatus.ACTIVE) {
+                throw new IllegalArgumentException("Assigned driver must be active");
+            }
+            v.setAssignedDriver(driver);
+        }
+
+        return toVehicleDto(vehicleRepository.save(v));
+    }
+
+    @Transactional
+    public VehicleDto unassignDriver(UUID vehicleId) {
+        return assignDriver(vehicleId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AvailableDriverDto> getAvailableDrivers(UUID currentVehicleId) {
+        List<Employee> allEmployees = employeeRepository.findAll();
+        List<Vehicle> allVehicles = vehicleRepository.findAll();
+        List<DriverLicense> allLicenses = driverLicenseRepository.findAllByOrderByExpiryDateAsc();
+        LocalDate now = LocalDate.now();
+
+        return allEmployees.stream()
+                .filter(e -> e.getEmploymentStatus() == EmploymentStatus.ACTIVE)
+                .map(emp -> {
+                    Vehicle assignedVehicle = allVehicles.stream()
+                            .filter(v -> v.getAssignedDriver() != null && v.getAssignedDriver().getId().equals(emp.getId()))
+                            .findFirst()
+                            .orElse(null);
+
+                    boolean isAssigned = assignedVehicle != null;
+                    UUID vId = isAssigned ? assignedVehicle.getId() : null;
+                    String regNo = isAssigned ? assignedVehicle.getRegistrationNumber() : null;
+
+                    DriverLicense primaryLicense = allLicenses.stream()
+                            .filter(l -> l.getEmployee().getId().equals(emp.getId()))
+                            .findFirst()
+                            .orElse(null);
+
+                    String licNumber = primaryLicense != null ? primaryLicense.getLicenseNumber() : null;
+                    DriverLicenseType licType = primaryLicense != null ? primaryLicense.getLicenseType() : null;
+                    LocalDate licExpiry = primaryLicense != null ? primaryLicense.getExpiryDate() : null;
+                    Long days = licExpiry != null ? ChronoUnit.DAYS.between(now, licExpiry) : null;
+                    String licStatus = "NOT_RECORDED";
+                    if (days != null) {
+                        if (days < 0) {
+                            licStatus = "EXPIRED";
+                        } else if (days <= 30) {
+                            licStatus = "EXPIRING_SOON";
+                        } else {
+                            licStatus = "VALID";
+                        }
+                    }
+
+                    return AvailableDriverDto.builder()
+                            .employeeId(emp.getId())
+                            .employeeNumber(emp.getEmployeeNumber())
+                            .fullName(emp.getFullName())
+                            .phone(emp.getPhone())
+                            .isAssigned(isAssigned)
+                            .assignedVehicleId(vId)
+                            .assignedRegistrationNumber(regNo)
+                            .primaryLicenseNumber(licNumber)
+                            .primaryLicenseType(licType)
+                            .primaryLicenseExpiryDate(licExpiry)
+                            .primaryLicenseDaysRemaining(days)
+                            .primaryLicenseStatus(licStatus)
+                            .build();
+                })
+                .toList();
+    }
+
+    @Transactional
+    public VehicleDto changeLicensePlate(UUID vehicleId, ChangeLicensePlateRequest request) {
+        Vehicle v = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new IllegalArgumentException("Vehicle not found: " + vehicleId));
+
+        String newPlate = request.getNewRegistrationNumber().trim().toUpperCase();
+        if (newPlate.equalsIgnoreCase(v.getRegistrationNumber())) {
+            throw new IllegalArgumentException("New license plate must be different from current license plate");
+        }
+
+        Optional<Vehicle> existing = vehicleRepository.findByRegistrationNumberIgnoreCase(newPlate);
+        if (existing.isPresent() && !existing.get().getId().equals(vehicleId)) {
+            throw new IllegalArgumentException("License plate " + newPlate + " is already in use by another vehicle");
+        }
+
+        VehiclePlateHistory history = new VehiclePlateHistory();
+        history.setVehicle(v);
+        history.setOldRegistrationNumber(v.getRegistrationNumber());
+        history.setNewRegistrationNumber(newPlate);
+        history.setChangeDate(request.getChangeDate() != null ? request.getChangeDate() : LocalDate.now());
+        history.setReason(request.getReason());
+        history.setNotes(request.getNotes());
+        if (request.getChangedByEmployeeId() != null) {
+            employeeRepository.findById(request.getChangedByEmployeeId()).ifPresent(history::setChangedByEmployee);
+        }
+        vehiclePlateHistoryRepository.save(history);
+
+        v.setRegistrationNumber(newPlate);
+        if (request.getNewStnkExpiryDate() != null) {
+            v.setStnkExpiryDate(request.getNewStnkExpiryDate());
+        }
+        if (request.getNewTaxDueDate() != null) {
+            v.setTaxDueDate(request.getNewTaxDueDate());
+        }
+
+        Vehicle saved = vehicleRepository.save(v);
+        return toVehicleDto(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<VehiclePlateHistoryDto> getPlateHistory(UUID vehicleId) {
+        return vehiclePlateHistoryRepository.findByVehicleIdOrderByChangeDateDescCreatedAtDesc(vehicleId).stream()
+                .map(this::toVehiclePlateHistoryDto)
+                .toList();
     }
 
     // --- Break Schedules ---
@@ -414,7 +623,28 @@ public class FleetService {
     private VehicleDto toVehicleDto(Vehicle v) {
         LocalDate now = LocalDate.now();
         Long stnkDays = v.getStnkExpiryDate() != null ? ChronoUnit.DAYS.between(now, v.getStnkExpiryDate()) : null;
+        Long taxDays = v.getTaxDueDate() != null ? ChronoUnit.DAYS.between(now, v.getTaxDueDate()) : null;
         Long kirDays = v.getKirExpiryDate() != null ? ChronoUnit.DAYS.between(now, v.getKirExpiryDate()) : null;
+
+        String taxDueStatus = null;
+        Boolean isTaxDueInOneMonth = null;
+        if (taxDays != null) {
+            if (taxDays < 0) {
+                taxDueStatus = "OVERDUE";
+                isTaxDueInOneMonth = true;
+            } else if (taxDays <= 30) {
+                taxDueStatus = "DUE_IN_ONE_MONTH";
+                isTaxDueInOneMonth = true;
+            } else {
+                taxDueStatus = "UP_TO_DATE";
+                isTaxDueInOneMonth = false;
+            }
+        }
+
+        UUID driverId = v.getAssignedDriver() != null ? v.getAssignedDriver().getId() : null;
+        String driverName = v.getAssignedDriver() != null ? v.getAssignedDriver().getFullName() : null;
+        String driverEmpNo = v.getAssignedDriver() != null ? v.getAssignedDriver().getEmployeeNumber() : null;
+
         int currentKm = v.getOdometerKm() != null ? v.getOdometerKm() : 0;
         int lastKm = v.getLastServiceOdometerKm() != null ? v.getLastServiceOdometerKm() : 0;
         int intervalKm = v.getServiceIntervalKm() != null ? v.getServiceIntervalKm() : 10000;
@@ -435,13 +665,35 @@ public class FleetService {
                 .fuelType(v.getFuelType())
                 .odometerKm(v.getOdometerKm())
                 .stnkExpiryDate(v.getStnkExpiryDate())
+                .taxDueDate(v.getTaxDueDate())
                 .kirExpiryDate(v.getKirExpiryDate())
                 .lastServiceOdometerKm(v.getLastServiceOdometerKm())
                 .lastServiceDate(v.getLastServiceDate())
                 .serviceIntervalKm(v.getServiceIntervalKm())
                 .isServiceDue(serviceDue)
                 .stnkDaysRemaining(stnkDays)
+                .taxDaysRemaining(taxDays)
+                .taxDueStatus(taxDueStatus)
+                .isTaxDueInOneMonth(isTaxDueInOneMonth)
                 .kirDaysRemaining(kirDays)
+                .driverEmployeeId(driverId)
+                .driverName(driverName)
+                .driverEmployeeNumber(driverEmpNo)
+                .build();
+    }
+
+    private VehiclePlateHistoryDto toVehiclePlateHistoryDto(VehiclePlateHistory h) {
+        return VehiclePlateHistoryDto.builder()
+                .id(h.getId())
+                .vehicleId(h.getVehicle().getId())
+                .oldRegistrationNumber(h.getOldRegistrationNumber())
+                .newRegistrationNumber(h.getNewRegistrationNumber())
+                .changeDate(h.getChangeDate())
+                .reason(h.getReason())
+                .notes(h.getNotes())
+                .changedByEmployeeId(h.getChangedByEmployee() != null ? h.getChangedByEmployee().getId() : null)
+                .changedByEmployeeName(h.getChangedByEmployee() != null ? h.getChangedByEmployee().getFullName() : null)
+                .createdAt(h.getCreatedAt())
                 .build();
     }
 
@@ -496,7 +748,47 @@ public class FleetService {
             String storeName = v.getStore() != null ? v.getStore().getName() : "Central Branch";
             UUID sId = v.getStore() != null ? v.getStore().getId() : null;
 
-            // 1. Check STNK Expiry (Annual Registration)
+            // 1. Check Annual Tax Due Date (Pajak 1 Tahunan / PKB - 1 Month Due Warning)
+            if (v.getTaxDueDate() != null) {
+                long taxDays = ChronoUnit.DAYS.between(now, v.getTaxDueDate());
+                if (taxDays < 0) {
+                    alerts.add(FleetMaintenanceAlertDto.builder()
+                            .id(UUID.randomUUID())
+                            .vehicleId(v.getId())
+                            .registrationNumber(v.getRegistrationNumber())
+                            .brandModel(v.getBrandModel())
+                            .storeId(sId)
+                            .storeName(storeName)
+                            .alertType("TAX_EXPIRED")
+                            .severity("EXPIRED")
+                            .title("Annual Tax (PKB) Overdue (" + v.getRegistrationNumber() + ")")
+                            .description("Annual vehicle tax (PKB) expired on " + v.getTaxDueDate() + ". Samsat late payment penalty will apply.")
+                            .targetDate(v.getTaxDueDate())
+                            .daysRemaining(taxDays)
+                            .currentOdometerKm(v.getOdometerKm())
+                            .lastServiceOdometerKm(v.getLastServiceOdometerKm())
+                            .build());
+                } else if (taxDays <= 30) {
+                    alerts.add(FleetMaintenanceAlertDto.builder()
+                            .id(UUID.randomUUID())
+                            .vehicleId(v.getId())
+                            .registrationNumber(v.getRegistrationNumber())
+                            .brandModel(v.getBrandModel())
+                            .storeId(sId)
+                            .storeName(storeName)
+                            .alertType("TAX_EXPIRING")
+                            .severity(taxDays <= 7 ? "CRITICAL" : "WARNING")
+                            .title("Annual Tax Due in " + taxDays + " Days (1-Month Window)")
+                            .description("Annual motor vehicle tax (PKB) payment due on " + v.getTaxDueDate() + ". Samsat 1-month payment window is now open.")
+                            .targetDate(v.getTaxDueDate())
+                            .daysRemaining(taxDays)
+                            .currentOdometerKm(v.getOdometerKm())
+                            .lastServiceOdometerKm(v.getLastServiceOdometerKm())
+                            .build());
+                }
+            }
+
+            // 1b. Check 5-Year STNK & Plate Renewal Expiry
             if (v.getStnkExpiryDate() != null) {
                 long days = ChronoUnit.DAYS.between(now, v.getStnkExpiryDate());
                 if (days < 0) {
@@ -509,8 +801,8 @@ public class FleetService {
                             .storeName(storeName)
                             .alertType("STNK_EXPIRED")
                             .severity("EXPIRED")
-                            .title("STNK Expired (" + v.getRegistrationNumber() + ")")
-                            .description("Annual vehicle tax & registration expired on " + v.getStnkExpiryDate() + ". Immediate renewal required; operating vehicle is prohibited under Indonesian traffic law.")
+                            .title("5-Year STNK & Plate Expired (" + v.getRegistrationNumber() + ")")
+                            .description("5-Year STNK and license plate expired on " + v.getStnkExpiryDate() + ". Physical license plate replacement and renewal required.")
                             .targetDate(v.getStnkExpiryDate())
                             .daysRemaining(days)
                             .currentOdometerKm(v.getOdometerKm())
@@ -526,8 +818,8 @@ public class FleetService {
                             .storeName(storeName)
                             .alertType("STNK_EXPIRING")
                             .severity(days <= 7 ? "CRITICAL" : "WARNING")
-                            .title("STNK Renewal Due in " + days + " Days")
-                            .description("Annual vehicle registration tax expires on " + v.getStnkExpiryDate() + ". Submit renewal documents to Samsat within 30 days to avoid late fines.")
+                            .title("5-Year STNK & Plate Renewal Due in " + days + " Days")
+                            .description("5-Year STNK registration expires on " + v.getStnkExpiryDate() + ". Submit renewal documents to Samsat for license plate change.")
                             .targetDate(v.getStnkExpiryDate())
                             .daysRemaining(days)
                             .currentOdometerKm(v.getOdometerKm())
@@ -608,7 +900,9 @@ public class FleetService {
     @Scheduled(cron = "0 0 7 * * *")
     public void scheduledDailyMaintenanceScan() {
         List<FleetMaintenanceAlertDto> activeAlerts = getMaintenanceAlerts(null);
-        log.info("Fleet Maintenance Cron: Daily asset health scan completed. Generated {} active maintenance/document alerts.", activeAlerts.size());
+        int licenseNotifsSent = scanAndNotifyExpiringLicenses();
+        log.info("Fleet Maintenance Cron: Daily asset health scan completed. Generated {} active maintenance/document alerts. Sent {} driver license expiry notifications.",
+                activeAlerts.size(), licenseNotifsSent);
     }
 
     @Transactional
@@ -681,5 +975,403 @@ public class FleetService {
                         .lastServiceOdometerKm(60000)
                         .build()
         );
+    }
+
+    // --- Truck Service Logs ---
+
+    @Transactional
+    public VehicleServiceLogDto createServiceLog(UUID vehicleId, CreateVehicleServiceLogRequest request) {
+        Vehicle v = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new IllegalArgumentException("Vehicle not found: " + vehicleId));
+
+        VehicleServiceLog logEntry = new VehicleServiceLog();
+        logEntry.setVehicle(v);
+        logEntry.setServiceDate(request.getServiceDate());
+        logEntry.setServiceType(request.getServiceType());
+        logEntry.setOdometerKm(request.getOdometerKm());
+        logEntry.setServiceCenter(request.getServiceCenter());
+        logEntry.setCostAmount(request.getCostAmount() != null ? request.getCostAmount() : BigDecimal.ZERO);
+        logEntry.setInvoiceNumber(request.getInvoiceNumber());
+        logEntry.setDescription(request.getDescription());
+        logEntry.setPartsReplaced(request.getPartsReplaced());
+        logEntry.setNextServiceOdometerKm(request.getNextServiceOdometerKm());
+
+        if (request.getPerformedByEmployeeId() != null) {
+            employeeRepository.findById(request.getPerformedByEmployeeId()).ifPresent(logEntry::setPerformedByEmployee);
+        }
+
+        VehicleServiceLog saved = vehicleServiceLogRepository.save(logEntry);
+
+        // Update vehicle odometer and last service info
+        if (request.getOdometerKm() > (v.getOdometerKm() != null ? v.getOdometerKm() : 0)) {
+            v.setOdometerKm(request.getOdometerKm());
+        }
+        v.setLastServiceOdometerKm(request.getOdometerKm());
+        v.setLastServiceDate(request.getServiceDate());
+        vehicleRepository.save(v);
+
+        return toVehicleServiceLogDto(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<VehicleServiceLogDto> getServiceLogs(UUID vehicleId) {
+        return vehicleServiceLogRepository.findByVehicleIdOrderByServiceDateDescCreatedAtDesc(vehicleId).stream()
+                .map(this::toVehicleServiceLogDto)
+                .toList();
+    }
+
+    // --- Monthly Health Checks ---
+
+    @Transactional
+    public VehicleMonthlyHealthCheckDto createMonthlyHealthCheck(UUID vehicleId, CreateVehicleMonthlyHealthCheckRequest request) {
+        Vehicle v = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new IllegalArgumentException("Vehicle not found: " + vehicleId));
+
+        VehicleMonthlyHealthCheck check = new VehicleMonthlyHealthCheck();
+        check.setVehicle(v);
+        check.setCheckDate(request.getCheckDate());
+        check.setCheckMonth(request.getCheckMonth());
+        check.setOverallRating(request.getOverallRating());
+        check.setEngineOilStatus(request.getEngineOilStatus() != null ? request.getEngineOilStatus() : "NORMAL");
+        check.setRadiatorCoolantStatus(request.getRadiatorCoolantStatus() != null ? request.getRadiatorCoolantStatus() : "NORMAL");
+        check.setBrakeFluidStatus(request.getBrakeFluidStatus() != null ? request.getBrakeFluidStatus() : "NORMAL");
+        check.setBrakeCondition(request.getBrakeCondition() != null ? request.getBrakeCondition() : "GOOD");
+        check.setFrontTireCondition(request.getFrontTireCondition() != null ? request.getFrontTireCondition() : "GOOD");
+        check.setRearTireCondition(request.getRearTireCondition() != null ? request.getRearTireCondition() : "GOOD");
+        check.setTirePressurePsi(request.getTirePressurePsi());
+        check.setBatteryCondition(request.getBatteryCondition() != null ? request.getBatteryCondition() : "GOOD");
+        check.setHeadlampsAndSignalsStatus(request.getHeadlampsAndSignalsStatus() != null ? request.getHeadlampsAndSignalsStatus() : "ALL_WORKING");
+        check.setHornAndWipersStatus(request.getHornAndWipersStatus() != null ? request.getHornAndWipersStatus() : "WORKING");
+        check.setSafetyEquipmentPresent(request.getSafetyEquipmentPresent() != null ? request.getSafetyEquipmentPresent() : true);
+        check.setAparExpiryDate(request.getAparExpiryDate());
+        check.setCargoBoxCondition(request.getCargoBoxCondition() != null ? request.getCargoBoxCondition() : "GOOD");
+        check.setOdometerReadingKm(request.getOdometerReadingKm());
+        check.setNotes(request.getNotes());
+        check.setActionRequired(request.getActionRequired());
+        check.setNextCheckDueDate(request.getNextCheckDueDate() != null ? request.getNextCheckDueDate() : request.getCheckDate().plusMonths(1));
+
+        if (request.getInspectorEmployeeId() != null) {
+            Employee inspector = employeeRepository.findById(request.getInspectorEmployeeId()).orElse(null);
+            check.setInspectorEmployee(inspector);
+            check.setInspectorName(inspector != null ? inspector.getFullName() : request.getInspectorName());
+        } else {
+            check.setInspectorName(request.getInspectorName());
+        }
+
+        VehicleMonthlyHealthCheck saved = vehicleMonthlyHealthCheckRepository.save(check);
+
+        // If vehicle is UNFIT_FOR_ROAD, update vehicle status to MAINTENANCE for safety
+        if ("UNFIT_FOR_ROAD".equalsIgnoreCase(request.getOverallRating())) {
+            v.setStatus(VehicleStatus.MAINTENANCE);
+            vehicleRepository.save(v);
+        }
+
+        return toVehicleMonthlyHealthCheckDto(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<VehicleMonthlyHealthCheckDto> getMonthlyHealthChecks(UUID vehicleId) {
+        return vehicleMonthlyHealthCheckRepository.findByVehicleIdOrderByCheckDateDescCreatedAtDesc(vehicleId).stream()
+                .map(this::toVehicleMonthlyHealthCheckDto)
+                .toList();
+    }
+
+    // --- Travel Distance (Calculated from Delivery Trips & Tracking Sessions) ---
+
+    @Transactional(readOnly = true)
+    public TruckTravelDistanceDto getTruckTravelDistance(UUID vehicleId) {
+        Vehicle v = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new IllegalArgumentException("Vehicle not found: " + vehicleId));
+
+        List<TrackingSession> sessions = trackingSessionRepository.findByVehicleIdOrderByStartTimeDesc(vehicleId);
+
+        BigDecimal totalDistanceMeters = BigDecimal.ZERO;
+        BigDecimal currentMonthDistanceMeters = BigDecimal.ZERO;
+        long completedTrips = 0;
+
+        LocalDate firstDayOfCurrentMonth = LocalDate.now().withDayOfMonth(1);
+        Instant startOfMonth = firstDayOfCurrentMonth.atStartOfDay(ZoneId.systemDefault()).toInstant();
+
+        List<DeliveryTripDistancePointDto> recentTrips = new ArrayList<>();
+
+        for (TrackingSession s : sessions) {
+            BigDecimal meters = s.getTotalDistanceMeters() != null ? s.getTotalDistanceMeters() : BigDecimal.ZERO;
+            totalDistanceMeters = totalDistanceMeters.add(meters);
+
+            if (s.getStartTime() != null && s.getStartTime().isAfter(startOfMonth)) {
+                currentMonthDistanceMeters = currentMonthDistanceMeters.add(meters);
+            }
+
+            if (s.getStatus() == TrackingSessionStatus.COMPLETED) {
+                completedTrips++;
+            }
+
+            if (recentTrips.size() < 20) {
+                BigDecimal km = meters.divide(BigDecimal.valueOf(1000), 2, RoundingMode.HALF_UP);
+                int durationMin = 0;
+                if (s.getStartTime() != null && s.getEndTime() != null) {
+                    durationMin = (int) ChronoUnit.MINUTES.between(s.getStartTime(), s.getEndTime());
+                } else if (s.getActiveDurationSeconds() != null) {
+                    durationMin = s.getActiveDurationSeconds() / 60;
+                }
+
+                recentTrips.add(DeliveryTripDistancePointDto.builder()
+                        .sessionId(s.getId())
+                        .taskCode(s.getTaskCode() != null ? s.getTaskCode() : "DELIVERY")
+                        .taskType(s.getTaskType())
+                        .driverName(s.getEmployee() != null ? s.getEmployee().getFullName() : "-")
+                        .startTime(s.getStartTime())
+                        .endTime(s.getEndTime())
+                        .distanceKm(km)
+                        .durationMinutes(durationMin)
+                        .build());
+            }
+        }
+
+        BigDecimal totalKm = totalDistanceMeters.divide(BigDecimal.valueOf(1000), 2, RoundingMode.HALF_UP);
+        BigDecimal monthKm = currentMonthDistanceMeters.divide(BigDecimal.valueOf(1000), 2, RoundingMode.HALF_UP);
+
+        int currentOdo = v.getOdometerKm() != null ? v.getOdometerKm() : 0;
+        int lastServiceOdo = v.getLastServiceOdometerKm() != null ? v.getLastServiceOdometerKm() : 0;
+        int interval = v.getServiceIntervalKm() != null ? v.getServiceIntervalKm() : 10000;
+        int deltaSinceService = Math.max(0, currentOdo - lastServiceOdo);
+        boolean isServiceDue = deltaSinceService >= interval;
+
+        return TruckTravelDistanceDto.builder()
+                .vehicleId(v.getId())
+                .registrationNumber(v.getRegistrationNumber())
+                .brandModel(v.getBrandModel())
+                .totalDeliveryDistanceKm(totalKm)
+                .currentMonthDeliveryDistanceKm(monthKm)
+                .completedDeliveryTripsCount(completedTrips)
+                .currentOdometerKm(currentOdo)
+                .lastServiceOdometerKm(lastServiceOdo)
+                .odometerSinceLastServiceKm(deltaSinceService)
+                .serviceIntervalKm(interval)
+                .isServiceDue(isServiceDue)
+                .recentTrips(recentTrips)
+                .build();
+    }
+
+    private VehicleServiceLogDto toVehicleServiceLogDto(VehicleServiceLog log) {
+        return VehicleServiceLogDto.builder()
+                .id(log.getId())
+                .vehicleId(log.getVehicle().getId())
+                .serviceDate(log.getServiceDate())
+                .serviceType(log.getServiceType())
+                .odometerKm(log.getOdometerKm())
+                .serviceCenter(log.getServiceCenter())
+                .costAmount(log.getCostAmount())
+                .invoiceNumber(log.getInvoiceNumber())
+                .description(log.getDescription())
+                .partsReplaced(log.getPartsReplaced())
+                .nextServiceOdometerKm(log.getNextServiceOdometerKm())
+                .performedByEmployeeId(log.getPerformedByEmployee() != null ? log.getPerformedByEmployee().getId() : null)
+                .performedByEmployeeName(log.getPerformedByEmployee() != null ? log.getPerformedByEmployee().getFullName() : null)
+                .createdAt(log.getCreatedAt())
+                .build();
+    }
+
+    private VehicleMonthlyHealthCheckDto toVehicleMonthlyHealthCheckDto(VehicleMonthlyHealthCheck c) {
+        return VehicleMonthlyHealthCheckDto.builder()
+                .id(c.getId())
+                .vehicleId(c.getVehicle().getId())
+                .checkDate(c.getCheckDate())
+                .checkMonth(c.getCheckMonth())
+                .inspectorEmployeeId(c.getInspectorEmployee() != null ? c.getInspectorEmployee().getId() : null)
+                .inspectorName(c.getInspectorName())
+                .overallRating(c.getOverallRating())
+                .engineOilStatus(c.getEngineOilStatus())
+                .radiatorCoolantStatus(c.getRadiatorCoolantStatus())
+                .brakeFluidStatus(c.getBrakeFluidStatus())
+                .brakeCondition(c.getBrakeCondition())
+                .frontTireCondition(c.getFrontTireCondition())
+                .rearTireCondition(c.getRearTireCondition())
+                .tirePressurePsi(c.getTirePressurePsi())
+                .batteryCondition(c.getBatteryCondition())
+                .headlampsAndSignalsStatus(c.getHeadlampsAndSignalsStatus())
+                .hornAndWipersStatus(c.getHornAndWipersStatus())
+                .safetyEquipmentPresent(c.getSafetyEquipmentPresent())
+                .aparExpiryDate(c.getAparExpiryDate())
+                .cargoBoxCondition(c.getCargoBoxCondition())
+                .odometerReadingKm(c.getOdometerReadingKm())
+                .notes(c.getNotes())
+                .actionRequired(c.getActionRequired())
+                .nextCheckDueDate(c.getNextCheckDueDate())
+                .createdAt(c.getCreatedAt())
+                .build();
+    }
+
+    // --- Driver License (SIM) Management & Expiry Notifications ---
+
+    @Transactional(readOnly = true)
+    public List<DriverLicenseDto> getDriverLicenses(UUID employeeId) {
+        return driverLicenseRepository.findByEmployeeIdOrderByExpiryDateAsc(employeeId).stream()
+                .map(this::toDriverLicenseDto)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<DriverLicenseDto> getExpiringDriverLicenses() {
+        LocalDate threshold = LocalDate.now().plusDays(30);
+        return driverLicenseRepository.findByExpiryDateLessThanEqual(threshold).stream()
+                .map(this::toDriverLicenseDto)
+                .toList();
+    }
+
+    @Transactional
+    public DriverLicenseDto createDriverLicense(UUID employeeId, CreateDriverLicenseRequest request) {
+        Employee emp = employeeRepository.findById(employeeId)
+                .orElseThrow(() -> new IllegalArgumentException("Employee not found with ID: " + employeeId));
+
+        Optional<DriverLicense> existing = driverLicenseRepository.findByEmployeeIdAndLicenseType(employeeId, request.getLicenseType());
+        if (existing.isPresent()) {
+            throw new IllegalArgumentException("Driver already has a registered license of type " + request.getLicenseType());
+        }
+
+        DriverLicense license = new DriverLicense();
+        license.setEmployee(emp);
+        license.setLicenseNumber(request.getLicenseNumber().trim().toUpperCase());
+        license.setLicenseType(request.getLicenseType());
+        license.setIssueDate(request.getIssueDate());
+        license.setExpiryDate(request.getExpiryDate());
+        license.setIssuingPoliceOffice(request.getIssuingPoliceOffice());
+        license.setPhotoUrl(request.getPhotoUrl());
+        license.setNotes(request.getNotes());
+        license.setCreatedAt(Instant.now());
+        license.setUpdatedAt(Instant.now());
+
+        DriverLicense saved = driverLicenseRepository.save(license);
+
+        // If newly created license is already expiring within 30 days or expired, dispatch notification immediately
+        if (request.getExpiryDate().isBefore(LocalDate.now().plusDays(30))) {
+            sendLicenseRenewalReminder(saved.getId());
+        }
+
+        return toDriverLicenseDto(saved);
+    }
+
+    @Transactional
+    public DriverLicenseDto updateDriverLicense(UUID licenseId, UpdateDriverLicenseRequest request) {
+        DriverLicense license = driverLicenseRepository.findById(licenseId)
+                .orElseThrow(() -> new IllegalArgumentException("Driver license not found with ID: " + licenseId));
+
+        license.setLicenseNumber(request.getLicenseNumber().trim().toUpperCase());
+        license.setLicenseType(request.getLicenseType());
+        license.setIssueDate(request.getIssueDate());
+        license.setExpiryDate(request.getExpiryDate());
+        license.setIssuingPoliceOffice(request.getIssuingPoliceOffice());
+        license.setPhotoUrl(request.getPhotoUrl());
+        license.setNotes(request.getNotes());
+        license.setUpdatedAt(Instant.now());
+
+        DriverLicense saved = driverLicenseRepository.save(license);
+        return toDriverLicenseDto(saved);
+    }
+
+    @Transactional
+    public void deleteDriverLicense(UUID licenseId) {
+        DriverLicense license = driverLicenseRepository.findById(licenseId)
+                .orElseThrow(() -> new IllegalArgumentException("Driver license not found with ID: " + licenseId));
+        driverLicenseRepository.delete(license);
+    }
+
+    @Transactional
+    public int scanAndNotifyExpiringLicenses() {
+        LocalDate threshold = LocalDate.now().plusDays(30);
+        List<DriverLicense> expiring = driverLicenseRepository.findByExpiryDateLessThanEqual(threshold);
+        Instant now = Instant.now();
+        LocalDate today = LocalDate.now();
+        int sentCount = 0;
+
+        for (DriverLicense lic : expiring) {
+            if (lic.getLastNotificationSentAt() != null) {
+                long hoursSinceLast = ChronoUnit.HOURS.between(lic.getLastNotificationSentAt(), now);
+                if (hoursSinceLast < 24) {
+                    continue; // Do not notify more than once every 24 hours
+                }
+            }
+
+            Employee driver = lic.getEmployee();
+            long daysRemaining = ChronoUnit.DAYS.between(today, lic.getExpiryDate());
+
+            String title = daysRemaining < 0
+                    ? "PERINGATAN: SIM " + lic.getLicenseType() + " Kadaluarsa (" + driver.getFullName() + ")"
+                    : "Pemberitahuan: SIM " + lic.getLicenseType() + " Akan Segera Kadaluarsa (" + driver.getFullName() + ")";
+
+            String body = daysRemaining < 0
+                    ? "Surat Izin Mengemudi " + lic.getLicenseType().getLabel() + " (No: " + lic.getLicenseNumber() + ") milik "
+                    + driver.getFullName() + " telah kadaluarsa sejak " + Math.abs(daysRemaining) + " hari lalu (" + lic.getExpiryDate() + "). "
+                    + "Segera lakukan perpanjangan di Satpas Samsat sebelum bertugas mengemudi."
+                    : "Surat Izin Mengemudi " + lic.getLicenseType().getLabel() + " (No: " + lic.getLicenseNumber() + ") milik "
+                    + driver.getFullName() + " akan kadaluarsa dalam " + daysRemaining + " hari (" + lic.getExpiryDate() + "). "
+                    + "Harap segera jadwalkan perpanjangan SIM di kantor Satpas Samsat.";
+
+            notificationService.create("DRIVER_LICENSE", lic.getId(), title, body, List.of(driver.getId()));
+            lic.setLastNotificationSentAt(now);
+            driverLicenseRepository.save(lic);
+            sentCount++;
+            log.info("Sent license expiration notification to driver {} (license: {}, days remaining: {})",
+                    driver.getFullName(), lic.getLicenseNumber(), daysRemaining);
+        }
+
+        return sentCount;
+    }
+
+    @Transactional
+    public DriverLicenseDto sendLicenseRenewalReminder(UUID licenseId) {
+        DriverLicense lic = driverLicenseRepository.findById(licenseId)
+                .orElseThrow(() -> new IllegalArgumentException("Driver license not found with ID: " + licenseId));
+
+        Employee driver = lic.getEmployee();
+        long daysRemaining = ChronoUnit.DAYS.between(LocalDate.now(), lic.getExpiryDate());
+
+        String title = daysRemaining < 0
+                ? "PERINGATAN: SIM " + lic.getLicenseType() + " Kadaluarsa (" + driver.getFullName() + ")"
+                : "Pemberitahuan: SIM " + lic.getLicenseType() + " Akan Segera Kadaluarsa (" + driver.getFullName() + ")";
+
+        String body = daysRemaining < 0
+                ? "Pemberitahuan Manajer Armada: SIM " + lic.getLicenseType().getLabel() + " (No: " + lic.getLicenseNumber() + ") "
+                + "telah kadaluarsa (" + lic.getExpiryDate() + "). Mohon segera perpanjang di Satpas Samsat."
+                : "Pemberitahuan Manajer Armada: SIM " + lic.getLicenseType().getLabel() + " (No: " + lic.getLicenseNumber() + ") "
+                + "akan kadaluarsa dalam " + daysRemaining + " hari (" + lic.getExpiryDate() + "). Mohon segera perpanjang di Satpas Samsat.";
+
+        notificationService.create("DRIVER_LICENSE", lic.getId(), title, body, List.of(driver.getId()));
+        lic.setLastNotificationSentAt(Instant.now());
+        DriverLicense saved = driverLicenseRepository.save(lic);
+
+        return toDriverLicenseDto(saved);
+    }
+
+    private DriverLicenseDto toDriverLicenseDto(DriverLicense l) {
+        LocalDate now = LocalDate.now();
+        Long days = l.getExpiryDate() != null ? ChronoUnit.DAYS.between(now, l.getExpiryDate()) : null;
+        String status = "VALID";
+        if (days != null) {
+            if (days < 0) {
+                status = "EXPIRED";
+            } else if (days <= 30) {
+                status = "EXPIRING_SOON";
+            }
+        }
+
+        return DriverLicenseDto.builder()
+                .id(l.getId())
+                .employeeId(l.getEmployee().getId())
+                .employeeNumber(l.getEmployee().getEmployeeNumber())
+                .driverName(l.getEmployee().getFullName())
+                .licenseNumber(l.getLicenseNumber())
+                .licenseType(l.getLicenseType())
+                .licenseTypeLabel(l.getLicenseType().getLabel())
+                .issueDate(l.getIssueDate())
+                .expiryDate(l.getExpiryDate())
+                .issuingPoliceOffice(l.getIssuingPoliceOffice())
+                .photoUrl(l.getPhotoUrl())
+                .notes(l.getNotes())
+                .daysRemaining(days)
+                .status(status)
+                .lastNotificationSentAt(l.getLastNotificationSentAt())
+                .createdAt(l.getCreatedAt())
+                .build();
     }
 }

@@ -24,6 +24,7 @@ const PurchaseOrderListPage = lazy(() => import("./features/procurement/Purchase
 const PurchaseOrderDetailPage = lazy(() => import("./features/procurement/PurchaseOrderDetailPage"));
 const DeliveryTripListPage = lazy(() => import("./features/delivery/DeliveryTripListPage"));
 const DeliveryTripDetailPage = lazy(() => import("./features/delivery/DeliveryTripDetailPage"));
+const TruckListPage = lazy(() => import("./features/trucks/TruckListPage"));
 const FleetMonitoringPage = lazy(() => import("./features/fleet/FleetMonitoringPage"));
 const FinancePage = lazy(() => import("./features/finance/FinancePage"));
 const ExpenseBudgetPage = lazy(() => import("./features/expense/ExpenseBudgetPage"));
@@ -215,6 +216,16 @@ export default function App() {
             <ProtectedRoute>
               <AppLayout>
                 <DeliveryTripDetailPage />
+              </AppLayout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/trucks"
+          element={
+            <ProtectedRoute>
+              <AppLayout>
+                <TruckListPage />
               </AppLayout>
             </ProtectedRoute>
           }

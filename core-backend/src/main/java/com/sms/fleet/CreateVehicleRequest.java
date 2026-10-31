@@ -27,9 +27,11 @@ public class CreateVehicleRequest {
     private String fuelType;
     private Integer odometerKm;
     private LocalDate stnkExpiryDate;
+    private LocalDate taxDueDate;
     private LocalDate kirExpiryDate;
     private Integer lastServiceOdometerKm;
     private LocalDate lastServiceDate;
     private Integer serviceIntervalKm;
+    private UUID driverEmployeeId;
 }
 

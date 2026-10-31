@@ -2459,6 +2459,106 @@ Status Legend:
   - `flutter analyze` 100% clean (0 issues).
   - Backend and web builds passing cleanly.
 
+#### Feature 18.18: Master Data Truck with 1-to-1 Driver Assignment, STNK 1-Month Tax Due Alert & License Plate Change History `[IMPLEMENTED]` (Backlog `[Q.32]`)
+
+- **Purpose**: Provide a dedicated operational truck master data management screen, enforce strict one-to-one truck-driver custody relationships, monitor annual vehicle tax due dates (Pajak STNK 1 Tahunan) with prominent 1-month advance warnings, and record an immutable audit history of all license plate changes (e.g. 5-year Samsat plate renewals).
+- **Domain Invariant & Architecture**:
+  - Purely money management and operational asset governance (strictly non-banking).
+  - Single Source of Truth: Built directly on top of `core-backend` with Flyway database migration `V38__truck_master_and_driver_assignment.sql`.
+- **Key Features Implemented**:
+  1. **Dedicated Master Data Truck Menu (`/trucks`)**:
+     - Accessible from navigation under Operations and Ctrl+K Quick Command Palette.
+     - Overview KPI cards displaying Total Trucks, 1-to-1 Assigned vs Unassigned Drivers, Tax Due in 1 Month (Urgent), Tax Overdue, and 5-Year Plate Expirations.
+     - Quick filter chips: `All`, `Tax Due in 1 Month`, `Tax Overdue`, `Plate Renewal Due`, and `Driver Unassigned`.
+     - Text search across plate numbers, brand/models, and driver names, with store/branch filtering.
+  2. **Strict 1-to-1 Driver Linking (`@OneToOne`)**:
+     - Enforced at database level via `UNIQUE` constraint on `vehicle.driver_employee_id REFERENCES employee(id)`.
+     - Validated in `FleetService`: checks that driver exists, is active, and is not already assigned to any other truck.
+     - Dedicated assign/unassign actions and dialog displaying active drivers with current allocation status.
+  3. **STNK Annual Tax Due Date Monitoring (1-Month Due Warning)**:
+     - `tax_due_date` tracked for annual motor vehicle tax (PKB).
+     - Automated calculation of `taxDaysRemaining` and `taxDueStatus` (`OVERDUE`, `DUE_IN_ONE_MONTH`, `UP_TO_DATE`).
+     - Distinct amber warning badges when tax is due within 30 days (1-month window), allowing logistics managers to settle Samsat renewals without late fee penalties.
+     - Nightly automated cron scanner generates `TAX_EXPIRING` (Warning) and `TAX_EXPIRED` (Critical) fleet maintenance alerts.
+  4. **License Plate Change & Audit Trail (`vehicle_plate_history`)**:
+     - Interactive `Change License Plate` dialog supporting 5-Year STNK Renewal (Ganti Kaleng), damaged/lost plates, and regional mutations.
+     - Option to auto-extend 5-year STNK validity (+5 years) and annual tax due date (+1 year) upon renewal.
+     - Immutable historical ledger tracking `old_registration_number`, `new_registration_number`, `change_date`, `reason`, `notes`, and employee who authorized the change.
+     - Full audit timeline accessible via `Plate History` modal.
+- **Verification & Test Coverage**:
+  - Backend: 13/13 JUnit tests passing in `FleetServiceTest.java`.
+  - Frontend: 4/4 Vitest tests passing in `TruckListPage.test.tsx`.
+  - Production build: `npm run build` passing cleanly with zero errors.
+
+#### Feature 18.19: Truck Service Logs, GPS Delivery Distance Analytics & Monthly Health Inspection Checklists `[IMPLEMENTED]` (Backlog `[Q.36]`)
+
+- **Purpose**: Empower logistics dispatchers, workshop mechanics, and fleet managers with complete operational lifecycle intelligence directly inside the Master Data Truck menu (`/trucks`): tracking maintenance costs & workshop invoices, computing delivery travel mileage from actual delivery GPS tracking sessions, and executing structured monthly multi-point roadworthiness inspections.
+- **Domain Invariants & Non-Banking Money Management**:
+  - Strictly non-banking: Captures operational vehicle maintenance costs (`cost_amount` numeric 15,2) for fleet expense budgeting and ledger reconciliation; handles no consumer payment processing or banking rails.
+  - Odometer Synchronization: Recording a routine service automatically updates the vehicle's `last_service_odometer_km`, `last_service_date`, and advances the current vehicle odometer.
+  - Automatic Maintenance Flagging: Submitting a monthly health check with rating `UNFIT_FOR_ROAD` automatically updates vehicle status to `MAINTENANCE`, preventing unroadworthy trucks from being dispatched on customer delivery routes.
+  - GPS Telematics Aggregation: Distance travelled is calculated exclusively from completed delivery trips (`tracking_session` with `total_distance_meters` linked to the vehicle), providing verified operational delivery mileage independent of manual odometer discrepancies.
+- **Database Architecture (`V39__truck_service_logs_and_health_checks.sql`)**:
+  - `vehicle_service_log`: Stores historical workshop maintenance logs (`vehicle_id`, `service_date`, `service_type`, `odometer_km`, `service_center`, `cost_amount`, `invoice_number`, `parts_replaced`, `description`, `performed_by_employee_id`).
+  - `vehicle_monthly_health_check`: Stores monthly multi-point inspections (`vehicle_id`, `check_date`, `check_month`, `inspector_employee_id`, `inspector_name`, `overall_rating`, `engine_oil_status`, `radiator_coolant_status`, `brake_fluid_status`, `brake_condition`, `front_tire_condition`, `rear_tire_condition`, `tire_pressure_psi`, `battery_condition`, `headlamps_and_signals_status`, `horn_and_wipers_status`, `safety_equipment_present`, `apar_expiry_date`, `cargo_box_condition`, `odometer_reading_km`, `notes`, `action_required`).
+- **REST Endpoints (`FleetController.java`)**:
+  - `GET /api/v1/fleet/vehicles/{id}/service-logs`: List maintenance history ordered by service date descending.
+  - `POST /api/v1/fleet/vehicles/{id}/service-logs`: Record new service log and synchronize vehicle odometer.
+  - `GET /api/v1/fleet/vehicles/{id}/monthly-health-checks`: Retrieve all monthly roadworthiness inspections.
+  - `POST /api/v1/fleet/vehicles/{id}/monthly-health-checks`: Record monthly inspection; auto-grounds vehicle to `MAINTENANCE` if `UNFIT_FOR_ROAD`.
+  - `GET /api/v1/fleet/vehicles/{id}/travel-distance`: Compute cumulative delivery distance (km), current month delivery distance (km), completed delivery trips count, odometer since last service, service due status, and recent delivery trips log.
+- **Frontend User Experience (`TruckDetailsDialog.tsx` & `TruckListPage.tsx`)**:
+  - Integrated "Service Logs, Distance & Monthly Inspections" action button on every truck table row.
+  - **Tab 1: Service Logs**: Summary KPI cards (Total Maintenance Cost in IDR, Last Service Date & Odometer, Service Interval status), interactive service history table, and modal dialog to record new service log with cost amount, invoice number, bengkel workshop name, and parts replaced.
+  - **Tab 2: Travelled Distance (GPS)**: Metric KPI cards (All-time delivery distance km, current month distance km, completed delivery trips count, KM since last service), and breakdown table of recent delivery trips with task codes, drivers, duration, distance, and timestamps.
+  - **Tab 3: Monthly Health Check**: Color-coded rating badges (`HEALTHY` green, `ATTENTION_NEEDED` yellow, `UNFIT_FOR_ROAD` red), multi-point physical checklist overview (engine oil, radiator coolant, brake pads, tire tread/PSI, battery health, headlamps, APAR expiry, cargo box condition, corrective action notes), and modal dialog to submit standard monthly inspection checklist.
+- **Verification & Test Coverage**:
+  - Backend: 16/16 JUnit tests passing in `FleetServiceTest.java`.
+  - Frontend: 5/5 Vitest tests passing in `TruckListPage.test.tsx`.
+  - Production build: `npm run build` passing cleanly with zero errors.
+
+#### Feature 18.20: Driver License (SIM) Registration, 30-Day Expiry Monitoring & Automated Renewal Notifications `[IMPLEMENTED]` (Backlog `[Q.40]`)
+
+- **Purpose**: Enable delivery and fleet truck drivers to record and maintain their official driving licenses (Surat Izin Mengemudi / SIM: SIM A, SIM B1, SIM B1 Umum, SIM B2, SIM B2 Umum, SIM C) within the SMS operations registry. System monitors license expiry dates and dispatches automated proactive notifications (in-app and mobile push) when a driver's license enters the 30-day (1-month) expiration window or expires, guaranteeing legal road compliance during Samsat traffic police checks.
+- **Domain Invariants & Non-Banking Operational Governance**:
+  - Strictly non-banking: Operational asset and personnel compliance governance tracking license validity periods and renewal notifications; handles zero payment transactions or banking rails.
+  - Multi-License Support: A driver can register multiple driving licenses (e.g. SIM B1 Umum for commercial delivery trucks and SIM C for express motorcycle dispatches) with a unique constraint on `(employee_id, license_type)`.
+  - Proactive Daily Scan & Spam Prevention: Daily scheduled cron job (`0 0 7 * * *`) scans all licenses expiring within 30 days. To prevent spamming the driver, notifications are throttled to at most once every 24 hours per license, updating `last_notification_sent_at`.
+  - Realtime Multi-Channel Dispatch: Leverages `NotificationService.create(...)` which writes persistent in-app notifications (`notification` and `notification_recipient`) and dispatches realtime Web Push / Mobile alerts via `PushNotificationDispatcher`.
+- **Database Architecture (`V40__driver_license_and_expiry_notifications.sql`)**:
+  - `driver_license` table:
+    - `id`: UUID PRIMARY KEY
+    - `employee_id`: UUID NOT NULL REFERENCES `employee(id)` ON DELETE CASCADE
+    - `license_number`: VARCHAR(50) NOT NULL
+    - `license_type`: VARCHAR(30) NOT NULL (`SIM_A`, `SIM_B1`, `SIM_B1_UMUM`, `SIM_B2`, `SIM_B2_UMUM`, `SIM_C`)
+    - `issue_date`: DATE
+    - `expiry_date`: DATE NOT NULL
+    - `issuing_police_office`: VARCHAR(150) (e.g. Satpas Daan Mogot)
+    - `photo_url`: VARCHAR(500)
+    - `notes`: VARCHAR(500)
+    - `last_notification_sent_at`: TIMESTAMPTZ
+    - Indexes on `employee_id`, `expiry_date`, and `license_type`.
+- **Backend Services & REST Endpoints (`FleetService.java` & `FleetController.java`)**:
+  - `GET /api/v1/fleet/drivers/{employeeId}/licenses`: Retrieve all SIM permits for a driver with days remaining and validity status.
+  - `POST /api/v1/fleet/drivers/{employeeId}/licenses`: Register new license; automatically triggers immediate reminder if license already expires within 30 days.
+  - `PUT /api/v1/fleet/driver-licenses/{licenseId}`: Update license details (e.g., renewed expiry date after 5-year Samsat extension).
+  - `DELETE /api/v1/fleet/driver-licenses/{licenseId}`: Remove license entry.
+  - `POST /api/v1/fleet/driver-licenses/{licenseId}/send-reminder`: Manual one-click trigger for fleet managers to ping driver with renewal reminder.
+  - `GET /api/v1/fleet/driver-licenses/expiring`: List all fleet licenses expiring within 30 days across all active drivers.
+  - `POST /api/v1/fleet/driver-licenses/scan-expirations`: On-demand scan & dispatch endpoint.
+  - Enriched `getAvailableDrivers`: Includes primary license number, type, expiry date, days remaining, and status (`VALID`, `EXPIRING_SOON`, `EXPIRED`, `NOT_RECORDED`).
+- **Frontend Management UI (`DriverLicenseDialog.tsx` & `TruckListPage.tsx`)**:
+  - Dedicated "Driver License (SIM)" badge button on every assigned driver cell in `TruckListPage.tsx`.
+  - Comprehensive `DriverLicenseDialog.tsx` modal:
+    - Permits table displaying SIM number, type chip, expiry date, validity status badge (`VALID` green, `EXPIRING_SOON` amber with remaining days, `EXPIRED` red), issuing Satpas office, and timestamp of last notification sent.
+    - One-click "Send Expiry Reminder" notification button with instant snackbar confirmation.
+    - Form dialog to register or edit SIM cards with full Golongan SIM options and date pickers.
+  - Enhanced driver assignment dropdowns showing license validity alongside driver availability, preventing dispatchers from assigning drivers with expired licenses.
+- **Verification & Test Coverage**:
+  - Backend: 19/19 JUnit tests passing in `FleetServiceTest.java`.
+  - Frontend: 6/6 Vitest tests passing in `TruckListPage.test.tsx`.
+  - Production build: `npm run build` passing cleanly with zero errors.
+
 #### Feature 18.12: Integration Matrix With Existing Modules `[IMPLEMENTED]` (Backlog `[Q.1]`, `[Q.8]`)
 
 - **Cross-Module Integration & Data Flow Architecture**:
@@ -2851,6 +2951,7 @@ Status Legend:
 | **74** | Flash Sales, Tiered Discounts & Product Bundles                 | `PriceDiscountService`, `V32`, cart/checkout pricing                                                   | Countdown + stock meter, promo management UI                                                                      | Countdown + stock meter                                                                            | 10 pricing + 4 storefront JUnit; web builds; Flutter analyze |        **100%**         |      `[P.30]`, `[P.31]`       |
 | **75** | Preload Critical Above-The-Fold Hero Assets (LCP Optimization)  | `ImageOptimizationService` (`preloadLinkHeader`, `preloadHtmlTag`), `/preload-hint`                    | `preloadCriticalImage`, `ResponsiveImage` (`priority`), `HomePage`, `CatalogPage`, `ProductDetailPage`            | `ImageOptimizer.preloadCriticalAsset`, `precacheImage`                                             | 6/6 JUnit + Web Build + 6/6 Flutter Tests Pass               |        **100%**         |           `[P.22]`            |
 | **76** | Server-Side Price List Document Versioning & Validity Stamping  | `PriceListVersionService`, `PriceListService`, `PricingController`, Flyway `V34`                       | `PriceListPage.tsx` (Tabs, Generate Modal, Version Archive Table, Valid-From Date Stamping), `api.ts`, `hooks.ts` | _N/A_                                                                                              | 3 JUnit Tests + 7 Vitest Tests Pass                          |        **100%**         |           `[G.18]`            |
+| **77** | Master Data Truck with 1-to-1 Driver Link & STNK 1-Mo Tax Alert | `FleetService`, `VehiclePlateHistoryRepository`, Flyway `V38`                                          | `TruckListPage.tsx` (KPI Cards, 1:1 Driver Modal, Plate Change Dialog, History Modal), `hooks.ts`                 | _N/A_                                                                                              | 13/13 JUnit + 4/4 Vitest Tests Pass + Web Build Pass         |        **100%**         |           `[Q.32]`            |
 
 ---
 
@@ -2997,6 +3098,40 @@ To ensure complete transparency and prevent arbitrary decisions, the following f
 ---
 
 ## 8. Chronological Task Execution History
+
+- **2026-10-31 (Update 24)**:
+  - **Driver License (SIM) Registration, 30-Day Expiry Monitoring & Proactive Notifications (Version 3.23 / Backlog `[Q.40]`)**:
+    - **Database Migration (`core-backend`)**: Created Flyway migration `V40__driver_license_and_expiry_notifications.sql` defining `driver_license` table with foreign key to `employee`, indexes, and unique constraint on `(employee_id, license_type)`.
+    - **Backend Services & Cron Dispatch (`core-backend`)**:
+      - Created `DriverLicenseType.java` enum supporting Indonesian SIM classes (`SIM_A`, `SIM_B1`, `SIM_B1_UMUM`, `SIM_B2`, `SIM_B2_UMUM`, `SIM_C`).
+      - Created entity `DriverLicense.java`, `DriverLicenseRepository.java`, and DTOs.
+      - Implemented `createDriverLicense`, `updateDriverLicense`, `deleteDriverLicense`, and `getDriverLicenses` in `FleetService.java`.
+      - Implemented `scanAndNotifyExpiringLicenses`: daily cron job (`0 0 7 * * *`) scans licenses expiring within 30 days and dispatches multi-channel in-app and mobile push alerts to drivers via `NotificationService.create(...)`, throttled to at most once per 24 hours.
+      - Implemented `sendLicenseRenewalReminder` manual dispatch trigger for fleet managers.
+      - Enriched `getAvailableDrivers` in `FleetService.java` with driver license status and remaining days.
+      - Added REST endpoints in `FleetController.java` (`/drivers/{employeeId}/licenses`, `/driver-licenses/{licenseId}`, `/driver-licenses/{licenseId}/send-reminder`, `/driver-licenses/expiring`, `/driver-licenses/scan-expirations`).
+      - Verified backend with 19/19 JUnit tests passing in `FleetServiceTest.java`.
+    - **Frontend Application (`sms-web`)**:
+      - Added API types and queries/mutations in `fleetApi.ts` and `hooks.ts`.
+      - Built `DriverLicenseDialog.tsx` component with permits registry table, status badges (`VALID`, `EXPIRING_SOON`, `EXPIRED`), manual reminder notification dispatch button, and license registration/edit modal.
+      - Connected SIM badge button and driver license status into `TruckListPage.tsx` and `AssignDriverDialog`.
+      - Verified with 6/6 Vitest tests passing in `TruckListPage.test.tsx` and successful `npm run build`.
+
+- **2026-10-31 (Update 23)**:
+  - **Master Data Truck Phase 2 — Service Logs, GPS Delivery Distance Analytics & Monthly Health Check Checklists (Version 3.22 / Backlog `[Q.36]`)**:
+    - **Database Migration (`core-backend`)**: Added Flyway migration `V39__truck_service_logs_and_health_checks.sql` defining `vehicle_service_log` and `vehicle_monthly_health_check` tables with foreign keys and performance indexes.
+    - **Backend Services & Controllers (`core-backend`)**:
+      - Created JPA entities `VehicleServiceLog.java` and `VehicleMonthlyHealthCheck.java`, with repositories and DTOs.
+      - Implemented `createServiceLog` in `FleetService.java`: records maintenance costs, service center, parts replaced, and automatically syncs vehicle `odometerKm`, `lastServiceOdometerKm`, and `lastServiceDate`.
+      - Implemented `createMonthlyHealthCheck` in `FleetService.java`: records 10-point inspection checklist; automatically sets vehicle status to `MAINTENANCE` if rating is `UNFIT_FOR_ROAD`.
+      - Implemented `getTruckTravelDistance` in `FleetService.java`: computes all-time delivery distance (km), current month delivery distance (km), completed delivery trip count, and odometer distance since last service from `tracking_session` delivery records.
+      - Added REST endpoints in `FleetController.java` (`/vehicles/{id}/service-logs`, `/vehicles/{id}/monthly-health-checks`, `/vehicles/{id}/travel-distance`).
+      - Verified backend with 16/16 JUnit tests passing in `FleetServiceTest.java`.
+    - **Frontend Application (`sms-web`)**:
+      - Added API types and queries/mutations in `fleetApi.ts` and `hooks.ts`.
+      - Built `TruckDetailsDialog.tsx` with 3 comprehensive tabs: Service Logs (spend KPIs, workshop records, modal to record maintenance), Travelled Distance (GPS delivery analytics, recent trip table), and Monthly Health Checks (color-coded rating cards, 10-point checklist badges, modal to submit inspection).
+      - Connected details dialog into `TruckListPage.tsx` with table action buttons.
+      - Verified with 5/5 Vitest tests passing in `TruckListPage.test.tsx` and successful `npm run build`.
 
 - **2026-10-31 (Update 22)**:
   - **Preload Critical Above-The-Fold Hero Assets (`[P.22]`) & Todo List Cleanup (Version 3.20)**:
@@ -3398,7 +3533,7 @@ To ensure complete transparency and prevent arbitrary decisions, the following f
 
 | Metric                                           |  Count  | Status                                                                                    |
 | ------------------------------------------------ | :-----: | ----------------------------------------------------------------------------------------- |
-| - **Completed & Relocated to Top Feature Specs** | **84**  | Explained in detail in Sections 2–5 (`ADR-12`, `[G.18]`, and all implemented features)    |
+| - **Completed & Relocated to Top Feature Specs** | **86**  | Explained in detail in Sections 2–5 (`ADR-12`, `[G.18]`, and all implemented features)    |
 | - **Pending / Open Todo Tasks (`[ ]`)**          | **112** | Active Todo items scheduled for future architectural, performance, and UI/UX enhancements |
 
 ### A. Environment & Infrastructure Setup
@@ -3570,5 +3705,16 @@ To ensure complete transparency and prevent arbitrary decisions, the following f
 - [ ] **Q.29**: Geofence Departure & Dwell Time Telematics: Automatically detect when vehicle exits customer 300m geofence perimeter and calculate total on-site dwell duration.
 - [x] **Q.30**: One-Tap External Navigation Handover: Driver trip sheet action button passing validated GPS destination coordinates directly to Google Maps, Waze, or Apple Maps. Remembered app choice enables one-tap reuse; Google Maps iOS supports an explicit return deep link, while other apps use lifecycle resume callbacks. Return does not confirm delivery. Native device smoke testing remains required.
 - [ ] **Q.31**: LIFO Multi-Drop Delivery Truck Loading Sequencer: Automated loading plan recommending reverse delivery order (Last-In, First-Out) when staging furniture into trucks.
+- [x] **Q.32**: Master Data Truck Menu with 1-to-1 Driver Assignment, STNK 1-Month Tax Due Alert & License Plate Change History: Dedicated truck fleet registry menu in management web, strict 1-to-1 driver assignment enforced via database unique constraint and backend validation, 1-month advance tax due date (Pajak 1 Tahunan) warning status indicator & overdue alerts, and immutable license plate change audit history tracking (`vehicle_plate_history`).
+- [ ] **Q.33**: Samsat Online Annual Tax Estimation & Fee Calculator: Estimate PKB, SWDKLLJ, and administrative fees based on vehicle engine capacity (CC), vehicle age, and regional tax bracket (DKI Jakarta / West Java / Banten) prior to tax due date.
+- [ ] **Q.34**: Truck Driver Handover & Digital Pre-Trip Inspection Checklist: Mobile digital pre-trip inspection (tire pressure, engine oil, radiator coolant, lights, mirror condition, emergency triangle, fire extinguisher) signed off when driver takes custody of assigned truck.
+- [ ] **Q.35**: Optical License Plate & Physical STNK Photo OCR Scanner: Mobile camera OCR recognition automatically extracting vehicle registration number, chassis number, engine number, and PKB tax due dates directly from physical STNK photo.
+- [x] **Q.36**: Master Data Truck Phase 2 Service Logs, Delivery Distance Analytics & Monthly Health Check Inspection Checklists: Maintenance cost tracking, workshop invoices, delivery trip distance calculation from GPS tracking sessions, and monthly multi-point roadworthiness inspection checklist with automatic maintenance flagging.
+- [ ] **Q.37**: Automated Monthly Vehicle Health Inspection Cron & Dispatch Notifications: Scheduled monthly reminder job alerting fleet managers and assigned drivers when a truck's monthly health inspection is due or overdue.
+- [ ] **Q.38**: Workshop Maintenance Expense Budgeting & Bengkel Vendor Cost Comparison: Aggregated monthly fleet repair expense reporting and cost-per-kilometer comparison across authorized service centers and local workshops.
+- [ ] **Q.39**: Digital Tire Tread Depth Gauge & PSI Bluetooth Sensor Telematics: Direct BLE telematics integration with digital tire calipers and pressure sensors to automatically log millimeter tread depths into monthly health checks.
+- [x] **Q.40**: Driver License (SIM) Registration, 30-Day Expiry Monitoring & Automated Renewal Notifications: Driver driving license registry (SIM A, SIM B1, SIM B1 Umum, SIM B2, SIM B2 Umum, SIM C), daily automated 30-day expiration scanner, in-app and mobile push notification dispatch to drivers, and management renewal reminders.
+- [ ] **Q.41**: Driver License Physical Photo Upload & Samsat Digital Verification: Mobile camera attachment upload of physical SIM cards with automated OCR validation of license number and expiry dates.
+- [ ] **Q.42**: Commercial Driver Safety Score & License Penalty Points Tracker: Monitor driver traffic violations, ticket settlements, and internal safety incidents against driver profile.
 
 ---

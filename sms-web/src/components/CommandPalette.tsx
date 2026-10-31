@@ -159,6 +159,15 @@ export default function CommandPalette({ open, onClose }: CommandPaletteProps) {
         action: () => handleNav("/delivery-trips"),
       },
       {
+        id: "nav-trucks",
+        category: "Navigation",
+        title: t("Trucks", language),
+        subtitle: language === "id" ? "Master data truk, sopir 1-ke-1, jatuh tempo pajak & ganti plat" : "Operational truck registry, driver assignment, STNK tax due date & plate change",
+        icon: <LocalShippingIcon fontSize="small" />,
+        keywords: "truck master data driver vehicle stnk plate tax pajak plat truk armada",
+        action: () => handleNav("/trucks"),
+      },
+      {
         id: "nav-fleet",
         category: "Navigation",
         title: t("Fleet & GPS Tracking", language),

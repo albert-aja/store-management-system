@@ -55,6 +55,10 @@ export interface VehicleDto {
   fuelType?: string;
   odometerKm?: number;
   stnkExpiryDate?: string;
+  taxDueDate?: string;
+  taxDaysRemaining?: number;
+  taxDueStatus?: "OVERDUE" | "DUE_IN_ONE_MONTH" | "UP_TO_DATE";
+  isTaxDueInOneMonth?: boolean;
   kirExpiryDate?: string;
   lastServiceOdometerKm?: number;
   lastServiceDate?: string;
@@ -62,6 +66,205 @@ export interface VehicleDto {
   isServiceDue?: boolean;
   stnkDaysRemaining?: number;
   kirDaysRemaining?: number;
+  driverEmployeeId?: string;
+  driverName?: string;
+  driverEmployeeNumber?: string;
+}
+
+
+export type DriverLicenseType =
+  | "SIM_A"
+  | "SIM_B1"
+  | "SIM_B1_UMUM"
+  | "SIM_B2"
+  | "SIM_B2_UMUM"
+  | "SIM_C";
+
+export interface DriverLicenseDto {
+  id: string;
+  employeeId: string;
+  employeeNumber?: string;
+  driverName?: string;
+  licenseNumber: string;
+  licenseType: DriverLicenseType;
+  licenseTypeLabel?: string;
+  issueDate?: string;
+  expiryDate: string;
+  issuingPoliceOffice?: string;
+  photoUrl?: string;
+  notes?: string;
+  daysRemaining?: number;
+  status: "VALID" | "EXPIRING_SOON" | "EXPIRED";
+  lastNotificationSentAt?: string;
+  createdAt: string;
+}
+
+export interface CreateDriverLicenseRequest {
+  licenseNumber: string;
+  licenseType: DriverLicenseType;
+  issueDate?: string;
+  expiryDate: string;
+  issuingPoliceOffice?: string;
+  photoUrl?: string;
+  notes?: string;
+}
+
+export interface UpdateDriverLicenseRequest {
+  licenseNumber: string;
+  licenseType: DriverLicenseType;
+  issueDate?: string;
+  expiryDate: string;
+  issuingPoliceOffice?: string;
+  photoUrl?: string;
+  notes?: string;
+}
+
+export interface AvailableDriverDto {
+  employeeId: string;
+  employeeNumber: string;
+  fullName: string;
+  phone?: string;
+  isAssigned: boolean;
+  assignedVehicleId?: string;
+  assignedRegistrationNumber?: string;
+  primaryLicenseNumber?: string;
+  primaryLicenseType?: DriverLicenseType;
+  primaryLicenseExpiryDate?: string;
+  primaryLicenseDaysRemaining?: number;
+  primaryLicenseStatus?: "VALID" | "EXPIRING_SOON" | "EXPIRED" | "NOT_RECORDED";
+}
+
+export interface UpdateVehicleRequest {
+  storeId?: string;
+  vehicleType: VehicleType;
+  brandModel: string;
+  chassisNumber?: string;
+  engineNumber?: string;
+  status?: VehicleStatus;
+  maxPayloadKg?: number;
+  maxVolumeCbm?: number;
+  fuelType?: string;
+  odometerKm?: number;
+  taxDueDate?: string;
+  stnkExpiryDate?: string;
+  kirExpiryDate?: string;
+  serviceIntervalKm?: number;
+  driverEmployeeId?: string;
+}
+
+export interface ChangeLicensePlateRequest {
+  newRegistrationNumber: string;
+  changeDate: string;
+  reason: string;
+  notes?: string;
+  newStnkExpiryDate?: string;
+  newTaxDueDate?: string;
+  changedByEmployeeId?: string;
+}
+
+
+export interface VehicleServiceLogDto {
+  id: string;
+  vehicleId: string;
+  serviceDate: string;
+  serviceType: string;
+  serviceCenterName?: string;
+  invoiceNumber?: string;
+  odometerKm?: number;
+  costAmount?: number;
+  partsReplaced?: string;
+  notes?: string;
+  performedBy?: string;
+  createdAt: string;
+}
+
+export interface CreateVehicleServiceLogRequest {
+  serviceDate: string;
+  serviceType: string;
+  serviceCenterName?: string;
+  invoiceNumber?: string;
+  odometerKm?: number;
+  costAmount?: number;
+  partsReplaced?: string;
+  notes?: string;
+  performedBy?: string;
+}
+
+export interface VehicleMonthlyHealthCheckDto {
+  id: string;
+  vehicleId: string;
+  checkDate: string;
+  overallRating: "HEALTHY" | "ATTENTION_NEEDED" | "UNFIT_FOR_ROAD" | string;
+  engineOilStatus?: string;
+  coolantStatus?: string;
+  brakeFluidStatus?: string;
+  brakeCondition?: string;
+  tireCondition?: string;
+  batteryHealth?: string;
+  lightsStatus?: string;
+  safetyEquipmentStatus?: string;
+  cargoBoxCondition?: string;
+  actionRequired?: string;
+  inspectorName?: string;
+  odometerKm?: number;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface CreateVehicleMonthlyHealthCheckRequest {
+  checkDate: string;
+  overallRating: string;
+  engineOilStatus?: string;
+  coolantStatus?: string;
+  brakeFluidStatus?: string;
+  brakeCondition?: string;
+  tireCondition?: string;
+  batteryHealth?: string;
+  lightsStatus?: string;
+  safetyEquipmentStatus?: string;
+  cargoBoxCondition?: string;
+  actionRequired?: string;
+  inspectorName?: string;
+  odometerKm?: number;
+  notes?: string;
+}
+
+export interface DeliveryTripDistancePointDto {
+  sessionId: string;
+  taskCode?: string;
+  driverName?: string;
+  startTime?: string;
+  endTime?: string;
+  distanceKm?: number;
+  durationMinutes?: number;
+  status?: string;
+}
+
+export interface TruckTravelDistanceDto {
+  vehicleId: string;
+  vehicleRegistration: string;
+  totalDeliveryDistanceKm: number;
+  currentMonthDeliveryDistanceKm: number;
+  completedDeliveryTripsCount: number;
+  odometerKm?: number;
+  lastServiceOdometerKm?: number;
+  kmSinceLastService?: number;
+  isServiceDue?: boolean;
+  serviceIntervalKm?: number;
+  recentTrips: DeliveryTripDistancePointDto[];
+}
+
+export interface VehiclePlateHistoryDto {
+  id: string;
+  vehicleId: string;
+  oldRegistrationNumber: string;
+  newRegistrationNumber: string;
+  changeDate: string;
+  reason: string;
+  notes?: string;
+  changedByEmployeeId?: string;
+  changedByEmployeeName?: string;
+  createdAt: string;
 }
 
 export interface CreateVehicleRequest {
@@ -75,11 +278,13 @@ export interface CreateVehicleRequest {
   maxVolumeCbm?: number;
   fuelType?: string;
   odometerKm?: number;
+  taxDueDate?: string;
   stnkExpiryDate?: string;
   kirExpiryDate?: string;
   lastServiceOdometerKm?: number;
   lastServiceDate?: string;
   serviceIntervalKm?: number;
+  driverEmployeeId?: string;
 }
 
 export interface FleetMaintenanceAlertDto {
@@ -261,10 +466,47 @@ export const fleetApi = {
     return res.data;
   },
 
+  getVehicle: async (id: string): Promise<VehicleDto> => {
+    const res = await axios.get<VehicleDto>(`${API_BASE}/vehicles/${id}`);
+    return res.data;
+  },
+
+  updateVehicle: async (id: string, data: UpdateVehicleRequest): Promise<VehicleDto> => {
+    const res = await axios.put<VehicleDto>(`${API_BASE}/vehicles/${id}`, data);
+    return res.data;
+  },
+
   updateVehicleStatus: async (id: string, status: VehicleStatus): Promise<VehicleDto> => {
     const res = await axios.patch<VehicleDto>(`${API_BASE}/vehicles/${id}/status`, null, {
       params: { status },
     });
+    return res.data;
+  },
+
+  assignDriver: async (vehicleId: string, driverEmployeeId?: string): Promise<VehicleDto> => {
+    const params = driverEmployeeId ? { driverEmployeeId } : {};
+    const res = await axios.post<VehicleDto>(`${API_BASE}/vehicles/${vehicleId}/driver`, null, { params });
+    return res.data;
+  },
+
+  unassignDriver: async (vehicleId: string): Promise<VehicleDto> => {
+    const res = await axios.delete<VehicleDto>(`${API_BASE}/vehicles/${vehicleId}/driver`);
+    return res.data;
+  },
+
+  getAvailableDrivers: async (vehicleId?: string): Promise<AvailableDriverDto[]> => {
+    const params = vehicleId ? { vehicleId } : {};
+    const res = await axios.get<AvailableDriverDto[]>(`${API_BASE}/available-drivers`, { params });
+    return res.data;
+  },
+
+  changeLicensePlate: async (vehicleId: string, data: ChangeLicensePlateRequest): Promise<VehicleDto> => {
+    const res = await axios.post<VehicleDto>(`${API_BASE}/vehicles/${vehicleId}/change-plate`, data);
+    return res.data;
+  },
+
+  getPlateHistory: async (vehicleId: string): Promise<VehiclePlateHistoryDto[]> => {
+    const res = await axios.get<VehiclePlateHistoryDto[]>(`${API_BASE}/vehicles/${vehicleId}/plate-history`);
     return res.data;
   },
 
@@ -305,6 +547,75 @@ export const fleetApi = {
     if (startDate) params.startDate = startDate;
     if (endDate) params.endDate = endDate;
     const res = await axios.get<FleetAnalyticsDto>(`${API_BASE}/analytics`, { params });
+    return res.data;
+  },
+
+  getServiceLogs: async (vehicleId: string): Promise<VehicleServiceLogDto[]> => {
+    const res = await axios.get<VehicleServiceLogDto[]>(`${API_BASE}/vehicles/${vehicleId}/service-logs`);
+    return res.data;
+  },
+
+  createServiceLog: async (
+    vehicleId: string,
+    data: CreateVehicleServiceLogRequest
+  ): Promise<VehicleServiceLogDto> => {
+    const res = await axios.post<VehicleServiceLogDto>(`${API_BASE}/vehicles/${vehicleId}/service-logs`, data);
+    return res.data;
+  },
+
+  getMonthlyHealthChecks: async (vehicleId: string): Promise<VehicleMonthlyHealthCheckDto[]> => {
+    const res = await axios.get<VehicleMonthlyHealthCheckDto[]>(`${API_BASE}/vehicles/${vehicleId}/monthly-health-checks`);
+    return res.data;
+  },
+
+  createMonthlyHealthCheck: async (
+    vehicleId: string,
+    data: CreateVehicleMonthlyHealthCheckRequest
+  ): Promise<VehicleMonthlyHealthCheckDto> => {
+    const res = await axios.post<VehicleMonthlyHealthCheckDto>(
+      `${API_BASE}/vehicles/${vehicleId}/monthly-health-checks`,
+      data
+    );
+    return res.data;
+  },
+
+  getTruckTravelDistance: async (vehicleId: string): Promise<TruckTravelDistanceDto> => {
+    const res = await axios.get<TruckTravelDistanceDto>(`${API_BASE}/vehicles/${vehicleId}/travel-distance`);
+    return res.data;
+  },
+
+  getDriverLicenses: async (employeeId: string): Promise<DriverLicenseDto[]> => {
+    const res = await axios.get<DriverLicenseDto[]>(`${API_BASE}/drivers/${employeeId}/licenses`);
+    return res.data;
+  },
+
+  createDriverLicense: async (
+    employeeId: string,
+    data: CreateDriverLicenseRequest
+  ): Promise<DriverLicenseDto> => {
+    const res = await axios.post<DriverLicenseDto>(`${API_BASE}/drivers/${employeeId}/licenses`, data);
+    return res.data;
+  },
+
+  updateDriverLicense: async (
+    licenseId: string,
+    data: UpdateDriverLicenseRequest
+  ): Promise<DriverLicenseDto> => {
+    const res = await axios.put<DriverLicenseDto>(`${API_BASE}/driver-licenses/${licenseId}`, data);
+    return res.data;
+  },
+
+  deleteDriverLicense: async (licenseId: string): Promise<void> => {
+    await axios.delete(`${API_BASE}/driver-licenses/${licenseId}`);
+  },
+
+  sendLicenseRenewalReminder: async (licenseId: string): Promise<DriverLicenseDto> => {
+    const res = await axios.post<DriverLicenseDto>(`${API_BASE}/driver-licenses/${licenseId}/send-reminder`);
+    return res.data;
+  },
+
+  getExpiringDriverLicenses: async (): Promise<DriverLicenseDto[]> => {
+    const res = await axios.get<DriverLicenseDto[]>(`${API_BASE}/driver-licenses/expiring`);
     return res.data;
   },
 };

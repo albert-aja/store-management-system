@@ -16,5 +16,7 @@ public interface TrackingSessionRepository extends JpaRepository<TrackingSession
 
     @Query("SELECT s FROM TrackingSession s WHERE s.status IN ('ACTIVE', 'PAUSED', 'INTERRUPTED')")
     List<TrackingSession> findActiveOrPausedSessions();
+
+    List<TrackingSession> findByVehicleIdOrderByStartTimeDesc(UUID vehicleId);
 }
 

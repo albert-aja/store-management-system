@@ -27,12 +27,19 @@ public class VehicleDto {
     private String fuelType;
     private Integer odometerKm;
     private LocalDate stnkExpiryDate;
+    private LocalDate taxDueDate;
     private LocalDate kirExpiryDate;
     private Integer lastServiceOdometerKm;
     private LocalDate lastServiceDate;
     private Integer serviceIntervalKm;
     private Boolean isServiceDue;
     private Long stnkDaysRemaining;
+    private Long taxDaysRemaining;
+    private String taxDueStatus;
+    private Boolean isTaxDueInOneMonth;
     private Long kirDaysRemaining;
+    private UUID driverEmployeeId;
+    private String driverName;
+    private String driverEmployeeNumber;
 }
 

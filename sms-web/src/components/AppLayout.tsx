@@ -60,6 +60,7 @@ const TABS = [
   { path: "/sales-orders", label: "Sales Orders", icon: <ShoppingCartIcon fontSize="small" /> },
   { path: "/suppliers", label: "Suppliers", icon: <BusinessIcon fontSize="small" /> },
   { path: "/purchase-orders", label: "Purchase Orders", icon: <ReceiptIcon fontSize="small" /> },
+  { path: "/trucks", label: "Trucks", icon: <LocalShippingIcon fontSize="small" /> },
   { path: "/delivery-trips", label: "Deliveries", icon: <LocalShippingIcon fontSize="small" /> },
   { path: "/fleet", label: "Fleet & Tracking", icon: <NavigationIcon fontSize="small" /> },
   { path: "/finance", label: "Finance", icon: <AccountBalanceIcon fontSize="small" /> },
@@ -75,7 +76,7 @@ const TABS = [
 const NAV_GROUPS = [
   { label: "Workspace", paths: ["/", "/reports"] },
   { label: "Commerce", paths: ["/customers", "/products", "/price-list", "/sales-orders", "/inventory"] },
-  { label: "Operations", paths: ["/suppliers", "/purchase-orders", "/delivery-trips", "/fleet", "/returns"] },
+  { label: "Operations", paths: ["/trucks", "/suppliers", "/purchase-orders", "/delivery-trips", "/fleet", "/returns"] },
   { label: "Finance & people", paths: ["/finance", "/expenses", "/payroll", "/employees"] },
   { label: "Administration", paths: ["/roles", "/approvals"] },
 ] as const;

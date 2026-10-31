@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -62,12 +64,58 @@ public class FleetController {
         return fleetService.createVehicle(request);
     }
 
+    @GetMapping("/vehicles/{id}")
+    public VehicleDto getVehicle(@PathVariable UUID id) {
+        return fleetService.getVehicleById(id);
+    }
+
+    @PutMapping("/vehicles/{id}")
+    public VehicleDto updateVehicle(
+            @PathVariable UUID id,
+            @Valid @RequestBody UpdateVehicleRequest request
+    ) {
+        return fleetService.updateVehicle(id, request);
+    }
+
     @PatchMapping("/vehicles/{id}/status")
     public VehicleDto updateVehicleStatus(
             @PathVariable UUID id,
             @RequestParam VehicleStatus status
     ) {
         return fleetService.updateVehicleStatus(id, status);
+    }
+
+    @PostMapping("/vehicles/{id}/driver")
+    public VehicleDto assignDriver(
+            @PathVariable UUID id,
+            @RequestParam(required = false) UUID driverEmployeeId
+    ) {
+        return fleetService.assignDriver(id, driverEmployeeId);
+    }
+
+    @DeleteMapping("/vehicles/{id}/driver")
+    public VehicleDto unassignDriver(@PathVariable UUID id) {
+        return fleetService.unassignDriver(id);
+    }
+
+    @GetMapping("/available-drivers")
+    public List<AvailableDriverDto> listAvailableDrivers(
+            @RequestParam(required = false) UUID vehicleId
+    ) {
+        return fleetService.getAvailableDrivers(vehicleId);
+    }
+
+    @PostMapping("/vehicles/{id}/change-plate")
+    public VehicleDto changeLicensePlate(
+            @PathVariable UUID id,
+            @Valid @RequestBody ChangeLicensePlateRequest request
+    ) {
+        return fleetService.changeLicensePlate(id, request);
+    }
+
+    @GetMapping("/vehicles/{id}/plate-history")
+    public List<VehiclePlateHistoryDto> getPlateHistory(@PathVariable UUID id) {
+        return fleetService.getPlateHistory(id);
     }
 
     // --- Break Schedules ---
@@ -138,5 +186,85 @@ public class FleetController {
             @Valid @RequestBody RecordVehicleServiceRequest request
     ) {
         return fleetService.recordVehicleService(id, request);
+    }
+
+    // --- Truck Details: Service Logs, Health Checks, Travel Distance ---
+
+    @GetMapping("/vehicles/{id}/service-logs")
+    public List<VehicleServiceLogDto> getServiceLogs(@PathVariable UUID id) {
+        return fleetService.getServiceLogs(id);
+    }
+
+    @PostMapping("/vehicles/{id}/service-logs")
+    @ResponseStatus(HttpStatus.CREATED)
+    public VehicleServiceLogDto createServiceLog(
+            @PathVariable UUID id,
+            @Valid @RequestBody CreateVehicleServiceLogRequest request
+    ) {
+        return fleetService.createServiceLog(id, request);
+    }
+
+    @GetMapping("/vehicles/{id}/monthly-health-checks")
+    public List<VehicleMonthlyHealthCheckDto> getMonthlyHealthChecks(@PathVariable UUID id) {
+        return fleetService.getMonthlyHealthChecks(id);
+    }
+
+    @PostMapping("/vehicles/{id}/monthly-health-checks")
+    @ResponseStatus(HttpStatus.CREATED)
+    public VehicleMonthlyHealthCheckDto createMonthlyHealthCheck(
+            @PathVariable UUID id,
+            @Valid @RequestBody CreateVehicleMonthlyHealthCheckRequest request
+    ) {
+        return fleetService.createMonthlyHealthCheck(id, request);
+    }
+
+    @GetMapping("/vehicles/{id}/travel-distance")
+    public TruckTravelDistanceDto getTruckTravelDistance(@PathVariable UUID id) {
+        return fleetService.getTruckTravelDistance(id);
+    }
+
+    // --- Driver License (SIM) Management & Expiry Notifications ---
+
+    @GetMapping("/drivers/{employeeId}/licenses")
+    public List<DriverLicenseDto> getDriverLicenses(@PathVariable UUID employeeId) {
+        return fleetService.getDriverLicenses(employeeId);
+    }
+
+    @PostMapping("/drivers/{employeeId}/licenses")
+    @ResponseStatus(HttpStatus.CREATED)
+    public DriverLicenseDto createDriverLicense(
+            @PathVariable UUID employeeId,
+            @Valid @RequestBody CreateDriverLicenseRequest request
+    ) {
+        return fleetService.createDriverLicense(employeeId, request);
+    }
+
+    @PutMapping("/driver-licenses/{licenseId}")
+    public DriverLicenseDto updateDriverLicense(
+            @PathVariable UUID licenseId,
+            @Valid @RequestBody UpdateDriverLicenseRequest request
+    ) {
+        return fleetService.updateDriverLicense(licenseId, request);
+    }
+
+    @DeleteMapping("/driver-licenses/{licenseId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteDriverLicense(@PathVariable UUID licenseId) {
+        fleetService.deleteDriverLicense(licenseId);
+    }
+
+    @PostMapping("/driver-licenses/{licenseId}/send-reminder")
+    public DriverLicenseDto sendLicenseRenewalReminder(@PathVariable UUID licenseId) {
+        return fleetService.sendLicenseRenewalReminder(licenseId);
+    }
+
+    @GetMapping("/driver-licenses/expiring")
+    public List<DriverLicenseDto> getExpiringDriverLicenses() {
+        return fleetService.getExpiringDriverLicenses();
+    }
+
+    @PostMapping("/driver-licenses/scan-expirations")
+    public int scanAndNotifyExpiringLicenses() {
+        return fleetService.scanAndNotifyExpiringLicenses();
     }
 }
