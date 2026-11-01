@@ -41,11 +41,41 @@ export interface Variant {
   flashSaleEndsAt?: string | null;
 }
 
+export interface ArColorVariant {
+  name: string;
+  hexCode: string;
+  materialFinish: string;
+}
+
+export interface ArHotspot {
+  title: string;
+  description: string;
+  relativeX: number;
+  relativeY: number;
+  relativeZ: number;
+}
+
+export interface ArModel {
+  isSupported: boolean;
+  furnitureType: string;
+  modelGlbUrl: string;
+  modelUsdzUrl: string;
+  widthCm: number;
+  depthCm: number;
+  heightCm: number;
+  defaultColor?: string;
+  colorVariants: ArColorVariant[];
+  hotspots: ArHotspot[];
+  roomPlacement?: string;
+  recommendedRoom?: string;
+}
+
 export interface ProductDetail extends ProductSummary {
   imageUrls: string[];
   totalStockCount: number;
   variants: Variant[];
   specifications: Record<string, string>;
+  arModel?: ArModel;
 }
 
 export interface Category {
@@ -304,3 +334,46 @@ export interface DeliverySchedule {
   unavailableReason: string | null;
   requests: DeliveryRescheduleRequest[];
 }
+
+export interface ProductReviewItem {
+  id: string;
+  customerId: string;
+  customerName: string;
+  rating: number;
+  title?: string;
+  content: string;
+  verifiedPurchase: boolean;
+  createdAt: string;
+}
+
+export interface RatingDistribution {
+  stars5: number;
+  stars4: number;
+  stars3: number;
+  stars2: number;
+  stars1: number;
+}
+
+export interface ProductReviewSummary {
+  averageRating: number;
+  totalReviews: number;
+  distribution: RatingDistribution;
+  reviews: ProductReviewItem[];
+}
+
+export interface ReviewEligibility {
+  eligible: boolean;
+  alreadyReviewed: boolean;
+  existingReviewId?: string;
+  orderNumber?: string;
+  reason?: "AUTH_REQUIRED" | "NO_PURCHASE_FOUND" | "DELIVERY_PENDING" | string;
+}
+
+export interface SubmitReviewPayload {
+  productId: string;
+  productVariantId?: string;
+  rating: number;
+  title?: string;
+  content: string;
+}
+

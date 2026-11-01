@@ -19,6 +19,10 @@ class WishlistItem {
   final double priceDropAmount;
   final double priceDropPercentage;
   final String? notes;
+  final bool notifyOnPriceDrop;
+  final double alertDropThresholdPercent;
+  final double? lastAlertedPrice;
+  final DateTime? lastAlertedAt;
   final DateTime? addedAt;
 
   WishlistItem({
@@ -40,6 +44,10 @@ class WishlistItem {
     required this.priceDropAmount,
     required this.priceDropPercentage,
     this.notes,
+    this.notifyOnPriceDrop = true,
+    this.alertDropThresholdPercent = 5.0,
+    this.lastAlertedPrice,
+    this.lastAlertedAt,
     this.addedAt,
   });
 
@@ -74,6 +82,13 @@ class WishlistItem {
       priceDropPercentage:
           (json['priceDropPercentage'] as num?)?.toDouble() ?? 0.0,
       notes: json['notes'],
+      notifyOnPriceDrop: json['notifyOnPriceDrop'] ?? true,
+      alertDropThresholdPercent:
+          (json['alertDropThresholdPercent'] as num?)?.toDouble() ?? 5.0,
+      lastAlertedPrice: (json['lastAlertedPrice'] as num?)?.toDouble(),
+      lastAlertedAt: json['lastAlertedAt'] != null
+          ? DateTime.tryParse(json['lastAlertedAt'].toString())
+          : null,
       addedAt: json['addedAt'] != null
           ? DateTime.tryParse(json['addedAt'].toString())
           : null,
@@ -100,6 +115,10 @@ class WishlistItem {
       'priceDropAmount': priceDropAmount,
       'priceDropPercentage': priceDropPercentage,
       'notes': notes,
+      'notifyOnPriceDrop': notifyOnPriceDrop,
+      'alertDropThresholdPercent': alertDropThresholdPercent,
+      'lastAlertedPrice': lastAlertedPrice,
+      'lastAlertedAt': lastAlertedAt?.toIso8601String(),
       'addedAt': addedAt?.toIso8601String(),
     };
   }
@@ -110,6 +129,10 @@ class WishlistItem {
     double? priceDropAmount,
     double? priceDropPercentage,
     String? notes,
+    bool? notifyOnPriceDrop,
+    double? alertDropThresholdPercent,
+    double? lastAlertedPrice,
+    DateTime? lastAlertedAt,
   }) {
     return WishlistItem(
       id: id,
@@ -130,6 +153,11 @@ class WishlistItem {
       priceDropAmount: priceDropAmount ?? this.priceDropAmount,
       priceDropPercentage: priceDropPercentage ?? this.priceDropPercentage,
       notes: notes ?? this.notes,
+      notifyOnPriceDrop: notifyOnPriceDrop ?? this.notifyOnPriceDrop,
+      alertDropThresholdPercent:
+          alertDropThresholdPercent ?? this.alertDropThresholdPercent,
+      lastAlertedPrice: lastAlertedPrice ?? this.lastAlertedPrice,
+      lastAlertedAt: lastAlertedAt ?? this.lastAlertedAt,
       addedAt: addedAt,
     );
   }

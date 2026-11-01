@@ -4,6 +4,9 @@ import com.sms.common.web.NotFoundException;
 import com.sms.foundation.store.Store;
 import com.sms.foundation.store.StoreRepository;
 import com.sms.pricing.dto.AutoApplyPricingRequest;
+import com.sms.pricing.dto.BundleCalculationRequest;
+import com.sms.pricing.dto.BundleCalculationResponse;
+import com.sms.pricing.dto.BundleItemDto;
 import com.sms.pricing.dto.CalculatedTermItem;
 import com.sms.pricing.dto.PriceCalculationRequest;
 import com.sms.pricing.dto.PriceCalculationResponse;
@@ -12,7 +15,9 @@ import com.sms.product.repository.ProductVariantRepository;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -116,6 +121,83 @@ public class PriceCalculationService {
         }
 
         return new PriceCalculationResponse(hd, dp, autoDp, items);
+    }
+
+    /**
+     * Calculates combined multi-product credit bundle financing.
+     * Blends electronics and furniture items into a single contract with aggregated DP,
+     * optional promotional bundle discount, shared installment schedule, and separate financing comparison.
+     */
+    public BundleCalculationResponse calculateBundle(BundleCalculationRequest request) {
+        if (request == null || request.items() == null || request.items().isEmpty()) {
+            return new BundleCalculationResponse(
+                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, true,
+                    List.of(), List.of(), Map.of(), Map.of()
+            );
+        }
+
+        BigDecimal totalHd = BigDecimal.ZERO;
+        for (BundleItemDto item : request.items()) {
+            BigDecimal itemHd = item.hargaDasar() != null ? item.hargaDasar() : BigDecimal.ZERO;
+            int qty = item.quantity() > 0 ? item.quantity() : 1;
+            totalHd = totalHd.add(itemHd.multiply(BigDecimal.valueOf(qty)));
+        }
+
+        BigDecimal discount = BigDecimal.ZERO;
+        if (request.discountAmount() != null && request.discountAmount().compareTo(BigDecimal.ZERO) > 0) {
+            discount = request.discountAmount();
+        } else if (request.discountPercent() != null && request.discountPercent().compareTo(BigDecimal.ZERO) > 0) {
+            discount = totalHd.multiply(request.discountPercent())
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        }
+        if (discount.compareTo(totalHd) > 0) {
+            discount = totalHd;
+        }
+
+        BigDecimal netHd = totalHd.subtract(discount);
+        boolean autoDp = request.downPayment() == null;
+        BigDecimal dp = autoDp ? getSuggestedDp(netHd) : request.downPayment();
+
+        List<Integer> terms = (request.termMonths() != null && !request.termMonths().isEmpty())
+                ? request.termMonths()
+                : List.of(6, 10, 12, 15, 18, 24);
+
+        List<CalculatedTermItem> bundleTerms = new ArrayList<>();
+        Map<Integer, BigDecimal> separateTotals = new LinkedHashMap<>();
+        Map<Integer, BigDecimal> savingsMap = new LinkedHashMap<>();
+
+        for (int term : terms) {
+            CalculatedTermItem bundleTerm = calculateInstallment(netHd, dp, term);
+            bundleTerms.add(bundleTerm);
+
+            // Calculate standalone financing for each item
+            BigDecimal separateTermMonthlySum = BigDecimal.ZERO;
+            for (BundleItemDto item : request.items()) {
+                BigDecimal itemHd = item.hargaDasar() != null ? item.hargaDasar() : BigDecimal.ZERO;
+                int qty = item.quantity() > 0 ? item.quantity() : 1;
+                BigDecimal itemDp = getSuggestedDp(itemHd);
+                CalculatedTermItem singleCalc = calculateInstallment(itemHd, itemDp, term);
+                separateTermMonthlySum = separateTermMonthlySum.add(
+                        singleCalc.monthlyInstallment().multiply(BigDecimal.valueOf(qty))
+                );
+            }
+            separateTotals.put(term, separateTermMonthlySum);
+
+            BigDecimal diff = separateTermMonthlySum.subtract(bundleTerm.monthlyInstallment());
+            savingsMap.put(term, diff.compareTo(BigDecimal.ZERO) > 0 ? diff : BigDecimal.ZERO);
+        }
+
+        return new BundleCalculationResponse(
+                totalHd,
+                discount,
+                netHd,
+                dp,
+                autoDp,
+                request.items(),
+                bundleTerms,
+                separateTotals,
+                savingsMap
+        );
     }
 
     /**

@@ -20,6 +20,10 @@ public interface WishlistShareItemRepository extends JpaRepository<WishlistShare
             UPDATE WishlistShareItem i
                SET i.reservationKeyHash = :keyHash, i.reservedAt = :now, i.updatedAt = :now, i.version = i.version + 1
              WHERE i.id = :itemId AND i.share.id = :shareId AND i.reservationKeyHash IS NULL
+               AND EXISTS (
+                    SELECT s.id FROM WishlistShare s
+                     WHERE s.id = i.share.id AND s.revokedAt IS NULL AND s.expiresAt > :now
+               )
             """)
     int claim(@Param("shareId") UUID shareId, @Param("itemId") UUID itemId,
               @Param("keyHash") String keyHash, @Param("now") Instant now);
@@ -29,6 +33,10 @@ public interface WishlistShareItemRepository extends JpaRepository<WishlistShare
             UPDATE WishlistShareItem i
                SET i.reservationKeyHash = NULL, i.reservedAt = NULL, i.updatedAt = :now, i.version = i.version + 1
              WHERE i.id = :itemId AND i.share.id = :shareId AND i.reservationKeyHash = :keyHash
+               AND EXISTS (
+                    SELECT s.id FROM WishlistShare s
+                     WHERE s.id = i.share.id AND s.revokedAt IS NULL AND s.expiresAt > :now
+               )
             """)
     int release(@Param("shareId") UUID shareId, @Param("itemId") UUID itemId,
                 @Param("keyHash") String keyHash, @Param("now") Instant now);

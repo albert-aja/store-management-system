@@ -17,6 +17,7 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
+import PrintIcon from "@mui/icons-material/Print";
 import type { Receivable } from "./types";
 import { t , formatDate, formatNumber, localizeDisplayCode} from "../../lib/locale";
 
@@ -207,6 +208,14 @@ export default function CreditScheduleDialog({
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
+        <Button
+          variant="outlined"
+          color="info"
+          startIcon={<PrintIcon />}
+          onClick={() => window.open(`/api/documents/print/statement/${receivable.id}`, "_blank")}
+        >
+          {t("Cetak Ledger & Tagihan (PDF)")}
+        </Button>
         {receivable.status === "ACTIVE" && (
           <Button
             variant="contained"

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:app_links/app_links.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'wishlist_share_links.dart';
@@ -39,11 +40,16 @@ class WishlistDeepLinks {
   }
 
   Future<void> start(WishlistLinkSource source) async {
-    _subscription = source.links.listen(_accept, onError: (Object _) {});
+    _subscription = source.links.listen(
+      _accept,
+      onError: (Object error, StackTrace stackTrace) {
+        debugPrint('Wishlist app-link stream failed: $error\n$stackTrace');
+      },
+    );
     try {
       _accept(await source.initialLink());
-    } catch (_) {
-      // Some platforms/tests do not implement initial links.
+    } catch (error, stackTrace) {
+      debugPrint('Unable to read initial wishlist app link: $error\n$stackTrace');
     }
   }
 

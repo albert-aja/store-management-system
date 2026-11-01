@@ -12,6 +12,8 @@ enum ProductSource { catalog, manual }
 
 enum DpMode { autoBracket, percentage, customNominal }
 
+enum CalculatorMode { single, bundle }
+
 class CreditCalculatorScreen extends ConsumerStatefulWidget {
   final double? initialPrice;
   final String? initialProductName;
@@ -33,6 +35,7 @@ class CreditCalculatorScreen extends ConsumerStatefulWidget {
 
 class _CreditCalculatorScreenState
     extends ConsumerState<CreditCalculatorScreen> {
+  CalculatorMode _calculatorMode = CalculatorMode.single;
   ProductSource _productSource = ProductSource.manual;
   DpMode _dpMode = DpMode.autoBracket;
 
@@ -49,6 +52,31 @@ class _CreditCalculatorScreenState
   double _selectedPercentage = 10.0;
   int _selectedTenor = 10;
   bool _showFormulaDetails = false;
+
+  // G.15 Multi-Product Bundle Simulator State
+  List<BundleItem> _bundleItems = [
+    const BundleItem(
+      id: 'b1',
+      name: 'Smart TV 55 Inch UHD',
+      category: 'Elektronik',
+      quantity: 1,
+      hargaDasar: 5000000,
+      cashPrice: 5500000,
+    ),
+    const BundleItem(
+      id: 'b2',
+      name: 'Sofa Bed L-Shape Scandinavian',
+      category: 'Furnitur',
+      quantity: 1,
+      hargaDasar: 3500000,
+      cashPrice: 4000000,
+    ),
+  ];
+  double _bundleDiscountPercent = 0.0;
+  DpMode _bundleDpMode = DpMode.autoBracket;
+  final _bundleCustomDpController = TextEditingController();
+  double _bundleSelectedPercentage = 10.0;
+  int _selectedBundleTenor = 10;
 
   @override
   void initState() {
@@ -70,6 +98,7 @@ class _CreditCalculatorScreenState
     _manualNameController.dispose();
     _hdController.dispose();
     _customDpController.dispose();
+    _bundleCustomDpController.dispose();
     super.dispose();
   }
 
@@ -95,6 +124,34 @@ class _CreditCalculatorScreenState
     return CreditCalculatorService.simulate(
       hargaDasar: _currentHargaDasar,
       downPayment: _currentDownPayment,
+      terms: const [6, 10, 12, 15, 18, 24],
+    );
+  }
+
+  double get _currentBundleDownPayment {
+    final totalHd = _bundleItems.fold<double>(
+      0.0,
+      (sum, it) => sum + (it.hargaDasar * (it.quantity > 0 ? it.quantity : 1)),
+    );
+    final discount = (totalHd * (_bundleDiscountPercent / 100.0)).roundToDouble();
+    final netHd = (totalHd - discount).clamp(0.0, double.infinity);
+
+    switch (_bundleDpMode) {
+      case DpMode.autoBracket:
+        return CreditCalculatorService.getSuggestedDp(netHd);
+      case DpMode.percentage:
+        return (netHd * (_bundleSelectedPercentage / 100.0)).roundToDouble();
+      case DpMode.customNominal:
+        final text = _bundleCustomDpController.text.replaceAll(RegExp(r'[^0-9]'), '');
+        return double.tryParse(text) ?? 0.0;
+    }
+  }
+
+  BundleSimulationResult get _bundleSimulation {
+    return CreditCalculatorService.simulateBundle(
+      items: _bundleItems,
+      discountPercent: _bundleDiscountPercent,
+      downPayment: _bundleDpMode == DpMode.autoBracket ? null : _currentBundleDownPayment,
       terms: const [6, 10, 12, 15, 18, 24],
     );
   }
@@ -203,6 +260,24 @@ class _CreditCalculatorScreenState
     );
   }
 
+  void _copyBundleQuotationToClipboard() {
+    final user = ref.read(authProvider).user;
+    final text = CreditCalculatorService.generateBundleShareSummary(
+      simulation: _bundleSimulation,
+      storeName: user?.storeName,
+      localization: context.l10n,
+    );
+
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Simulasi paket bundle disalin! Siap dikirim ke WhatsApp pembeli.'),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final sim = _simulation;
@@ -213,33 +288,85 @@ class _CreditCalculatorScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(context.l10n.message353),
+        title: Text(
+          _calculatorMode == CalculatorMode.single
+              ? context.l10n.message353
+              : 'Simulator Paket Kredit Bundle',
+        ),
         actions: [
           const WorkerLanguageSwitcher(),
           IconButton(
             tooltip: context.l10n.message354,
             icon: const Icon(Icons.share_outlined),
-            onPressed: _copyQuotationToClipboard,
+            onPressed: _calculatorMode == CalculatorMode.bundle
+                ? _copyBundleQuotationToClipboard
+                : _copyQuotationToClipboard,
           ),
           IconButton(
             tooltip: context.l10n.message355,
             icon: const Icon(Icons.refresh),
             onPressed: () {
               setState(() {
-                _hdController.text = '4500000';
-                _customDpController.clear();
-                _selectedPercentage = 10.0;
-                _dpMode = DpMode.autoBracket;
-                _selectedProduct = null;
-                _manualNameController.clear();
+                if (_calculatorMode == CalculatorMode.single) {
+                  _hdController.text = '4500000';
+                  _customDpController.clear();
+                  _selectedPercentage = 10.0;
+                  _dpMode = DpMode.autoBracket;
+                  _selectedProduct = null;
+                  _manualNameController.clear();
+                } else {
+                  _bundleDiscountPercent = 0.0;
+                  _bundleDpMode = DpMode.autoBracket;
+                  _bundleCustomDpController.clear();
+                  _bundleSelectedPercentage = 10.0;
+                }
               });
             },
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: [
+          Container(
+            color: Theme.of(context).cardColor,
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+            child: SegmentedButton<CalculatorMode>(
+              segments: const [
+                ButtonSegment(
+                  value: CalculatorMode.single,
+                  label: Text('Simulasi Satuan (Custom DP)'),
+                  icon: Icon(Icons.calculate_outlined),
+                ),
+                ButtonSegment(
+                  value: CalculatorMode.bundle,
+                  label: Text('Paket Bundle Showroom'),
+                  icon: Icon(Icons.auto_awesome),
+                ),
+              ],
+              selected: {_calculatorMode},
+              onSelectionChanged: (set) {
+                setState(() => _calculatorMode = set.first);
+              },
+            ),
+          ),
+          Expanded(
+            child: _calculatorMode == CalculatorMode.single
+                ? _buildSingleSimulatorView(context, sim, selectedTermCalc)
+                : _buildBundleSimulatorView(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSingleSimulatorView(
+    BuildContext context,
+    CreditSimulationResult sim,
+    CreditTermCalculation selectedTermCalc,
+  ) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
           // Banner Info
           Card(
             color: AppColors.primary.withValues(alpha: 0.06),
@@ -948,7 +1075,811 @@ class _CreditCalculatorScreenState
           ),
           const SizedBox(height: 24),
         ],
-      ),
+      );
+  }
+
+  Widget _buildBundleSimulatorView(BuildContext context) {
+    final bundleSim = _bundleSimulation;
+    final selectedTermCalc = bundleSim.bundleTerms.firstWhere(
+      (t) => t.termMonths == _selectedBundleTenor,
+      orElse: () => bundleSim.bundleTerms.isNotEmpty
+          ? bundleSim.bundleTerms.first
+          : CreditCalculatorService.calculateTerm(
+              hargaDasar: 0,
+              downPayment: 0,
+              termMonths: _selectedBundleTenor,
+            ),
+    );
+    final monthlySaving = bundleSim.monthlySavings[_selectedBundleTenor] ?? 0.0;
+    final separateMonthly = bundleSim.separateTotalMonthly[_selectedBundleTenor] ?? 0.0;
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        // Showroom Bundling Header Card
+        Card(
+          color: Colors.indigo.withValues(alpha: 0.08),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.auto_awesome, color: Colors.indigo, size: 28),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Multi-Product Credit Bundle Simulator',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.indigo,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Gabungkan Elektronik (TV) & Furnitur (Sofa) dalam 1 kontrak cicilan terpadu dengan DP gabungan.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.indigo.shade900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Quick Preset Bundles
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Preset Paket Populer Showroom:',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      ActionChip(
+                        avatar: const Icon(Icons.living, size: 16),
+                        label: const Text('Ruang Tamu: TV + Sofa'),
+                        onPressed: () {
+                          setState(() {
+                            _bundleItems = [
+                              const BundleItem(
+                                id: 'p1',
+                                name: 'Smart TV 55 Inch UHD 4K',
+                                category: 'Elektronik',
+                                quantity: 1,
+                                hargaDasar: 5000000,
+                                cashPrice: 5500000,
+                              ),
+                              const BundleItem(
+                                id: 'p2',
+                                name: 'Sofa Bed L-Shape Scandinavian',
+                                category: 'Furnitur',
+                                quantity: 1,
+                                hargaDasar: 3500000,
+                                cashPrice: 4000000,
+                              ),
+                            ];
+                          });
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      ActionChip(
+                        avatar: const Icon(Icons.bed, size: 16),
+                        label: const Text('Kamar: Springbed + Lemari'),
+                        onPressed: () {
+                          setState(() {
+                            _bundleItems = [
+                              const BundleItem(
+                                id: 'p3',
+                                name: 'Springbed Queen 160x200',
+                                category: 'Furnitur',
+                                quantity: 1,
+                                hargaDasar: 4200000,
+                                cashPrice: 4800000,
+                              ),
+                              const BundleItem(
+                                id: 'p4',
+                                name: 'Lemari Pakaian 3 Pintu Cermin',
+                                category: 'Furnitur',
+                                quantity: 1,
+                                hargaDasar: 3200000,
+                                cashPrice: 3700000,
+                              ),
+                            ];
+                          });
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      ActionChip(
+                        avatar: const Icon(Icons.kitchen, size: 16),
+                        label: const Text('Dapur: Kulkas + Mesin Cuci'),
+                        onPressed: () {
+                          setState(() {
+                            _bundleItems = [
+                              const BundleItem(
+                                id: 'p5',
+                                name: 'Kulkas 2 Pintu Inverter',
+                                category: 'Elektronik',
+                                quantity: 1,
+                                hargaDasar: 4000000,
+                                cashPrice: 4500000,
+                              ),
+                              const BundleItem(
+                                id: 'p6',
+                                name: 'Mesin Cuci Front Load 8kg',
+                                category: 'Elektronik',
+                                quantity: 1,
+                                hargaDasar: 3800000,
+                                cashPrice: 4200000,
+                              ),
+                            ];
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Items in Bundle List
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Produk Dalam Paket (${_bundleItems.length})',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    TextButton.icon(
+                      icon: const Icon(Icons.add_circle_outline, size: 18),
+                      label: const Text('Tambah Produk'),
+                      onPressed: () => _showAddBundleItemDialog(context),
+                    ),
+                  ],
+                ),
+                const Divider(),
+                if (_bundleItems.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: Text(
+                        'Belum ada produk dalam paket. Klik "Tambah Produk" di atas.',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
+                  )
+                else
+                  ..._bundleItems.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final item = entry.value;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            item.category.toLowerCase().contains('elektronik')
+                                ? Icons.tv
+                                : item.category.toLowerCase().contains('furnitur')
+                                    ? Icons.chair
+                                    : Icons.inventory_2,
+                            color: item.category.toLowerCase().contains('elektronik')
+                                ? Colors.blue
+                                : Colors.amber.shade800,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.name,
+                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                ),
+                                const SizedBox(height: 2),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade200,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        item.category,
+                                        style: TextStyle(fontSize: 10, color: Colors.grey.shade800),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'HD: ${CreditCalculatorService.formatRupiah(item.hargaDasar)}',
+                                      style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Quantity Controls
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.remove_circle_outline, size: 18),
+                                visualDensity: VisualDensity.compact,
+                                onPressed: item.quantity > 1
+                                    ? () {
+                                        setState(() {
+                                          _bundleItems[idx] = item.copyWith(quantity: item.quantity - 1);
+                                        });
+                                      }
+                                    : null,
+                              ),
+                              Text('${item.quantity}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                              IconButton(
+                                icon: const Icon(Icons.add_circle_outline, size: 18),
+                                visualDensity: VisualDensity.compact,
+                                onPressed: () {
+                                  setState(() {
+                                    _bundleItems[idx] = item.copyWith(quantity: item.quantity + 1);
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () {
+                              setState(() {
+                                _bundleItems.removeAt(idx);
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                const SizedBox(height: 8),
+                // Total Summary Row
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Total Harga Dasar Item:'),
+                          Text(
+                            CreditCalculatorService.formatRupiah(bundleSim.totalHargaDasar),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                      if (bundleSim.bundleDiscount > 0) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Diskon Promo Bundle (${_bundleDiscountPercent.toStringAsFixed(0)}%):',
+                              style: const TextStyle(color: Colors.green),
+                            ),
+                            Text(
+                              '- ${CreditCalculatorService.formatRupiah(bundleSim.bundleDiscount)}',
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Harga Bersih Paket:'),
+                            Text(
+                              CreditCalculatorService.formatRupiah(bundleSim.netHargaDasar),
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Bundle Promotional Discount Selector
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Diskon Promo Paket Showroom:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: [0.0, 5.0, 10.0, 15.0].map((pct) {
+                    final isSelected = _bundleDiscountPercent == pct;
+                    return ChoiceChip(
+                      label: Text(pct == 0.0 ? 'Tanpa Diskon' : 'Diskon ${pct.toStringAsFixed(0)}%'),
+                      selected: isSelected,
+                      selectedColor: Colors.green.shade100,
+                      onSelected: (sel) {
+                        if (sel) setState(() => _bundleDiscountPercent = pct);
+                      },
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Aggregated Down Payment (DP) Card
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Uang Muka (DP) Gabungan:',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    Text(
+                      '${CreditCalculatorService.formatRupiah(bundleSim.downPayment)} (${bundleSim.dpPercentage.round()}%)',
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                SegmentedButton<DpMode>(
+                  segments: const [
+                    ButtonSegment(
+                      value: DpMode.autoBracket,
+                      label: Text('Auto Bracket'),
+                    ),
+                    ButtonSegment(
+                      value: DpMode.percentage,
+                      label: Text('Persentase'),
+                    ),
+                    ButtonSegment(
+                      value: DpMode.customNominal,
+                      label: Text('Nominal'),
+                    ),
+                  ],
+                  selected: {_bundleDpMode},
+                  onSelectionChanged: (set) {
+                    setState(() => _bundleDpMode = set.first);
+                  },
+                ),
+                if (_bundleDpMode == DpMode.percentage) ...[
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    children: [5.0, 10.0, 15.0, 20.0, 25.0].map((pct) {
+                      return ChoiceChip(
+                        label: Text('${pct.toStringAsFixed(0)}%'),
+                        selected: _bundleSelectedPercentage == pct,
+                        onSelected: (sel) {
+                          if (sel) setState(() => _bundleSelectedPercentage = pct);
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
+                if (_bundleDpMode == DpMode.customNominal) ...[
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _bundleCustomDpController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      prefixText: 'Rp ',
+                      labelText: 'Nominal DP Gabungan',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Tenor Selection & Shared Installment Hero Card
+        Card(
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            side: BorderSide(color: Colors.indigo.shade200, width: 1.5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Pilihan Tenor Cicilan Gabungan (Satu Kontrak):',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 10),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [6, 10, 12, 15, 18, 24].map((tenor) {
+                      final isSelected = _selectedBundleTenor == tenor;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text('$tenor Bulan'),
+                          selected: isSelected,
+                          selectedColor: Colors.indigo.shade100,
+                          labelStyle: TextStyle(
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            color: isSelected ? Colors.indigo.shade900 : Colors.black87,
+                          ),
+                          onSelected: (sel) {
+                            if (sel) setState(() => _selectedBundleTenor = tenor);
+                          },
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // Monthly Installment Hero
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.indigo.shade700, Colors.indigo.shade900],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'ANGSURAN BULANAN SATU KONTRAK',
+                        style: TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 0.5),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        CreditCalculatorService.formatRupiah(selectedTermCalc.monthlyInstallment),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'per bulan x $_selectedBundleTenor Bulan',
+                        style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      ),
+                      if (monthlySaving > 0) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade500,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '🎉 Hemat ${CreditCalculatorService.formatRupiah(monthlySaving)}/bulan vs Kredit Terpisah!',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Jika Dicicil Terpisah: ${CreditCalculatorService.formatRupiah(separateMonthly)}/bln',
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                    Text(
+                      'Total: ${CreditCalculatorService.formatRupiah(selectedTermCalc.totalCustomerCost)}',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Comparison Table Across All Tenors
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Tabel Komparasi Cicilan Semua Tenor:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                Table(
+                  columnWidths: const {
+                    0: FlexColumnWidth(1.2),
+                    1: FlexColumnWidth(1.8),
+                    2: FlexColumnWidth(1.8),
+                    3: FlexColumnWidth(1.8),
+                  },
+                  children: [
+                    TableRow(
+                      decoration: BoxDecoration(color: Colors.grey.shade100),
+                      children: const [
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                          child: Text('Tenor', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                          child: Text('Paket Bundle', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                          child: Text('Terpisah', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                          child: Text('Hemat/Bln', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.green)),
+                        ),
+                      ],
+                    ),
+                    ...bundleSim.bundleTerms.map((term) {
+                      final sep = bundleSim.separateTotalMonthly[term.termMonths] ?? 0.0;
+                      final sav = bundleSim.monthlySavings[term.termMonths] ?? 0.0;
+                      final isCurrent = term.termMonths == _selectedBundleTenor;
+                      return TableRow(
+                        decoration: isCurrent ? BoxDecoration(color: Colors.indigo.shade50) : null,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                            child: Text('${term.termMonths} bln', style: TextStyle(fontSize: 11, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal)),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                            child: Text(CreditCalculatorService.formatRupiah(term.monthlyInstallment), style: TextStyle(fontSize: 11, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal)),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                            child: Text(CreditCalculatorService.formatRupiah(sep), style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                            child: Text(
+                              sav > 0 ? CreditCalculatorService.formatRupiah(sav) : '-',
+                              style: const TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Action Buttons for Bundle
+        FilledButton.icon(
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            backgroundColor: Colors.green.shade700,
+          ),
+          icon: const Icon(Icons.share_outlined),
+          label: const Text(
+            'Salin Rincian Paket untuk WhatsApp',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          onPressed: _copyBundleQuotationToClipboard,
+        ),
+        const SizedBox(height: 8),
+
+        OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+          ),
+          icon: const Icon(Icons.check_circle_outline),
+          label: Text(
+            'Gunakan Kontrak Paket Ini ($_selectedBundleTenor bln @ ${CreditCalculatorService.formatRupiah(selectedTermCalc.monthlyInstallment)})',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          onPressed: () {
+            Navigator.pop(context, {
+              'isBundle': true,
+              'bundleItems': _bundleItems,
+              'totalHargaDasar': bundleSim.totalHargaDasar,
+              'bundleDiscount': bundleSim.bundleDiscount,
+              'netHargaDasar': bundleSim.netHargaDasar,
+              'downPayment': bundleSim.downPayment,
+              'termMonths': _selectedBundleTenor,
+              'monthlyInstallment': selectedTermCalc.monthlyInstallment,
+              'totalPrice': selectedTermCalc.totalPrice,
+            });
+          },
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  void _showAddBundleItemDialog(BuildContext context) {
+    final nameCtrl = TextEditingController();
+    final priceCtrl = TextEditingController();
+    String category = 'Elektronik';
+    int qty = 1;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              title: const Text('Tambah Produk ke Paket'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Nama Produk / Model',
+                        hintText: 'Misal: Kulkas Sharp 2 Pintu',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      initialValue: category,
+                      decoration: const InputDecoration(
+                        labelText: 'Kategori Produk',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'Elektronik', child: Text('Elektronik')),
+                        DropdownMenuItem(value: 'Furnitur', child: Text('Furnitur')),
+                        DropdownMenuItem(value: 'Gadget', child: Text('Gadget & IT')),
+                        DropdownMenuItem(value: 'Rumah Tangga', child: Text('Rumah Tangga')),
+                        DropdownMenuItem(value: 'Lainnya', child: Text('Lainnya')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setDialogState(() => category = val);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: priceCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        prefixText: 'Rp ',
+                        labelText: 'Harga Dasar (HD)',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Jumlah (Qty):'),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle_outline),
+                              onPressed: qty > 1 ? () => setDialogState(() => qty--) : null,
+                            ),
+                            Text('$qty', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            IconButton(
+                              icon: const Icon(Icons.add_circle_outline),
+                              onPressed: () => setDialogState(() => qty++),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Batal'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final name = nameCtrl.text.trim();
+                    final rawPrice = priceCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
+                    final price = double.tryParse(rawPrice) ?? 0.0;
+                    if (name.isNotEmpty && price > 0) {
+                      setState(() {
+                        _bundleItems.add(
+                          BundleItem(
+                            id: 'item_${DateTime.now().millisecondsSinceEpoch}',
+                            name: name,
+                            category: category,
+                            quantity: qty,
+                            hargaDasar: price,
+                            cashPrice: price,
+                          ),
+                        );
+                      });
+                      Navigator.pop(ctx);
+                    }
+                  },
+                  child: const Text('Tambahkan'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 

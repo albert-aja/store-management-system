@@ -446,6 +446,192 @@ export const english = {
   'Pengiriman Armada Kurir Toko / Siap Ambil': 'Store courier delivery / ready for pickup',
   'Pesanan Selesai Diterima': 'Order received by customer',
   'Verifikasi serah terima pesanan berhasil diselesaikan.': 'Order handover verified successfully.',
+  'Simulasi Paket': 'Bundle Simulator',
+  'Multi-Product Credit Bundle Simulator': 'Multi-Product Credit Bundle Simulator',
+  'Simulasi Kredit Paket Showroom Terpadu': 'Integrated Showroom Bundle Credit Simulation',
+  'Gabungkan Elektronik dan Furnitur ke dalam satu kontrak pembiayaan bersama dengan DP gabungan dan cicilan bulanan lebih hemat.': 'Combine Electronics and Furniture into a single shared financing contract with aggregated DP and more affordable monthly installments.',
+  'Pilihan Paket Populer Showroom': 'Popular Showroom Bundle Presets',
+  'Gunakan Paket Ini': 'Use This Package',
+  'Produk dalam Paket Anda': 'Products in Your Bundle',
+  'Sesuaikan jumlah atau tambah perlengkapan elektronik & furnitur lainnya': 'Adjust quantity or add other electronics & furniture items',
+  'Total Nilai Paket': 'Total Bundle Value',
+  'Belum ada produk dalam paket. Pilih dari rekomendasi di bawah.': 'No products in bundle yet. Choose from recommendations below.',
+  'Katalog Pilihan Bundling Cepat': 'Quick Bundling Catalog Selection',
+  'Tambahkan produk komplementer untuk melengkapi ruang hunian Anda': 'Add complementary items to complete your home space',
+  'Pengaturan Simulasi Cicilan': 'Installment Simulation Settings',
+  'Uang Muka (Down Payment / DP):': 'Down Payment (DP):',
+  'Rekomendasi Resmi': 'Official Recommendation',
+  'DP 10%': 'DP 10%',
+  'DP 20%': 'DP 20%',
+  'Tanpa DP (0%)': 'Zero DP (0%)',
+  'Nominal DP Terpilih:': 'Selected DP Amount:',
+  'Pilihan Jangka Waktu (Tenor):': 'Financing Term Length:',
+  'Bln': 'Mo',
+  'Angsuran Satu Kontrak Terpadu': 'Single Integrated Contract Installment',
+  '/bulan': '/month',
+  'selama {term} bulan': 'for {term} months',
+  'Hemat {amount}/bln vs Kredit Terpisah!': 'Save {amount}/mo vs Separate Credit!',
+  'Total Nilai Barang:': 'Total Product Value:',
+  'Uang Muka (DP):': 'Down Payment (DP):',
+  'Total Biaya Pembiayaan:': 'Total Financing Cost:',
+  'Keuntungan Admin:': 'Admin Benefit:',
+  'Hanya 1x Handling Fee': 'Only 1x Handling Fee',
+  'Tambah Semua ke Keranjang': 'Add All to Cart',
+  'Menambahkan...': 'Adding...',
+  'Salin Quotation Paket (WhatsApp)': 'Copy Bundle Quotation (WhatsApp)',
+  'Keuntungan Paket Bundling SMS Store': 'SMS Store Bundling Advantages',
+  'Satu kontrak cicilan terpadu untuk semua barang.': 'Single integrated installment contract for all items.',
+  'Hanya 1x biaya administrasi / handling toko.': 'Only 1x store handling / administrative fee.',
+  'Pengiriman terjadwal serentak ke alamat Anda.': 'Scheduled simultaneous delivery to your address.',
+  'Garansi resmi distributor elektronik & manufaktur mebel.': 'Official electronics distributor and furniture manufacturer warranties.',
+  'Pilih Produk': 'Select Product',
+
+  'Tambah ke Paket': 'Add to Bundle',
+
+  'Lihat di Ruangan Anda (3D / AR)': 'View in Your Room (3D / AR)',
+
+  'Pratinjau Ruangan 3D & AR': '3D & AR Room Preview',
+
+  '3D Interaktif': '3D Interactive',
+
+  'Kamera AR': 'AR Camera',
+
+  'Cek Ukuran Ruangan': 'Check Room Clearance',
+
+  'Putar 360°': 'Rotate 360°',
+
+  'Perbesar': 'Zoom in',
+
+  'Perkecil': 'Zoom out',
+
+  'Reset Tampilan': 'Reset View',
+
+  'Pilihan Warna & Bahan:': 'Color & Material Options:',
+
+  'Fitur & Konstruksi Mebel:': 'Furniture Features & Construction:',
+
+  'Dimensi Realistik': 'Realistic Dimensions',
+
+  'Panjang': 'Length',
+
+  'Lebar': 'Width',
+
+  'Tinggi': 'Height',
+
+  'Buka Pintu / Bagian': 'Open Door / Parts',
+
+  'Tutup Pintu / Bagian': 'Close Door / Parts',
+
+  'Aktifkan Kamera AR': 'Activate AR Camera',
+
+  'Matikan Kamera': 'Turn off Camera',
+
+  'Arahkan kamera ke lantai ruangan Anda lalu geser furnitur untuk memposisikan.': 'Point camera at your room floor then drag furniture to position.',
+
+  'Kamera tidak tersedia atau izin ditolak. Anda dapat mencoba mode 3D Interaktif.': 'Camera unavailable or permission denied. You can try 3D Interactive mode.',
+
+  'Pindai dengan Smartphone untuk AR Nyata': 'Scan with Smartphone for Real AR',
+
+  'Buka kamera ponsel Anda dan arahkan ke QR code ini untuk melihat mebel langsung di ruangan Anda melalui WebXR / AR.': 'Open your phone camera and point to this QR code to view furniture directly in your room via WebXR / AR.',
+
+  'Salin Tautan AR': 'Copy AR Link',
+
+  'Tautan AR disalin!': 'AR Link copied!',
+
+  'Buka di Google Scene Viewer': 'Open in Google Scene Viewer',
+
+  'Buka di Apple Quick Look': 'Open in Apple Quick Look',
+
+  'Kalkulator Muat Ruangan & Akses Sirkulasi': 'Room Fit & Circulation Clearance Calculator',
+
+  'Masukkan ukuran area tempat Anda berencana meletakkan mebel ini:': 'Enter the dimensions of the area where you plan to place this furniture:',
+
+  'Panjang Area Ruangan (cm):': 'Room Area Length (cm):',
+
+  'Lebar Area Ruangan (cm):': 'Room Area Width (cm):',
+
+  'Hasil Analisis Muat Ruangan:': 'Room Clearance Analysis Result:',
+
+  'Sisa Ruang Panjang:': 'Remaining Length Clearance:',
+
+  'Sisa Ruang Lebar:': 'Remaining Width Clearance:',
+
+  'Sangat Ideal: Ruang sirkulasi jalan lebih dari 80 cm, sangat leluasa.': 'Ideal: Walkway clearance over 80 cm, very spacious.',
+
+  'Pas: Cukup untuk sirkulasi jalan standar (50 - 79 cm). Pastikan tidak terhalang pintu.': 'Good fit: Sufficient for standard walkway (50 - 79 cm). Ensure doors are not obstructed.',
+
+  'Peringatan: Area terlalu sempit (sisa ruang kurang dari 50 cm). Pertimbangkan ukuran varian lebih ringkas.': 'Warning: Space is tight (clearance under 50 cm). Consider a more compact variant.',
+
+  'Peringatan: Ukuran mebel melebihi area ruangan yang Anda masukkan!': 'Warning: Furniture dimensions exceed the room area entered!',
+
+  'Tutup': 'Close',
+
+  'Pilih Varian Ini & Beli': 'Select This Variant & Buy',
+
+  'Tanya Sales via WhatsApp': 'Ask Sales via WhatsApp',
+
+  'Halo SMS Mart, saya ingin bertanya tentang kesesuaian ukuran furnitur ': 'Hello SMS Mart, I would like to ask about furniture room fit for ',
+
+  'Studio Minimalis': 'Minimalist Studio',
+
+  'Ruang Keluarga': 'Living Room',
+
+  'Kamar Tidur': 'Bedroom',
+
+  'Ruang Makan': 'Dining Room',
+
+  'Latar Ruangan:': 'Room Background:',
+
+  'Muat': 'Fit',
+
+  'Tidak Muat': 'Does Not Fit',
+
+  'Sempit': 'Tight',
+
+  'Ideal': 'Ideal',
+
+  'Scan QR': 'Scan QR',
+
+  'QR AR Code': 'QR AR Code',
+
+  'Buka AR di HP': 'Open AR on Phone',
+
+  'Simulasi 3D': '3D Simulation',
+
+  'Gunakan mouse drag atau touch untuk memutar 360°, scroll untuk zoom.': 'Use mouse drag or touch to rotate 360°, scroll to zoom.',
+
+  'Tekstur': 'Texture',
+
+  'Bahan': 'Material',
+
+  'Lapisan': 'Finish',
+
+  'Lihat Ruangan Nyata': 'View Real Room',
+
+  'Snapshot AR': 'AR Snapshot',
+
+  'Ambil Foto Ruangan': 'Capture Room Photo',
+
+  'Posisikan Mebel': 'Position Furniture',
+
+  'Pintu / Bagian': 'Doors / Parts',
+
+  'Interaksi': 'Interaction',
+
+  'Titik Kunci': 'Key Highlights',
+
+  'Busa & Rangka': 'Foam & Frame',
+
+  'Rincian Konstruksi': 'Construction Details',
+
+  'P': 'L',
+
+  'T': 'H',
+  'WebXR': 'WebXR',
+  'cm': 'cm',
+  '3D AR': '3D AR',
+  'Native WebXR & Scene Viewer': 'Native WebXR & Scene Viewer',
+  'mebel:': 'furniture:',
 } as const;
 
 export type TranslationKey = keyof typeof english;
@@ -517,4 +703,28 @@ export const indonesian: Partial<Record<TranslationKey, string>> = {
   'COD_DRIVER': 'Bayar tunai saat diterima',
   'IN_HOUSE_CREDIT': 'Cicilan toko',
   'THIRD_PARTY_FINANCING': 'Cicilan mitra pembiayaan',
+  'Ulasan & Penilaian Pelanggan': 'Customer Reviews & Ratings',
+  '100% Terverifikasi': '100% Verified',
+  'Ulasan asli eksklusif dari pelanggan dengan konfirmasi pengiriman pesanan yang telah selesai.': 'Authentic reviews exclusively from customers with confirmed completed deliveries.',
+  'Tulis Ulasan': 'Write Review',
+  'Bintang': 'Stars',
+  'Semua': 'All',
+  'Pembelian Terverifikasi': 'Verified Purchase',
+  'Tulis Ulasan Pembeli': 'Write Customer Review',
+  'Ulasan Berhasil Dikirim!': 'Review Submitted Successfully!',
+  'Terima kasih atas ulasan Anda. Ulasan telah diverifikasi dari riwayat pengiriman pesanan Anda.': 'Thank you for your review. Your review has been verified against your delivery order history.',
+  'Tutup': 'Close',
+  'Pembelian Terverifikasi:': 'Verified Purchase:',
+  'Pesanan': 'Order',
+  'telah terkonfirmasi diterima.': 'has been confirmed delivered.',
+  'Penilaian Produk (1–5 Bintang)': 'Product Rating (1–5 Stars)',
+  'Judul Ulasan (Opsional)': 'Review Title (Optional)',
+  'Contoh: Kualitas gambar luar biasa, pengiriman kilat': 'e.g. Outstanding picture quality, fast delivery',
+  'Isi Ulasan': 'Review Content',
+  'Ceritakan pengalaman Anda mengenai kualitas produk, fitur, dan kondisi saat diterima...': 'Share your experience with product quality, features, and delivery condition...',
+  'Batal': 'Cancel',
+  'Kirim Ulasan': 'Submit Review',
+  'Pengiriman Masih Berlangsung': 'Delivery In Transit',
+  'Login Diperlukan': 'Sign In Required',
+  'Pembelian Terverifikasi Diperlukan': 'Verified Purchase Required',
 };

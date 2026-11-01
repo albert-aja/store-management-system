@@ -41,4 +41,7 @@ public interface CustomerWishlistItemRepository extends JpaRepository<CustomerWi
     long countByCustomerId(UUID customerId);
 
     long countBySessionId(String sessionId);
+
+    @Query("SELECT w FROM CustomerWishlistItem w JOIN FETCH w.customer c JOIN FETCH w.product p LEFT JOIN FETCH w.productVariant pv WHERE w.notifyOnPriceDrop = true AND w.customer IS NOT NULL")
+    List<CustomerWishlistItem> findActivePriceDropWatchers();
 }

@@ -65,3 +65,15 @@ export const payrollApi = {
   paySlip: (id: string) =>
     apiClient.post<PayrollSlip>(`/api/v1/payroll/slips/${id}/pay`),
 };
+
+import type { CommissionTier, CommissionTierRequest } from './types';
+
+export const commissionTierApi = {
+  listTiers: () => apiClient.get<CommissionTier[]>('/api/v1/commission-tiers'),
+  createTier: (req: CommissionTierRequest) =>
+    apiClient.post<CommissionTier>('/api/v1/commission-tiers', req),
+  updateTier: (id: string, req: CommissionTierRequest) =>
+    apiClient.put<CommissionTier>(`/api/v1/commission-tiers/${id}`, req),
+  deleteTier: (id: string) =>
+    apiClient.delete<void>(`/api/v1/commission-tiers/${id}`),
+};

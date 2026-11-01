@@ -7,6 +7,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../collection/providers/collection_provider.dart';
 import '../../delivery/providers/delivery_provider.dart';
 import '../../surveys/providers/survey_provider.dart';
+import '../providers/operational_task_provider.dart';
 
 class MyWorkScreen extends ConsumerStatefulWidget {
   const MyWorkScreen({super.key});
@@ -96,6 +97,20 @@ class _MyWorkScreenState extends ConsumerState<MyWorkScreen> {
       });
     }
 
+    // Add Operational Tasks (L.4)
+    final operationalTasks = ref.watch(operationalTaskListProvider).tasks;
+    for (var op in operationalTasks) {
+      allTasks.add({
+        'id': op.id,
+        'title': op.title,
+        'type': 'OPERATIONAL',
+        'ref': op.taskNumber,
+        'priority': op.priority,
+        'status': op.status,
+        'route': '/operational-task/${op.id}',
+      });
+    }
+
     // Fallback if empty
     if (allTasks.isEmpty) {
       allTasks.add({
@@ -125,6 +140,7 @@ class _MyWorkScreenState extends ConsumerState<MyWorkScreen> {
               ref.read(surveyListProvider.notifier).loadMySurveys();
               ref.read(deliveryProvider.notifier).loadDriverTrips();
               ref.read(collectionProvider.notifier).loadCollectionData();
+              ref.read(operationalTaskListProvider.notifier).loadTasks();
             },
           ),
         ],
@@ -138,6 +154,8 @@ class _MyWorkScreenState extends ConsumerState<MyWorkScreen> {
             child: Row(
               children: [
                 _buildFilterChip('ALL', context.l10n.message492),
+                const SizedBox(width: 8),
+                _buildFilterChip('OPERATIONAL', 'OPERASIONAL'),
                 const SizedBox(width: 8),
                 _buildFilterChip('DELIVERY', context.l10n.message493),
                 const SizedBox(width: 8),

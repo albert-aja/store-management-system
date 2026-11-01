@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Box, Button, Chip, Switch, TextField, Typography } from "@mui/material";
+import { Box, Button, Chip, IconButton, Switch, TextField, Tooltip, Typography } from "@mui/material";
 import { DataGrid, type GridColDef, type GridRowSelectionModel } from "@mui/x-data-grid";
 import BulkActionBar from "../../components/BulkActionBar";
 import { useSnackbar } from "notistack";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import PrintIcon from "@mui/icons-material/Print";
 import StarIcon from "@mui/icons-material/Star";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
@@ -103,9 +104,9 @@ export default function CustomerListPage() {
     {
       field: "actions",
       headerName: "",
-      width: 170,
+      width: 220,
       renderCell: (params: { row: Customer }) => (
-        <>
+        <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
           <Button
             size="small"
             variant="outlined"
@@ -113,6 +114,15 @@ export default function CustomerListPage() {
           >
             {t("360 Profile")}
           </Button>
+          <Tooltip title={t("Cetak Rekening Tagihan / Billing Statement (PDF)")}>
+            <IconButton
+              size="small"
+              color="info"
+              onClick={() => window.open(`/api/documents/print/customer-statement/${params.row.id}`, "_blank")}
+            >
+              <PrintIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           {canManage && (
             <Button
               size="small"
@@ -121,9 +131,10 @@ export default function CustomerListPage() {
                 setDialogOpen(true);
               }}
             >
-              {t("Edit")}</Button>
+              {t("Edit")}
+            </Button>
           )}
-        </>
+        </Box>
       ),
     },
   ];
@@ -253,6 +264,12 @@ export default function CustomerListPage() {
         rows={filteredData}
         exportFilename="customers_master"
         exportTitle="DATABASE MASTER PELANGGAN (CUSTOMER 360)"
+        printOptions={[
+          {
+            type: "CUSTOMER_STATEMENT",
+            label: t("Cetak Rekening Tagihan Massal (Batch Statement PDF)"),
+          },
+        ]}
       />
       <CustomerFormDialog
         key={editing?.id ?? "new"}

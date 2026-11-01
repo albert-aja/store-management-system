@@ -25,7 +25,8 @@ public record StorefrontProductDetailDto(
         List<StorefrontVariantDto> variants,
         Map<String, String> specifications,
         boolean flashSale,
-        Instant flashSaleEndsAt
+        Instant flashSaleEndsAt,
+        ArModelDto arModel
 ) {
     public StorefrontProductDetailDto(
             UUID id,
@@ -43,17 +44,32 @@ public record StorefrontProductDetailDto(
             List<StorefrontVariantDto> variants,
             Map<String, String> specifications
     ) {
-        this(id, name, code, description, brandName, categoryName, minPrice, maxPrice, minPrice, false, 0, imageUrls, commercialAvailability, leadTimeDays, totalStockCount, variants, specifications, false, null);
-        }
+        this(id, name, code, description, brandName, categoryName, minPrice, maxPrice, minPrice, false, 0, imageUrls, commercialAvailability, leadTimeDays, totalStockCount, variants, specifications, false, null, null);
+    }
 
-        public StorefrontProductDetailDto(UUID id, String name, String code, String description,
+    public StorefrontProductDetailDto(
+            UUID id, String name, String code, String description,
             String brandName, String categoryName, BigDecimal minPrice, BigDecimal maxPrice,
             BigDecimal originalMinPrice, boolean hasDiscount, int maxDiscountPercent,
             List<String> imageUrls, String commercialAvailability, int leadTimeDays,
-            long totalStockCount, List<StorefrontVariantDto> variants, Map<String, String> specifications) {
+            long totalStockCount, List<StorefrontVariantDto> variants, Map<String, String> specifications
+    ) {
         this(id, name, code, description, brandName, categoryName, minPrice, maxPrice,
-            originalMinPrice, hasDiscount, maxDiscountPercent, imageUrls, commercialAvailability,
-            leadTimeDays, totalStockCount, variants, specifications, false, null);
+                originalMinPrice, hasDiscount, maxDiscountPercent, imageUrls, commercialAvailability,
+                leadTimeDays, totalStockCount, variants, specifications, false, null, null);
+    }
+
+    public StorefrontProductDetailDto(
+            UUID id, String name, String code, String description,
+            String brandName, String categoryName, BigDecimal minPrice, BigDecimal maxPrice,
+            BigDecimal originalMinPrice, boolean hasDiscount, int maxDiscountPercent,
+            List<String> imageUrls, String commercialAvailability, int leadTimeDays,
+            long totalStockCount, List<StorefrontVariantDto> variants, Map<String, String> specifications,
+            boolean flashSale, Instant flashSaleEndsAt
+    ) {
+        this(id, name, code, description, brandName, categoryName, minPrice, maxPrice,
+                originalMinPrice, hasDiscount, maxDiscountPercent, imageUrls, commercialAvailability,
+                leadTimeDays, totalStockCount, variants, specifications, flashSale, flashSaleEndsAt, null);
     }
 
     public record StorefrontVariantDto(

@@ -6,6 +6,7 @@ import '../features/auth/screens/login_screen.dart';
 import '../features/home/screens/worker_home_screen.dart';
 import '../features/attendance/screens/attendance_screen.dart';
 import '../features/tasks/screens/my_work_screen.dart';
+import '../features/tasks/screens/operational_task_detail_screen.dart';
 import '../features/surveys/screens/surveyor_task_screen.dart';
 import '../features/delivery/screens/driver_trip_screen.dart';
 import '../features/delivery/screens/delivery_order_detail_screen.dart';
@@ -67,6 +68,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/my-work',
         name: 'my-work',
         builder: (context, state) => const MyWorkScreen(),
+      ),
+      GoRoute(
+        path: '/operational-task/:id',
+        name: 'operational-task-detail',
+        builder: (context, state) => OperationalTaskDetailScreen(
+          taskId: state.pathParameters['id'] ?? 'tsk-001',
+        ),
       ),
       GoRoute(
         path: '/survey/:id',

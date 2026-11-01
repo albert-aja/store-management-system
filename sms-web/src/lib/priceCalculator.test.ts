@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   calculateInstallment,
   calculatePriceMatrix,
+  calculateBundleSimulation,
+  generateBundleShareSummary,
   getSuggestedDp,
 } from "./priceCalculator";
 
@@ -55,5 +57,56 @@ describe("Universal Retail Price Formula (TypeScript)", () => {
     expect(getSuggestedDp(6500000)).toBe(1500000);
     expect(getSuggestedDp(7500000)).toBe(2000000);
     expect(getSuggestedDp(8500000)).toBe(2500000);
+  });
+
+  it("G.15: simulates multi-product bundle combining TV and Sofa with aggregated DP and shared installment schedule", () => {
+    const items = [
+      { id: "1", name: "Smart TV 55 Inch", category: "Elektronik", quantity: 1, hargaDasar: 5000000 },
+      { id: "2", name: "Sofa Bed L-Shape", category: "Furnitur", quantity: 1, hargaDasar: 3500000 },
+    ];
+
+    const simulation = calculateBundleSimulation(items, { terms: [10, 12, 15] });
+
+    expect(simulation.totalHargaDasar).toBe(8500000);
+    expect(simulation.bundleDiscount).toBe(0);
+    expect(simulation.netHargaDasar).toBe(8500000);
+    expect(simulation.downPayment).toBe(2500000); // Bracket for 8.5M
+    expect(simulation.autoDpApplied).toBe(true);
+
+    const term10 = simulation.terms.find((t) => t.termMonths === 10);
+    expect(term10).toBeDefined();
+    expect(term10?.monthlyInstallment).toBe(725000);
+
+    // Standalone separate financing comparison
+    // TV (5M, 1M DP) @ 10 mo = 485.000
+    // Sofa (3.5M, 0 DP) @ 10 mo = 425.000
+    // Total separate = 910.000
+    expect(simulation.separateTotalInstallments[10]).toBe(910000);
+    expect(simulation.monthlySavings[10]).toBe(185000); // 910.000 - 725.000
+
+    const summary = generateBundleShareSummary(simulation, { storeName: "Showroom SMS" });
+    expect(summary).toContain("SIMULASI KREDIT PAKET BUNDLE SHOWROOM");
+    expect(summary).toContain("Smart TV 55 Inch");
+    expect(summary).toContain("Sofa Bed L-Shape");
+    expect(summary).toContain("Rp 725.000");
+  });
+
+  it("G.15: applies bundle promotional discount correctly", () => {
+    const items = [
+      { id: "1", name: "Kulkas 2 Pintu", category: "Elektronik", quantity: 1, hargaDasar: 4000000 },
+      { id: "2", name: "Mesin Cuci", category: "Elektronik", quantity: 1, hargaDasar: 2000000 },
+    ];
+
+    // 10% promo bundle discount
+    const simulation = calculateBundleSimulation(items, {
+      discountPercent: 10,
+      downPayment: 500000,
+      terms: [10],
+    });
+
+    expect(simulation.totalHargaDasar).toBe(6000000);
+    expect(simulation.bundleDiscount).toBe(600000);
+    expect(simulation.netHargaDasar).toBe(5400000);
+    expect(simulation.downPayment).toBe(500000);
   });
 });

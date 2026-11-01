@@ -438,6 +438,124 @@ export interface FleetAnalyticsDto {
 
 const API_BASE = "/api/v1/fleet";
 
+
+// --- Backlog [L.5] Maintenance, Fuel & Incident Types ---
+
+export interface VehicleMaintenanceScheduleDto {
+  id: string;
+  vehicleId: string;
+  registrationNumber: string;
+  scheduledDate: string;
+  maintenanceType: string;
+  targetOdometerKm?: number;
+  estimatedCost: number;
+  actualCost?: number;
+  serviceCenter?: string;
+  status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | string;
+  completedAt?: string;
+  notes?: string;
+  isDueOrOverdue: boolean;
+  createdAt: string;
+}
+
+export interface CreateMaintenanceScheduleRequest {
+  scheduledDate: string;
+  maintenanceType: string;
+  targetOdometerKm?: number;
+  estimatedCost?: number;
+  serviceCenter?: string;
+  notes?: string;
+}
+
+export interface UpdateMaintenanceScheduleStatusRequest {
+  status: string;
+  actualCost?: number;
+  notes?: string;
+}
+
+export interface VehicleFuelLogDto {
+  id: string;
+  vehicleId: string;
+  registrationNumber: string;
+  driverEmployeeId?: string;
+  driverName?: string;
+  logDate: string;
+  odometerKm: number;
+  fuelLiters: number;
+  costPerLiter: number;
+  totalCost: number;
+  fuelType?: string;
+  gasStationName?: string;
+  fullTank: boolean;
+  efficiencyKmPerLiter?: number;
+  receiptPhotoUrl?: string;
+  invoiceNumber?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface CreateFuelLogRequest {
+  logDate: string;
+  driverEmployeeId?: string;
+  odometerKm: number;
+  fuelLiters: number;
+  costPerLiter: number;
+  totalCost?: number;
+  fuelType?: string;
+  gasStationName?: string;
+  fullTank?: boolean;
+  receiptPhotoUrl?: string;
+  invoiceNumber?: string;
+  notes?: string;
+}
+
+export interface VehicleIncidentReportDto {
+  id: string;
+  vehicleId: string;
+  registrationNumber: string;
+  reporterEmployeeId?: string;
+  reporterName?: string;
+  incidentDate: string;
+  incidentType: string;
+  severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" | string;
+  location?: string;
+  description: string;
+  thirdPartyInvolved: boolean;
+  thirdPartyDetails?: string;
+  policeReportNumber?: string;
+  damagePhotoUrls?: string;
+  estimatedRepairCost?: number;
+  actualRepairCost?: number;
+  insuranceClaimed: boolean;
+  insuranceClaimNumber?: string;
+  status: "REPORTED" | "UNDER_INSPECTION" | "REPAIR_SCHEDULED" | "REPAIRED" | "RESOLVED" | "REJECTED" | string;
+  resolutionNotes?: string;
+  resolvedAt?: string;
+  createdAt: string;
+}
+
+export interface CreateIncidentReportRequest {
+  incidentDate: string;
+  reporterEmployeeId?: string;
+  incidentType: string;
+  severity: string;
+  location?: string;
+  description: string;
+  thirdPartyInvolved?: boolean;
+  thirdPartyDetails?: string;
+  policeReportNumber?: string;
+  damagePhotoUrls?: string;
+  estimatedRepairCost?: number;
+  insuranceClaimed?: boolean;
+  insuranceClaimNumber?: string;
+}
+
+export interface UpdateIncidentStatusRequest {
+  status: string;
+  actualRepairCost?: number;
+  resolutionNotes?: string;
+}
+
 export const fleetApi = {
   getLiveFleet: async (storeId?: string): Promise<LiveFleetStatusDto[]> => {
     const params = storeId ? { storeId } : {};
@@ -618,4 +736,74 @@ export const fleetApi = {
     const res = await axios.get<DriverLicenseDto[]>(`${API_BASE}/driver-licenses/expiring`);
     return res.data;
   },
+  getMaintenanceSchedules: async (vehicleId: string): Promise<VehicleMaintenanceScheduleDto[]> => {
+    const res = await axios.get<VehicleMaintenanceScheduleDto[]>(`${API_BASE}/vehicles/${vehicleId}/maintenance-schedules`);
+    return res.data;
+  },
+
+  createMaintenanceSchedule: async (
+    vehicleId: string,
+    data: CreateMaintenanceScheduleRequest
+  ): Promise<VehicleMaintenanceScheduleDto> => {
+    const res = await axios.post<VehicleMaintenanceScheduleDto>(
+      `${API_BASE}/vehicles/${vehicleId}/maintenance-schedules`,
+      data
+    );
+    return res.data;
+  },
+
+  updateMaintenanceScheduleStatus: async (
+    scheduleId: string,
+    data: UpdateMaintenanceScheduleStatusRequest
+  ): Promise<VehicleMaintenanceScheduleDto> => {
+    const res = await axios.patch<VehicleMaintenanceScheduleDto>(
+      `${API_BASE}/maintenance-schedules/${scheduleId}`,
+      data
+    );
+    return res.data;
+  },
+
+  getFuelLogs: async (vehicleId: string): Promise<VehicleFuelLogDto[]> => {
+    const res = await axios.get<VehicleFuelLogDto[]>(`${API_BASE}/vehicles/${vehicleId}/fuel-logs`);
+    return res.data;
+  },
+
+  recordFuelLog: async (
+    vehicleId: string,
+    data: CreateFuelLogRequest
+  ): Promise<VehicleFuelLogDto> => {
+    const res = await axios.post<VehicleFuelLogDto>(
+      `${API_BASE}/vehicles/${vehicleId}/fuel-logs`,
+      data
+    );
+    return res.data;
+  },
+
+  getIncidentReports: async (vehicleId: string): Promise<VehicleIncidentReportDto[]> => {
+    const res = await axios.get<VehicleIncidentReportDto[]>(`${API_BASE}/vehicles/${vehicleId}/incident-reports`);
+    return res.data;
+  },
+
+  reportIncident: async (
+    vehicleId: string,
+    data: CreateIncidentReportRequest
+  ): Promise<VehicleIncidentReportDto> => {
+    const res = await axios.post<VehicleIncidentReportDto>(
+      `${API_BASE}/vehicles/${vehicleId}/incident-reports`,
+      data
+    );
+    return res.data;
+  },
+
+  updateIncidentStatus: async (
+    incidentId: string,
+    data: UpdateIncidentStatusRequest
+  ): Promise<VehicleIncidentReportDto> => {
+    const res = await axios.patch<VehicleIncidentReportDto>(
+      `${API_BASE}/incident-reports/${incidentId}`,
+      data
+    );
+    return res.data;
+  },
+
 };

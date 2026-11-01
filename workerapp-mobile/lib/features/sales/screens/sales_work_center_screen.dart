@@ -15,6 +15,22 @@ class SalesWorkCenterScreen extends ConsumerStatefulWidget {
       _SalesWorkCenterScreenState();
 }
 
+Color _parseHexColor(
+  String? hexString, {
+  Color defaultColor = AppColors.primary,
+}) {
+  if (hexString == null || hexString.isEmpty) return defaultColor;
+  try {
+    String cleanHex = hexString.replaceAll('#', '');
+    if (cleanHex.length == 6) {
+      cleanHex = 'FF$cleanHex';
+    }
+    return Color(int.parse(cleanHex, radix: 16));
+  } catch (_) {
+    return defaultColor;
+  }
+}
+
 class _SalesWorkCenterScreenState extends ConsumerState<SalesWorkCenterScreen> {
   final _customerQuery = TextEditingController();
   final _productQuery = TextEditingController();
@@ -28,11 +44,14 @@ class _SalesWorkCenterScreenState extends ConsumerState<SalesWorkCenterScreen> {
   int? _confirmedOrders;
   double? _salesVolume;
   double? _commission;
-  final double _monthlyQuotaTarget = 50000000.0;
-  double get _quotaProgress => _monthlyQuotaTarget > 0
-      ? ((_salesVolume ?? 0) / _monthlyQuotaTarget)
-      : 0.0;
-  String get _quotaPercent => (_quotaProgress * 100).toStringAsFixed(1);
+  String _tierName = 'Bronze';
+  String _tierColor = '#CD7F32';
+  double _commissionRate = 0.01;
+  String? _nextTierName;
+  double? _volumeNeeded;
+  double _tierProgress = 0.0;
+  List<Map<String, dynamic>> _spvLeaderboard = [];
+  bool _isLoadingLeaderboard = false;
   @override
   void initState() {
     super.initState();
@@ -52,8 +71,53 @@ class _SalesWorkCenterScreenState extends ConsumerState<SalesWorkCenterScreen> {
   Future<void> _loadProgress() async {
     final user = _user;
     if (user?.storeId == null) return;
+    final now = DateTime.now();
+    final startStr = DateTime(
+      now.year,
+      now.month,
+      1,
+    ).toIso8601String().substring(0, 10);
+    final endStr = now.toIso8601String().substring(0, 10);
+    // 1. First try scoped personal endpoint
     try {
-      final now = DateTime.now();
+      final response = await ref
+          .read(apiClientProvider)
+          .dio
+          .get(
+            '/api/v1/reporting/sales-performance/my-tier',
+            queryParameters: {
+              'storeId': user!.storeId,
+              'salespersonId': user.id,
+              'startDate': startStr,
+              'endDate': endStr,
+            },
+          );
+      if (response.data is Map<String, dynamic>) {
+        final data = response.data as Map<String, dynamic>;
+        if (mounted) {
+          setState(() {
+            _confirmedOrders =
+                (data['confirmedOrdersCount'] as num?)?.toInt() ?? 0;
+            _salesVolume = (data['totalSalesVolume'] as num?)?.toDouble() ?? 0;
+            _commission =
+                (data['estimatedCommission'] as num?)?.toDouble() ?? 0;
+            _tierName = (data['currentTierName'] as String?) ?? 'Bronze';
+            _tierColor = (data['currentTierColor'] as String?) ?? '#CD7F32';
+            _commissionRate =
+                (data['currentCommissionRate'] as num?)?.toDouble() ?? 0.01;
+            _nextTierName = data['nextTierName'] as String?;
+            _volumeNeeded = (data['volumeNeededForNextTier'] as num?)
+                ?.toDouble();
+            _tierProgress =
+                (data['progressPercentage'] as num?)?.toDouble() ?? 0.0;
+          });
+          return;
+        }
+      }
+    } catch (_) {
+      // Fallback to legacy reporting query
+    }
+    try {
       final response = await ref
           .read(apiClientProvider)
           .dio
@@ -61,12 +125,8 @@ class _SalesWorkCenterScreenState extends ConsumerState<SalesWorkCenterScreen> {
             '/api/v1/reporting/sales-performance',
             queryParameters: {
               'storeId': user!.storeId,
-              'startDate': DateTime(
-                now.year,
-                now.month,
-                1,
-              ).toIso8601String().substring(0, 10),
-              'endDate': now.toIso8601String().substring(0, 10),
+              'startDate': startStr,
+              'endDate': endStr,
             },
           );
       if (response.data is List) {
@@ -80,12 +140,53 @@ class _SalesWorkCenterScreenState extends ConsumerState<SalesWorkCenterScreen> {
             _salesVolume = (row?['totalSalesVolume'] as num?)?.toDouble() ?? 0;
             _commission =
                 (row?['estimatedCommission'] as num?)?.toDouble() ?? 0;
+            _tierName = (row?['tierName'] as String?) ?? 'Bronze';
+            _tierColor = (row?['tierColor'] as String?) ?? '#CD7F32';
+            _commissionRate =
+                (row?['commissionRate'] as num?)?.toDouble() ?? 0.01;
           });
         }
       }
     } catch (_) {
       if (mounted) {
         setState(() => _error = WorkerMessage((l10n) => l10n.message408));
+      }
+    }
+  }
+
+  Future<void> _loadSpvLeaderboard() async {
+    final user = _user;
+    if (user?.storeId == null || (!user!.isSPV && !user.isManager)) return;
+    setState(() => _isLoadingLeaderboard = true);
+    try {
+      final now = DateTime.now();
+      final response = await ref
+          .read(apiClientProvider)
+          .dio
+          .get(
+            '/api/v1/reporting/sales-performance',
+            queryParameters: {
+              'storeId': user.storeId,
+              'startDate': DateTime(
+                now.year,
+                now.month,
+                1,
+              ).toIso8601String().substring(0, 10),
+              'endDate': now.toIso8601String().substring(0, 10),
+            },
+          );
+      if (response.data is List) {
+        final rows = (response.data as List).cast<Map<String, dynamic>>();
+        if (mounted) {
+          setState(() {
+            _spvLeaderboard = rows;
+            _isLoadingLeaderboard = false;
+          });
+        }
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoadingLeaderboard = false);
       }
     }
   }
@@ -336,9 +437,9 @@ class _SalesWorkCenterScreenState extends ConsumerState<SalesWorkCenterScreen> {
                       children: [
                         Row(
                           children: [
-                            const Icon(
-                              Icons.trending_up,
-                              color: AppColors.primary,
+                            Icon(
+                              Icons.workspace_premium,
+                              color: _parseHexColor(_tierColor),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -354,6 +455,31 @@ class _SalesWorkCenterScreenState extends ConsumerState<SalesWorkCenterScreen> {
                                 ),
                               ),
                             ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: _parseHexColor(
+                                  _tierColor,
+                                ).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _parseHexColor(_tierColor),
+                                  width: 1.2,
+                                ),
+                              ),
+                              child: Text(
+                                _tierName.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: _parseHexColor(_tierColor),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
                             IconButton(
                               tooltip: context.l10n.message426,
                               onPressed: _loadProgress,
@@ -362,46 +488,211 @@ class _SalesWorkCenterScreenState extends ConsumerState<SalesWorkCenterScreen> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          context.l10n.message427(
-                            (_formatCurrency(_salesVolume)).toString(),
-                            (_formatCurrency(_monthlyQuotaTarget)).toString(),
-                            (_quotaPercent).toString(),
-                          ),
-                          style: TextStyle(
-                            color: Colors.grey.shade700,
-                            fontSize: 13,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Volume: ${_formatCurrency(_salesVolume)}',
+                              style: TextStyle(
+                                color: Colors.grey.shade800,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              'Rate: ${(_commissionRate * 100).toStringAsFixed(1)}%',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 6),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(4),
                           child: LinearProgressIndicator(
-                            value: _quotaProgress.clamp(0.0, 1.0),
+                            value:
+                                (_nextTierName != null
+                                        ? (_tierProgress / 100.0)
+                                        : 1.0)
+                                    .clamp(0.0, 1.0),
                             backgroundColor: Colors.grey.shade200,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              _quotaProgress >= 1.0
-                                  ? Colors.green
-                                  : AppColors.primary,
+                              _parseHexColor(_tierColor),
                             ),
                             minHeight: 8,
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          context.l10n.message428(
-                            (_formatCurrency(_commission)).toString(),
-                          ),
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.primary,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _nextTierName != null && _volumeNeeded != null
+                                    ? 'Next: $_nextTierName (${_formatCurrency(_volumeNeeded)} needed)'
+                                    : 'Top Tier Achieved',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade700,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              context.l10n.message428(
+                                (_formatCurrency(_commission)).toString(),
+                              ),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: _parseHexColor(_tierColor),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
                 ),
+                if (_user?.isSPV == true || _user?.isManager == true) ...[
+                  const SizedBox(height: 12),
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: AppColors.primary.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: ExpansionTile(
+                      leading: const Icon(
+                        Icons.leaderboard,
+                        color: AppColors.primary,
+                      ),
+                      title: const Text(
+                        'Showroom Leaderboard (SPV View)',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Team sales performance & tier rankings',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      onExpansionChanged: (expanded) {
+                        if (expanded && _spvLeaderboard.isEmpty) {
+                          _loadSpvLeaderboard();
+                        }
+                      },
+                      children: [
+                        if (_isLoadingLeaderboard)
+                          const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        else if (_spvLeaderboard.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: _loadSpvLeaderboard,
+                                  icon: const Icon(Icons.refresh, size: 16),
+                                  label: const Text('Load Team Rankings'),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _spvLeaderboard.length,
+                            separatorBuilder: (ctx, idx) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final item = _spvLeaderboard[index];
+                              final name =
+                                  item['salespersonName'] as String? ??
+                                  'Salesperson';
+                              final volume =
+                                  (item['totalSalesVolume'] as num?)
+                                      ?.toDouble() ??
+                                  0;
+                              final orders =
+                                  (item['confirmedOrdersCount'] as num?)
+                                      ?.toInt() ??
+                                  0;
+                              final tier =
+                                  item['tierName'] as String? ?? 'Bronze';
+                              final color = _parseHexColor(
+                                item['tierColor'] as String?,
+                              );
+                              final isTop3 = index < 3;
+                              return ListTile(
+                                dense: true,
+                                leading: CircleAvatar(
+                                  radius: 14,
+                                  backgroundColor: isTop3
+                                      ? AppColors.primary
+                                      : Colors.grey.shade300,
+                                  child: Text(
+                                    '${index + 1}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: isTop3
+                                          ? Colors.white
+                                          : Colors.black87,
+                                    ),
+                                  ),
+                                ),
+                                title: Text(
+                                  name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '$orders orders • ${_formatCurrency(volume)}',
+                                  style: const TextStyle(fontSize: 11),
+                                ),
+                                trailing: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: color.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: color, width: 1),
+                                  ),
+                                  child: Text(
+                                    tier,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: color,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Card(
                   elevation: 2,

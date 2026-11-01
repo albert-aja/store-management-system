@@ -4,6 +4,14 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val publicStorefrontHost = providers.gradleProperty("PUBLIC_STOREFRONT_HOST")
+    .orElse(providers.environmentVariable("PUBLIC_STOREFRONT_HOST"))
+    .orElse("invalid.local")
+    .get()
+require(publicStorefrontHost.matches(Regex("^[A-Za-z0-9.-]+$"))) {
+    "PUBLIC_STOREFRONT_HOST must be a DNS hostname without scheme or path"
+}
+
 android {
     namespace = "com.sms.ecommerce.ecommerce_mobile"
     compileSdk = flutter.compileSdkVersion
@@ -23,6 +31,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["publicStorefrontHost"] = publicStorefrontHost
     }
 
     buildTypes {

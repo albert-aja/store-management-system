@@ -388,6 +388,21 @@ export default function FinancePage() {
             </Select>
           </FormControl>
         )}
+        {currentTab === 0 && (
+          <Button
+            variant="outlined"
+            color="info"
+            startIcon={<PrintIcon />}
+            onClick={() => {
+              const params = new URLSearchParams();
+              if (selectedStoreId) params.append("storeId", selectedStoreId);
+              if (statusFilter !== "ALL") params.append("status", statusFilter);
+              window.open(`/api/documents/print/customer-statements/batch?${params.toString()}`, "_blank");
+            }}
+          >
+            {t("Cetak Batch Statement (PDF)")}
+          </Button>
+        )}
       </Paper>
 
       {/* Tabs */}
@@ -489,6 +504,13 @@ export default function FinancePage() {
                           onClick={() => setSelectedReceivable(r)}
                         >
                           {t("Schedule")}
+                        </Button>
+                        <Button
+                          size="small"
+                          color="info"
+                          onClick={() => window.open(`/api/documents/print/statement/${r.id}`, "_blank")}
+                        >
+                          {t("Statement")}
                         </Button>
                         {r.status === "ACTIVE" && (
                           <Button

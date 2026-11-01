@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 public class StorefrontWishlistController {
     private final StorefrontWishlistService wishlistService;
     private final StorefrontAuthService authService;
+    private final com.sms.storefront.service.WishlistPriceDropAlertService alertService;
 
     @GetMapping
     public WishlistSummaryDto getWishlist(
@@ -68,6 +69,20 @@ public class StorefrontWishlistController {
     public WishlistSummaryDto syncWishlist(
             @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody SyncWishlistRequest request) {
         return wishlistService.syncWishlist(request.guestSessionId(), authService.requireCustomerId(jwt));
+    }
+
+    @PutMapping("/items/{itemId}/alert-settings")
+    public WishlistItemDto updateAlertSettings(
+            @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
+            @AuthenticationPrincipal Jwt jwt, @PathVariable UUID itemId,
+            @RequestBody UpdateWishlistAlertSettingsRequest request) {
+        wishlistService.checkOwnership(sessionId, authService.customerId(jwt), itemId);
+        return wishlistService.updateAlertSettings(itemId, request);
+    }
+
+    @PostMapping("/scan-price-drops")
+    public PriceDropScanResultDto scanPriceDrops() {
+        return alertService.scanAndDispatchPriceDropAlerts();
     }
 
     @PostMapping("/items/{itemId}/simulate-price-drop")

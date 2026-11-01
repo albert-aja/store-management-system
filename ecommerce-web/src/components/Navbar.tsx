@@ -1,7 +1,7 @@
 import { LanguageSwitcher, useI18n } from '../i18n';
 import React, { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Search, Package, User, Store, ChevronDown, Heart, Home, LayoutGrid } from 'lucide-react';
+import { ShoppingCart, Search, Package, User, Store, ChevronDown, Heart, Home, LayoutGrid, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useAuth } from '../context/AuthContext';
@@ -60,6 +60,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenCart }) => {
             <NavLink to="/products" className={({ isActive }) =>
               `hidden rounded-lg px-3 py-2 text-sm font-medium lg:block ${isActive ? 'text-sky-700' : 'text-slate-600 hover:text-slate-900'}`}>
               {t("Katalog")}</NavLink>
+            <NavLink to="/bundle-simulator" className={({ isActive }) =>
+              `hidden rounded-lg px-3 py-2 text-sm font-semibold lg:flex items-center gap-1.5 ${isActive ? 'text-indigo-600 bg-indigo-50' : 'text-slate-600 hover:text-slate-900'}`}>
+              <Sparkles className="w-4 h-4 text-indigo-500" />
+              <span>{t("Simulasi Paket")}</span>
+            </NavLink>
             <Link to="/track" aria-label={t("Lacak pesanan")} className="hidden rounded-xl p-3 text-slate-500 hover:bg-slate-50 md:block">
               <Package className="h-5 w-5" />
             </Link>

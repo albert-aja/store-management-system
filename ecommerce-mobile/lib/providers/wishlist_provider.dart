@@ -72,6 +72,20 @@ class WishlistNotifier extends Notifier<WishlistSummary> {
     await api.simulatePriceDrop(itemId, newPrice: newPrice);
     await loadWishlist();
   }
+
+  Future<void> updateAlertSettings(
+    String itemId, {
+    bool? notifyOnPriceDrop,
+    double? thresholdPercent,
+  }) async {
+    final api = ref.read(apiClientProvider);
+    await api.updateWishlistAlertSettings(
+      itemId,
+      notifyOnPriceDrop: notifyOnPriceDrop,
+      thresholdPercent: thresholdPercent,
+    );
+    await loadWishlist();
+  }
 }
 
 final wishlistProvider = NotifierProvider<WishlistNotifier, WishlistSummary>(

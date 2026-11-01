@@ -44,6 +44,68 @@ class CreditSimulationResult {
   });
 }
 
+class BundleItem {
+  final String id;
+  final String name;
+  final String category;
+  final int quantity;
+  final double hargaDasar;
+  final double cashPrice;
+
+  const BundleItem({
+    required this.id,
+    required this.name,
+    required this.category,
+    this.quantity = 1,
+    required this.hargaDasar,
+    required this.cashPrice,
+  });
+
+  BundleItem copyWith({
+    String? id,
+    String? name,
+    String? category,
+    int? quantity,
+    double? hargaDasar,
+    double? cashPrice,
+  }) {
+    return BundleItem(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      category: category ?? this.category,
+      quantity: quantity ?? this.quantity,
+      hargaDasar: hargaDasar ?? this.hargaDasar,
+      cashPrice: cashPrice ?? this.cashPrice,
+    );
+  }
+}
+
+class BundleSimulationResult {
+  final List<BundleItem> items;
+  final double totalHargaDasar;
+  final double bundleDiscount;
+  final double netHargaDasar;
+  final double downPayment;
+  final double dpPercentage;
+  final bool isAutoDp;
+  final List<CreditTermCalculation> bundleTerms;
+  final Map<int, double> separateTotalMonthly;
+  final Map<int, double> monthlySavings;
+
+  const BundleSimulationResult({
+    required this.items,
+    required this.totalHargaDasar,
+    required this.bundleDiscount,
+    required this.netHargaDasar,
+    required this.downPayment,
+    required this.dpPercentage,
+    required this.isAutoDp,
+    required this.bundleTerms,
+    required this.separateTotalMonthly,
+    required this.monthlySavings,
+  });
+}
+
 class CreditCalculatorService {
   static const double adminFee = 30000.0;
   static const double monthlyInterestRate = 0.04;
@@ -213,6 +275,141 @@ class CreditCalculatorService {
     }
     buffer.writeln('--------------------------------');
     buffer.writeln(l10n.simulationDiscount);
+    return buffer.toString();
+  }
+
+  /// Calculates blended multi-product credit bundle financing.
+  /// Combines electronics (TV, fridge) and furniture (Sofa, bed) into a single financed contract.
+  static BundleSimulationResult simulateBundle({
+    required List<BundleItem> items,
+    double? discountPercent,
+    double? discountAmount,
+    double? downPayment,
+    List<int>? terms,
+  }) {
+    if (items.isEmpty) {
+      return const BundleSimulationResult(
+        items: [],
+        totalHargaDasar: 0,
+        bundleDiscount: 0,
+        netHargaDasar: 0,
+        downPayment: 0,
+        dpPercentage: 0,
+        isAutoDp: true,
+        bundleTerms: [],
+        separateTotalMonthly: {},
+        monthlySavings: {},
+      );
+    }
+
+    final totalHd = items.fold<double>(
+      0.0,
+      (sum, item) => sum + (item.hargaDasar * (item.quantity > 0 ? item.quantity : 1)),
+    );
+
+    double discount = 0.0;
+    if (discountAmount != null && discountAmount > 0) {
+      discount = discountAmount;
+    } else if (discountPercent != null && discountPercent > 0) {
+      discount = (totalHd * (discountPercent / 100.0)).roundToDouble();
+    }
+    if (discount > totalHd) discount = totalHd;
+
+    final netHd = (totalHd - discount).clamp(0.0, double.infinity);
+    final isAutoDp = downPayment == null;
+    final dp = isAutoDp ? getSuggestedDp(netHd) : downPayment;
+    final dpPercent = totalHd > 0 ? ((dp / totalHd) * 100) : 0.0;
+    final activeTerms = terms ?? defaultTerms;
+
+    final bundleTerms = activeTerms.map((t) {
+      return calculateTerm(
+        hargaDasar: netHd,
+        downPayment: dp,
+        termMonths: t,
+      );
+    }).toList();
+
+    final separateTotals = <int, double>{};
+    final savingsMap = <int, double>{};
+
+    for (final term in activeTerms) {
+      double separateMonthlySum = 0.0;
+      for (final item in items) {
+        final itemDp = getSuggestedDp(item.hargaDasar);
+        final single = calculateTerm(
+          hargaDasar: item.hargaDasar,
+          downPayment: itemDp,
+          termMonths: term,
+        );
+        separateMonthlySum += single.monthlyInstallment * (item.quantity > 0 ? item.quantity : 1);
+      }
+      separateTotals[term] = separateMonthlySum;
+
+      final bundleTerm = bundleTerms.firstWhere(
+        (b) => b.termMonths == term,
+        orElse: () => bundleTerms.first,
+      );
+      final diff = separateMonthlySum - bundleTerm.monthlyInstallment;
+      savingsMap[term] = diff > 0 ? diff : 0.0;
+    }
+
+    return BundleSimulationResult(
+      items: items,
+      totalHargaDasar: totalHd,
+      bundleDiscount: discount,
+      netHargaDasar: netHd,
+      downPayment: dp,
+      dpPercentage: dpPercent,
+      isAutoDp: isAutoDp,
+      bundleTerms: bundleTerms,
+      separateTotalMonthly: separateTotals,
+      monthlySavings: savingsMap,
+    );
+  }
+
+  /// Generates a structured WhatsApp text quotation for multi-product showroom bundle.
+  static String generateBundleShareSummary({
+    required BundleSimulationResult simulation,
+    String? storeName,
+    AppLocalizations? localization,
+  }) {
+    final l10n = localization ?? AppLocalizationsId();
+    String money(double value) => formatRupiah(value, locale: l10n.localeName);
+    final numbers = NumberFormat.decimalPattern(l10n.localeName);
+
+    final buffer = StringBuffer();
+    buffer.writeln('✨ *SIMULASI KREDIT PAKET BUNDLE SHOWROOM*');
+    if (storeName != null && storeName.isNotEmpty) {
+      buffer.writeln('Toko: *$storeName*');
+    }
+    buffer.writeln('--------------------------------');
+    buffer.writeln('📦 *ITEM DALAM PAKET:*');
+    for (var i = 0; i < simulation.items.length; i++) {
+      final item = simulation.items[i];
+      buffer.writeln(
+        '${i + 1}. *${item.name}* (${item.category}) x${item.quantity} - ${money(item.hargaDasar)}',
+      );
+    }
+    buffer.writeln('--------------------------------');
+    buffer.writeln('Total Harga Dasar: *${money(simulation.totalHargaDasar)}*');
+    if (simulation.bundleDiscount > 0) {
+      buffer.writeln('Diskon Promo Bundle: *- ${money(simulation.bundleDiscount)}*');
+      buffer.writeln('Harga Bersih Paket: *${money(simulation.netHargaDasar)}*');
+    }
+    buffer.writeln(
+      'Total DP Gabungan: *${money(simulation.downPayment)}* (${numbers.format(simulation.dpPercentage.round())}%)',
+    );
+    buffer.writeln('--------------------------------');
+    buffer.writeln('🗓️ *PILIHAN ANGSURAN SATU KONTRAK:*');
+    for (final term in simulation.bundleTerms) {
+      final saving = simulation.monthlySavings[term.termMonths] ?? 0.0;
+      final savingNote = saving > 0 ? ' (Hemat ${money(saving)}/bln!)' : '';
+      buffer.writeln(
+        '• *${term.termMonths} Bulan*: ${money(term.monthlyInstallment)} / bln$savingNote',
+      );
+    }
+    buffer.writeln('--------------------------------');
+    buffer.writeln('💡 *Keuntungan:* 1 Kontrak terpadu, hemat biaya admin & cicilan lebih terjangkau.');
     return buffer.toString();
   }
 }

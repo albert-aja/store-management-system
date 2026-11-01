@@ -486,10 +486,68 @@ class WishlistScreen extends ConsumerWidget {
               ),
             ],
 
-            SizedBox(height: 10),
-            Divider(height: 1, color: Color(0xFFF1F5F9)),
-            SizedBox(height: 10),
+            SizedBox(height: 8),
 
+            // Price Drop Alert Setting (Exclusively in Mobile App - P.26)
+            InkWell(
+              onTap: () => _showPriceDropAlertModal(context, ref, item),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: item.notifyOnPriceDrop
+                      ? Color(0xFFF0FDF4)
+                      : Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: item.notifyOnPriceDrop
+                        ? Color(0xFFBBF7D0)
+                        : Color(0xFFE2E8F0),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      item.notifyOnPriceDrop
+                          ? Icons.notifications_active_outlined
+                          : Icons.notifications_off_outlined,
+                      size: 14,
+                      color: item.notifyOnPriceDrop
+                          ? Color(0xFF15803D)
+                          : Color(0xFF94A3B8),
+                    ),
+                    SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        item.notifyOnPriceDrop
+                            ? 'Alert: Turun >= ${item.alertDropThresholdPercent.toStringAsFixed(0)}%'
+                            : 'Notifikasi Turun Harga: Nonaktif',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: item.notifyOnPriceDrop
+                              ? Color(0xFF15803D)
+                              : Color(0xFF64748B),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'Atur Target',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0284C7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            SizedBox(height: 10),
+            Divider(height: 1, color: Color(0xFFF1F5F9)),
+            SizedBox(height: 10),
+
             // Card Action Buttons
             Row(
               children: [
@@ -651,6 +709,220 @@ class WishlistScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showPriceDropAlertModal(
+    BuildContext context,
+    WidgetRef ref,
+    WishlistItem item,
+  ) {
+    bool isEnabled = item.notifyOnPriceDrop;
+    double selectedThreshold = item.alertDropThresholdPercent;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final dropTargetPrice =
+                item.originalAddedPrice * (1.0 - (selectedThreshold / 100.0));
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 20,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.notifications_active,
+                            color: Color(0xFF0284C7),
+                            size: 22,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Atur Notifikasi Turun Harga',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Color(0xFFEFF6FF),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '📱 Eksklusif di Aplikasi Mobile',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1D4ED8),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'Notifikasi Penurunan Harga',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Kirim push notification & email saat harga barang ini turun',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    value: isEnabled,
+                    activeThumbColor: Color(0xFF059669),
+                    onChanged: (val) {
+                      setModalState(() {
+                        isEnabled = val;
+                      });
+                    },
+                  ),
+                  if (isEnabled) ...[
+                    SizedBox(height: 12),
+                    Text(
+                      'Pilih Minimal Penurunan Harga:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [5.0, 10.0, 15.0, 20.0, 25.0].map((pct) {
+                        final isSelected =
+                            (selectedThreshold - pct).abs() < 0.1;
+                        return ChoiceChip(
+                          label: Text(
+                            '${pct.toInt()}%${pct == 5.0 ? " (Standar)" : ""}',
+                          ),
+                          selected: isSelected,
+                          selectedColor: Color(0xFF059669),
+                          labelStyle: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : Color(0xFF1E293B),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                          onSelected: (sel) {
+                            if (sel) {
+                              setModalState(() {
+                                selectedThreshold = pct;
+                              });
+                            }
+                          },
+                        );
+                      }).toList(),
+                    ),
+                    SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Color(0xFFE2E8F0)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Estimasi Trigger Notifikasi:',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Harga Dasar: ${CurrencyFormatter.format(item.originalAddedPrice, context)}',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                          Text(
+                            'Notifikasi dikirim saat harga <= ${CurrencyFormatter.format(dropTargetPrice, context)}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF059669),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF0284C7),
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        'Simpan Pengaturan',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        await ref
+                            .read(wishlistProvider.notifier)
+                            .updateAlertSettings(
+                              item.id,
+                              notifyOnPriceDrop: isEnabled,
+                              thresholdPercent: selectedThreshold,
+                            );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Pengaturan notifikasi harga wishlist berhasil disimpan.',
+                              ),
+                              backgroundColor: Color(0xFF059669),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

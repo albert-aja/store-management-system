@@ -4,6 +4,7 @@ import com.sms.storefront.dto.WishlistShareDto.CreatedShareResponse;
 import com.sms.storefront.dto.WishlistShareDto.ShareSummaryResponse;
 import com.sms.storefront.service.StorefrontAuthService;
 import com.sms.storefront.service.WishlistShareService;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -22,21 +23,29 @@ public class WishlistShareController {
     @PostMapping
     public CreatedShareResponse create(
             @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
-            @AuthenticationPrincipal Jwt jwt) {
+            @AuthenticationPrincipal Jwt jwt, HttpServletResponse response) {
+        privateNoStore(response);
         return shareService.createShare(sessionId, authService.customerId(jwt));
     }
 
     @GetMapping
     public List<ShareSummaryResponse> list(
             @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
-            @AuthenticationPrincipal Jwt jwt) {
+            @AuthenticationPrincipal Jwt jwt, HttpServletResponse response) {
+        privateNoStore(response);
         return shareService.listShares(sessionId, authService.customerId(jwt));
     }
 
     @DeleteMapping("/{shareId}")
     public void revoke(
             @RequestHeader(value = "X-Session-ID", required = false) String sessionId,
-            @AuthenticationPrincipal Jwt jwt, @PathVariable UUID shareId) {
+            @AuthenticationPrincipal Jwt jwt, @PathVariable UUID shareId, HttpServletResponse response) {
+        privateNoStore(response);
         shareService.revokeShare(sessionId, authService.customerId(jwt), shareId);
+    }
+
+    private static void privateNoStore(HttpServletResponse response) {
+        response.setHeader("Cache-Control", "private, no-store");
+        response.setHeader("Vary", "Authorization, X-Session-ID");
     }
 }

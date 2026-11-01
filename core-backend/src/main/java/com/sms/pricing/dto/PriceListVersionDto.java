@@ -22,6 +22,6 @@ public record PriceListVersionDto(
         Instant createdAt,
         UUID createdBy,
         String viewUrl,
-        String downloadUrl
+        String downloadUrl,
+        String downloadPdfUrl
 ) {}
-

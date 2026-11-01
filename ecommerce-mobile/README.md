@@ -59,6 +59,33 @@ refresh decisions made later by dispatch. Missing schedules or API errors are
 shown explicitly, without simulated reschedule success.
 Apply V35/V36 and set planned dispatch times in management before use.
 
+## Shared wishlist and gift intent (P.27)
+
+Customers can create a 30-day wishlist snapshot and share it with a link.
+Recipients can view gifts without login and place one-item gift intents; these
+are not purchases or inventory holds. A private cancellation key is shown and
+saved on the recipient's device. The owner can revoke a share; revoked and
+expired links stop working. See the [web guide](../ecommerce-web/README.md#shared-wishlist-and-gift-intent-p27)
+for privacy, guest ownership, and API details.
+
+Set `PUBLIC_STOREFRONT_URL` to the production HTTPS origin in release builds.
+Android builds also need `PUBLIC_STOREFRONT_HOST` set to that origin's hostname.
+In PowerShell:
+
+```powershell
+$env:PUBLIC_STOREFRONT_HOST = "shop.example.com"
+flutter build appbundle --release --dart-define=PUBLIC_STOREFRONT_URL=https://shop.example.com --dart-define=API_BASE_URL=https://api.example.com/api/v1/storefront
+```
+
+For iOS, set Xcode build setting `PUBLIC_STOREFRONT_HOST` to the same hostname
+for every configuration before archiving, and pass the HTTPS origin using
+`--dart-define=PUBLIC_STOREFRONT_URL=...`. `invalid.local` is only a placeholder;
+it cannot receive verified app links. Serve real Android
+`/.well-known/assetlinks.json` (including release signing fingerprint) and iOS
+`/.well-known/apple-app-site-association` (including Apple Team ID) from that
+origin over HTTPS without redirects. Until deployed and verified, links open
+the web storefront. Apply backend migration V37 before enabling share APIs.
+
 ## Validation
 
 After restoring dependencies with `flutter pub get`:

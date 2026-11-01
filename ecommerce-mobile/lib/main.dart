@@ -71,10 +71,6 @@ class _SmsStorefrontAppState extends ConsumerState<SmsStorefrontApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: _navigatorKey,
-      // Plugin owns HTTPS links and Supabase owns its login callback.
-      onGenerateInitialRoutes: (_) => [
-        MaterialPageRoute<void>(builder: (_) => const MainNavScreen()),
-      ],
       title: 'SMS Mart Mobile',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,

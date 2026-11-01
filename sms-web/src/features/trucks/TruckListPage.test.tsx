@@ -130,6 +130,14 @@ vi.mock("./hooks", () => ({
   useUpdateDriverLicense: () => ({ mutateAsync: vi.fn() }),
   useDeleteDriverLicense: () => ({ mutateAsync: vi.fn() }),
   useSendLicenseRenewalReminder: () => ({ mutateAsync: vi.fn() }),
+  useMaintenanceSchedules: () => ({ data: [], isLoading: false }),
+  useCreateMaintenanceSchedule: () => ({ mutateAsync: vi.fn() }),
+  useUpdateMaintenanceScheduleStatus: () => ({ mutateAsync: vi.fn() }),
+  useFuelLogs: () => ({ data: [], isLoading: false }),
+  useRecordFuelLog: () => ({ mutateAsync: vi.fn() }),
+  useIncidentReports: () => ({ data: [], isLoading: false }),
+  useReportIncident: () => ({ mutateAsync: vi.fn() }),
+  useUpdateIncidentStatus: () => ({ mutateAsync: vi.fn() }),
 }));
 
 vi.mock("../stores/hooks", () => ({

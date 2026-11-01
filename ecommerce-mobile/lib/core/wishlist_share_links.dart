@@ -9,7 +9,7 @@ class WishlistShareLinks {
   ]);
 
   static bool safeToken(String token) =>
-      RegExp(r'^[A-Za-z0-9_-]{1,256}$').hasMatch(token);
+      RegExp(r'^[A-Za-z0-9_-]{43}$').hasMatch(token);
 
   Uri get origin {
     final uri = Uri.tryParse(publicUrl);
@@ -46,9 +46,8 @@ class WishlistShareLinks {
       return null;
     }
     // Check the raw path too: encoded separators/tokens are not accepted.
-    final match = RegExp(
-      r'^/wishlist/share/([A-Za-z0-9_-]{1,256})$',
-    ).firstMatch(uri.path);
+    final match = RegExp(r'^/wishlist/share/([A-Za-z0-9_-]{43})$')
+        .firstMatch(uri.path);
     return match?.group(1);
   }
 }

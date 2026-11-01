@@ -92,7 +92,8 @@ void main() {
         expect(find.text('Salesperson Work Center'), findsOneWidget);
         expect(find.byType(Card), findsWidgets);
         expect(find.byType(LinearProgressIndicator), findsOneWidget);
-        expect(find.textContaining('Target: Rp 50,000,000'), findsOneWidget);
+        expect(find.textContaining('Volume: Rp'), findsOneWidget);
+        expect(find.text('BRONZE'), findsOneWidget);
         expect(find.textContaining('Estimated Commission:'), findsOneWidget);
       },
     );

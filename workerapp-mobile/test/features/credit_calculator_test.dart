@@ -120,6 +120,52 @@ void main() {
         expect(shareText, contains('*10 Bulan*: Rp 490.000 / bln'));
       },
     );
+
+    test('G.15: Multi-Product Bundle combining TV and Sofa with aggregated DP and shared schedule', () {
+      final items = [
+        const BundleItem(
+          id: '1',
+          name: 'Smart TV 55 Inch',
+          category: 'Elektronik',
+          quantity: 1,
+          hargaDasar: 5000000,
+          cashPrice: 5500000,
+        ),
+        const BundleItem(
+          id: '2',
+          name: 'Sofa Bed L-Shape',
+          category: 'Furnitur',
+          quantity: 1,
+          hargaDasar: 3500000,
+          cashPrice: 4000000,
+        ),
+      ];
+
+      final bundle = CreditCalculatorService.simulateBundle(
+        items: items,
+        terms: const [10, 12, 15],
+      );
+
+      expect(bundle.totalHargaDasar, 8500000.0);
+      expect(bundle.bundleDiscount, 0.0);
+      expect(bundle.netHargaDasar, 8500000.0);
+      expect(bundle.downPayment, 2500000.0); // 8.5M bracket
+      expect(bundle.isAutoDp, true);
+
+      final term10 = bundle.bundleTerms.firstWhere((t) => t.termMonths == 10);
+      expect(term10.monthlyInstallment, 725000.0);
+      expect(bundle.separateTotalMonthly[10], 910000.0);
+      expect(bundle.monthlySavings[10], 185000.0);
+
+      final shareText = CreditCalculatorService.generateBundleShareSummary(
+        simulation: bundle,
+        storeName: 'Showroom Pusat',
+      );
+      expect(shareText, contains('SIMULASI KREDIT PAKET BUNDLE SHOWROOM'));
+      expect(shareText, contains('Smart TV 55 Inch'));
+      expect(shareText, contains('Sofa Bed L-Shape'));
+      expect(shareText, contains('Hemat Rp 185.000/bln!'));
+    });
   });
 
   group('Credit Calculator Widget Tests', () {
@@ -164,6 +210,32 @@ void main() {
 
         expect(find.text('Credit Calculator & Simulation'), findsOneWidget);
         expect(find.text('Open'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'G.15: Switches between single simulation and showroom bundle simulator',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1400);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        await tester.pumpWidget(
+          createTestWidget(const CreditCalculatorScreen()),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Paket Bundle Showroom'), findsOneWidget);
+
+        // Tap Paket Bundle Showroom segment
+        await tester.tap(find.text('Paket Bundle Showroom'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Multi-Product Credit Bundle Simulator'), findsOneWidget);
+        expect(find.text('Smart TV 55 Inch UHD'), findsOneWidget);
+        expect(find.text('Sofa Bed L-Shape Scandinavian'), findsOneWidget);
+        expect(find.textContaining('ANGSURAN BULANAN SATU KONTRAK'), findsOneWidget);
       },
     );
   });

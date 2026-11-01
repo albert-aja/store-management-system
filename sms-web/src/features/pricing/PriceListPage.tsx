@@ -33,6 +33,7 @@ import {
   Alert,
 } from "@mui/material";
 import PrintIcon from "@mui/icons-material/Print";
+import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import SearchIcon from "@mui/icons-material/Search";
 import PriceCheckIcon from "@mui/icons-material/PriceCheck";
@@ -42,6 +43,8 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VerifiedIcon from "@mui/icons-material/Verified";
+import CalculateIcon from "@mui/icons-material/Calculate";
+import CreditCalculatorTab from "./CreditCalculatorTab";
 import { useStores } from "../stores/hooks";
 import {
   usePriceList,
@@ -91,7 +94,7 @@ function formatFileSize(bytes?: number | null): string {
 export default function PriceListPage() {
   const { data: stores } = useStores();
   const [selectedStoreId, setSelectedStoreId] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<"catalog" | "versioning">("catalog");
+  const [activeTab, setActiveTab] = useState<"catalog" | "versioning" | "calculator">("catalog");
   const [groupBy, setGroupBy] = useState<string>("category");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -164,6 +167,22 @@ export default function PriceListPage() {
       activeStoreId
     )}&groupBy=${encodeURIComponent(groupBy)}&validFrom=${encodeURIComponent(validFromDate)}`;
     window.open(printUrl, "_blank");
+  };
+
+  // Handle Server-Side A4 PDF Download via Headless Chromium (G.21)
+  const handleDownloadA4Pdf = () => {
+    if (!activeStoreId) return;
+    const pdfUrl = `/api/stores/${encodeURIComponent(
+      activeStoreId
+    )}/pricing/price-list/pdf?groupBy=${encodeURIComponent(
+      groupBy
+    )}&validFrom=${encodeURIComponent(validFromDate)}`;
+    const link = document.createElement("a");
+    link.href = pdfUrl;
+    link.setAttribute("download", `price-list-${activeStoreId}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Handle Download Stored Version directly without regeneration
@@ -407,6 +426,16 @@ export default function PriceListPage() {
 
           <Button
             variant="outlined"
+            color="error"
+            startIcon={<PictureAsPdfIcon />}
+            onClick={handleDownloadA4Pdf}
+            disabled={!activeStoreId || isLoading}
+          >
+            {t("Unduh PDF (A4)")}
+          </Button>
+
+          <Button
+            variant="outlined"
             color="success"
             startIcon={<FileDownloadIcon />}
             onClick={handleExportExcel}
@@ -461,6 +490,13 @@ export default function PriceListPage() {
             </Box>
           }
           icon={<HistoryIcon />}
+          iconPosition="start"
+          sx={{ fontWeight: 700 }}
+        />
+        <Tab
+          value="calculator"
+          label={t("Kalkulator & Simulator Bundle")}
+          icon={<CalculateIcon />}
           iconPosition="start"
           sx={{ fontWeight: 700 }}
         />
@@ -971,6 +1007,17 @@ export default function PriceListPage() {
                                 <FileDownloadIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
+                            <Tooltip title={t("Unduh Dokumen PDF (A4)")}>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                component="a"
+                                href={ver.downloadPdfUrl || `/api/stores/${activeStoreId}/pricing/price-list/versions/${ver.id}/pdf`}
+                                download={ver.versionCode + ".pdf"}
+                              >
+                                <PictureAsPdfIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                             <Tooltip title={t("Hapus Versi Ini")}>
                               <IconButton
                                 size="small"
@@ -991,6 +1038,13 @@ export default function PriceListPage() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* TAB 3: CREDIT CALCULATOR & SHOWROOM BUNDLE SIMULATOR */}
+      {activeTab === "calculator" && (
+        <CreditCalculatorTab
+          storeName={stores?.find((s) => s.id === activeStoreId)?.name}
+        />
       )}
 
       {/* Dialog: Generate & Store New Version */}

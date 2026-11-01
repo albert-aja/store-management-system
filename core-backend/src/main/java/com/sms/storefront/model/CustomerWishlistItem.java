@@ -47,4 +47,13 @@ public class CustomerWishlistItem extends BaseEntity {
 
     @Column(name = "notify_on_price_drop", nullable = false)
     private boolean notifyOnPriceDrop = true;
+
+    @Column(name = "alert_drop_threshold_percent", nullable = false, precision = 5, scale = 2)
+    private BigDecimal alertDropThresholdPercent = new BigDecimal("5.00");
+
+    @Column(name = "last_alerted_price", precision = 14, scale = 2)
+    private BigDecimal lastAlertedPrice;
+
+    @Column(name = "last_alerted_at")
+    private java.time.Instant lastAlertedAt;
 }

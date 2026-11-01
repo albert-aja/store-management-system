@@ -878,6 +878,22 @@ class AppText {
       isEnglish(context)
       ? 'Submit at least 24 hours before planned dispatch. Changes require dispatcher approval. All schedules use WIB (Asia/Jakarta).'
       : 'Ajukan paling lambat 24 jam sebelum rencana berangkat. Perubahan menunggu persetujuan dispatcher. Semua jadwal memakai WIB (Asia/Jakarta).';
+  static String viewInYourRoom(BuildContext? context) =>
+      isEnglish(context) ? 'View in Your Room (3D / AR)' : 'Lihat di Ruangan Anda (3D / AR)';
+  static String arRoomPreview(BuildContext? context) =>
+      isEnglish(context) ? '3D & AR Room Preview' : 'Pratinjau Ruangan 3D & AR';
+  static String checkRoomClearance(BuildContext? context) =>
+      isEnglish(context) ? 'Check Room Clearance' : 'Cek Ukuran Ruangan';
+  static String realisticDimensions(BuildContext? context) =>
+      isEnglish(context) ? 'Realistic Dimensions' : 'Dimensi Realistik';
+  static String roomLengthCm(BuildContext? context) =>
+      isEnglish(context) ? 'Room Length (cm)' : 'Panjang Ruangan (cm)';
+  static String roomWidthCm(BuildContext? context) =>
+      isEnglish(context) ? 'Room Width (cm)' : 'Lebar Ruangan (cm)';
+  static String fitsRoom(BuildContext? context) =>
+      isEnglish(context) ? 'Fits Room' : 'Muat di Ruangan';
+  static String roomTooTight(BuildContext? context) =>
+      isEnglish(context) ? 'Space Too Tight' : 'Ruangan Terlalu Sempit';
 }
 
 bool isEnglish(BuildContext? context) =>

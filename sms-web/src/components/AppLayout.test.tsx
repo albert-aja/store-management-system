@@ -36,7 +36,11 @@ describe("management navigation", () => {
   it("keeps every management route, grouped navigation and selected detail route", async () => {
     renderLayout();
     const nav = screen.getByRole("navigation", { name: "Management navigation" });
-    expect(within(nav).getAllByRole("link")).toHaveLength(18);
+    expect(within(nav).getAllByRole("link")).toHaveLength(21);
+    expect(within(nav).getByRole("link", { name: "Operational Tasks" })).toHaveAttribute(
+      "href",
+      "/operational-tasks",
+    );
     expect(within(nav).getByRole("link", { name: "Customers" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("main")).toHaveAttribute("id", "management-main");
     await userEvent.click(within(nav).getByRole("link", { name: "Fleet & Tracking" }));

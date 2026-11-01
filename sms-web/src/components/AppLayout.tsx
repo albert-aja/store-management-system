@@ -39,6 +39,8 @@ import BusinessIcon from "@mui/icons-material/Business";
 import ReceiptIcon from "@mui/icons-material/Receipt";
 import NavigationIcon from "@mui/icons-material/Navigation";
 import PriceCheckIcon from "@mui/icons-material/PriceCheck";
+import MilitaryTechIcon from "@mui/icons-material/MilitaryTech";
+import AssignmentIcon from "@mui/icons-material/Assignment";
 import LogoutIcon from "@mui/icons-material/Logout";
 import CloseIcon from "@mui/icons-material/Close";
 import { Link as RouterLink, useLocation } from "react-router-dom";
@@ -67,6 +69,8 @@ const TABS = [
   { path: "/expenses", label: "Expenses & Budget", icon: <ReceiptLongIcon fontSize="small" /> },
   { path: "/returns", label: "Returns & Warranty", icon: <AssignmentReturnIcon fontSize="small" /> },
   { path: "/payroll", label: "HR & Payroll", icon: <BadgeIcon fontSize="small" /> },
+  { path: "/operational-tasks", label: "Operational Tasks", icon: <AssignmentIcon fontSize="small" /> },
+    { path: "/commission-tiers", label: "Commission Tiers", icon: <MilitaryTechIcon fontSize="small" /> },
   { path: "/reports", label: "Reports", icon: <AssessmentIcon fontSize="small" /> },
   { path: "/employees", label: "Employees", icon: <GroupIcon fontSize="small" /> },
   { path: "/roles", label: "Roles", icon: <SecurityIcon fontSize="small" /> },
@@ -76,8 +80,8 @@ const TABS = [
 const NAV_GROUPS = [
   { label: "Workspace", paths: ["/", "/reports"] },
   { label: "Commerce", paths: ["/customers", "/products", "/price-list", "/sales-orders", "/inventory"] },
-  { label: "Operations", paths: ["/trucks", "/suppliers", "/purchase-orders", "/delivery-trips", "/fleet", "/returns"] },
-  { label: "Finance & people", paths: ["/finance", "/expenses", "/payroll", "/employees"] },
+  { label: "Operations", paths: ["/operational-tasks", "/trucks", "/suppliers", "/purchase-orders", "/delivery-trips", "/fleet", "/returns"] },
+  { label: "Finance & people", paths: ["/finance", "/expenses", "/payroll", "/commission-tiers", "/employees"] },
   { label: "Administration", paths: ["/roles", "/approvals"] },
 ] as const;
 const SIDEBAR_WIDTH = 248;

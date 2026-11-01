@@ -44,6 +44,7 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LocalOfferIcon from "@mui/icons-material/LocalOffer";
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
 import HistoryIcon from "@mui/icons-material/History";
+import PrintIcon from "@mui/icons-material/Print";
 
 import { useAuthStore } from "../../store/authStore";
 import DocumentsPanel from "../documents/DocumentsPanel";
@@ -292,6 +293,15 @@ export default function CustomerDetailPage() {
               }}
             >
               {t("Store Credit")}
+            </Button>
+            <Button
+              variant="outlined"
+              color="info"
+              size="small"
+              startIcon={<PrintIcon />}
+              onClick={() => window.open(`/api/documents/print/customer-statement/${customer.id}`, "_blank")}
+            >
+              {t("Cetak Statement (PDF)")}
             </Button>
           </Box>
         </Box>

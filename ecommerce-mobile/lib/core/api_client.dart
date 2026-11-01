@@ -1200,4 +1200,37 @@ class ApiClient {
       return updated;
     }
   }
+
+  Future<WishlistItem> updateWishlistAlertSettings(
+    String itemId, {
+    bool? notifyOnPriceDrop,
+    double? thresholdPercent,
+  }) async {
+    try {
+      final data = <String, dynamic>{};
+      if (notifyOnPriceDrop != null) {
+        data['notifyOnPriceDrop'] = notifyOnPriceDrop;
+      }
+      if (thresholdPercent != null) {
+        data['alertDropThresholdPercent'] = thresholdPercent;
+      }
+      final res = await _dio.put(
+        '/wishlist/items/$itemId/alert-settings',
+        data: data,
+      );
+      return WishlistItem.fromJson(res.data);
+    } on DioException catch (error) {
+      if (_accessToken != null || error.response != null) rethrow;
+      final idx = _mockWishlist.indexWhere((i) => i.id == itemId);
+      if (idx == -1) throw StateError('Item not found');
+      final item = _mockWishlist[idx];
+      final updated = item.copyWith(
+        notifyOnPriceDrop: notifyOnPriceDrop ?? item.notifyOnPriceDrop,
+        alertDropThresholdPercent:
+            thresholdPercent ?? item.alertDropThresholdPercent,
+      );
+      _mockWishlist[idx] = updated;
+      return updated;
+    }
+  }
 }

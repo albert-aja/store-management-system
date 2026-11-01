@@ -97,3 +97,61 @@ export interface PeriodComparisonResponse {
   primaryAging: CollectionAgingBucket[];
   comparisonAging: CollectionAgingBucket[];
 }
+
+
+// ── Scheduled Reports Types (Task G.9) ───────────────────────────────────────
+
+export type ScheduledReportType = 'FINANCIAL_AGING' | 'STOCK_BALANCE' | 'ALL_COMBINED';
+export type ScheduleFrequency = 'DAILY' | 'WEEKLY';
+export type ScheduledExecutionStatus = 'SUCCESS' | 'FAILED' | 'RUNNING';
+
+export interface ScheduledReportConfig {
+  id: string;
+  name: string;
+  reportType: ScheduledReportType;
+  frequency: ScheduleFrequency;
+  dayOfWeek?: string | null;
+  dispatchTime: string;
+  storeId?: string | null;
+  storeName?: string | null;
+  targetRole: string;
+  customRecipientEmails?: string | null;
+  enabled: boolean;
+  lastRunAt?: string | null;
+  lastStatus?: ScheduledExecutionStatus | null;
+  lastErrorMessage?: string | null;
+  createdAt?: string;
+}
+
+export interface ScheduledReportLog {
+  id: string;
+  configId?: string | null;
+  configName: string;
+  executedAt: string;
+  reportType: ScheduledReportType;
+  status: ScheduledExecutionStatus;
+  recipientsCount: number;
+  recipientEmails?: string | null;
+  attachmentsGenerated?: string | null;
+  durationMs: number;
+  errorMessage?: string | null;
+}
+
+export interface RecipientPreview {
+  count: number;
+  storeId?: string | null;
+  storeName: string;
+  targetRole: string;
+  emails: string[];
+  managerNames: string[];
+}
+
+export interface TriggerDispatchResult {
+  success: boolean;
+  message: string;
+  logId: string;
+  recipientsDispatched: number;
+  recipientEmails: string[];
+  attachments: string[];
+  durationMs: number;
+}

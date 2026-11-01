@@ -117,6 +117,7 @@ public class PriceListVersionService {
         UUID versionId = entity.getId();
         String viewUrl = String.format("/api/stores/%s/pricing/price-list/versions/%s/view", storeId, versionId);
         String downloadUrl = String.format("/api/stores/%s/pricing/price-list/versions/%s/download", storeId, versionId);
+        String downloadPdfUrl = String.format("/api/stores/%s/pricing/price-list/versions/%s/pdf", storeId, versionId);
 
         return PriceListVersionDto.builder()
                 .id(entity.getId())
@@ -135,6 +136,7 @@ public class PriceListVersionService {
                 .createdBy(entity.getCreatedBy())
                 .viewUrl(viewUrl)
                 .downloadUrl(downloadUrl)
+                .downloadPdfUrl(downloadPdfUrl)
                 .build();
     }
 }

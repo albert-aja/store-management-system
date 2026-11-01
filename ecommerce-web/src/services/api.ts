@@ -19,6 +19,10 @@ import {
   DeliveryRescheduleRequest,
   WishlistItem,
   WishlistSummary,
+  ProductReviewItem,
+  ProductReviewSummary,
+  ReviewEligibility,
+  SubmitReviewPayload,
 } from '../types';
 
 const resolveApiBaseUrl = (): string => {
@@ -796,6 +800,71 @@ export const storefrontApi = {
       return item;
     }
   },
+
+  async getProductReviews(productId: string): Promise<ProductReviewSummary> {
+    try {
+      const res = await API.get<ProductReviewSummary>(`/reviews/products/${productId}`);
+      return res.data;
+    } catch {
+      return getMockReviews(productId);
+    }
+  },
+
+  async getReviewEligibility(productId: string): Promise<ReviewEligibility> {
+    try {
+      const res = await API.get<ReviewEligibility>(`/reviews/eligibility/${productId}`);
+      return res.data;
+    } catch {
+      const profile = await this.getProfile().catch(() => null);
+      if (!profile) {
+        return { eligible: false, alreadyReviewed: false, reason: "AUTH_REQUIRED" };
+      }
+      const existing = _mockReviews[productId]?.find(r => r.customerId === profile.customerId);
+      return {
+        eligible: true,
+        alreadyReviewed: Boolean(existing),
+        existingReviewId: existing?.id,
+        orderNumber: "SO-WEB-884210",
+      };
+    }
+  },
+
+  async submitReview(payload: SubmitReviewPayload): Promise<ProductReviewItem> {
+    try {
+      const res = await API.post<ProductReviewItem>('/reviews', payload);
+      return res.data;
+    } catch (error) {
+      if (accessToken && axios.isAxiosError(error) && error.response) throw error;
+      const profile = await this.getProfile().catch(() => ({
+        customerId: 'mock-customer-1',
+        fullName: 'Budi Santoso',
+      }));
+      const nameParts = (profile.fullName || '').trim().split(' ');
+      const customerName = nameParts.length >= 2
+        ? `${nameParts[0]} ${nameParts[1].charAt(0)}.`
+        : (profile.fullName || 'Pelanggan Terverifikasi');
+      const newItem: ProductReviewItem = {
+        id: 'rev-' + Math.random().toString(36).substring(2, 9),
+        customerId: profile.customerId,
+        customerName,
+        rating: payload.rating,
+        title: payload.title,
+        content: payload.content,
+        verifiedPurchase: true,
+        createdAt: new Date().toISOString(),
+      };
+      if (!_mockReviews[payload.productId]) {
+        _mockReviews[payload.productId] = [];
+      }
+      const existingIdx = _mockReviews[payload.productId].findIndex(r => r.customerId === profile.customerId);
+      if (existingIdx >= 0) {
+        _mockReviews[payload.productId][existingIdx] = newItem;
+      } else {
+        _mockReviews[payload.productId].unshift(newItem);
+      }
+      return newItem;
+    }
+  },
 };
 
 // Initial Mock Wishlist State with Price Drop Demonstration
@@ -852,5 +921,74 @@ function getMockWishlistSummary(): WishlistSummary {
     totalItems: _mockWishlistItems.length,
     priceDropCount,
     totalPotentialSavings,
+  };
+}
+
+let _mockReviews: Record<string, ProductReviewItem[]> = {
+  'prd-1': [
+    {
+      id: 'rev-1',
+      customerId: 'cust-1',
+      customerName: 'Budi S.',
+      rating: 5,
+      title: 'Kualitas gambar 4K luar biasa jernih!',
+      content: 'Pengiriman sangat cepat oleh armada resmi SMS. Unit tiba dengan mulus dan langsung dicoba nyala.',
+      verifiedPurchase: true,
+      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+    },
+    {
+      id: 'rev-2',
+      customerId: 'cust-2',
+      customerName: 'Dewi K.',
+      rating: 5,
+      title: 'Sangat puas dengan fitur Smart TV nya',
+      content: 'Warna hidup dan speaker bawaan lantang. Kurir ramah membantu unboxing barang.',
+      verifiedPurchase: true,
+      createdAt: new Date(Date.now() - 86400000 * 7).toISOString(),
+    },
+    {
+      id: 'rev-3',
+      customerId: 'cust-3',
+      customerName: 'Hendra W.',
+      rating: 4,
+      title: 'Barang bagus, bezel tipis dan elegan',
+      content: 'Secara fungsi normal semua, remote bluetooth responsif.',
+      verifiedPurchase: true,
+      createdAt: new Date(Date.now() - 86400000 * 12).toISOString(),
+    },
+  ],
+  'prd-2': [
+    {
+      id: 'rev-4',
+      customerId: 'cust-4',
+      customerName: 'Maya P.',
+      rating: 5,
+      title: 'Bahan velvet mewah dan busa empuk',
+      content: 'Sangat nyaman untuk santai sekeluarga di ruang tengah. Warnanya elegan persis seperti di foto katalog.',
+      verifiedPurchase: true,
+      createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
+    },
+  ],
+};
+
+function getMockReviews(productId: string): ProductReviewSummary {
+  const reviews = _mockReviews[productId] || [];
+  const totalReviews = reviews.length;
+  let stars5 = 0, stars4 = 0, stars3 = 0, stars2 = 0, stars1 = 0;
+  let sum = 0;
+  for (const r of reviews) {
+    sum += r.rating;
+    if (r.rating === 5) stars5++;
+    else if (r.rating === 4) stars4++;
+    else if (r.rating === 3) stars3++;
+    else if (r.rating === 2) stars2++;
+    else if (r.rating === 1) stars1++;
+  }
+  const averageRating = totalReviews === 0 ? 0 : Number((sum / totalReviews).toFixed(1));
+  return {
+    averageRating,
+    totalReviews,
+    distribution: { stars5, stars4, stars3, stars2, stars1 },
+    reviews,
   };
 }

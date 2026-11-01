@@ -27,4 +27,27 @@ public interface EmployeeRoleRepository extends JpaRepository<EmployeeRole, UUID
             @Param("storeId") UUID storeId,
             @Param("permissionCode") String permissionCode,
             @Param("employmentStatus") EmploymentStatus employmentStatus);
+
+    @Query("""
+            select distinct er.employee
+            from EmployeeRole er
+            where er.role.code = :roleCode
+              and er.employee.employmentStatus = :employmentStatus
+            """)
+    List<Employee> findEmployeesByRoleCode(
+            @Param("roleCode") String roleCode,
+            @Param("employmentStatus") EmploymentStatus employmentStatus);
+
+    @Query("""
+            select distinct er.employee
+            from EmployeeRole er
+            join EmployeeStore es on es.employee.id = er.employee.id
+            where er.role.code = :roleCode
+              and es.store.id = :storeId
+              and er.employee.employmentStatus = :employmentStatus
+            """)
+    List<Employee> findEmployeesByRoleCodeAndStoreId(
+            @Param("roleCode") String roleCode,
+            @Param("storeId") UUID storeId,
+            @Param("employmentStatus") EmploymentStatus employmentStatus);
 }

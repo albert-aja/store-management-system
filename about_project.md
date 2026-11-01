@@ -1,7 +1,7 @@
 # Store Management System (SMS) — Integrated Retail Ecosystem Architecture & Master Project Documentation
 
-> **Version**: 3.22 (Server-Side Price List Document Versioning & Stored Snapshot Engine `[G.18]`; Physical Valid-From Date Stamping; Document Versioning Archive Menu; Canonical Todo List Strictly Open Items Only)
-> **Last Updated**: 2026-10-31  
+> **Version**: 3.33 (Employee Operational Task Assignment, Due-Date Tracking & Collaboration Hub [L.4]; Web & Worker Mobile App Integration; Delivery Fleet Asset & Maintenance Governance)
+> **Last Updated**: 2026-11-01
 > **Architecture**: Modular Monolith (Spring Boot 4.1 + PostgreSQL 16 / PostGIS + Redis + WebSocket) • Integrated 4-Application Ecosystem: Management Web SPA (React 19) • E-commerce Web (Next.js 15 / React 19) • E-commerce Mobile App (Flutter 3.44) • Worker Mobile App (Flutter 3.44)
 
 ---
@@ -892,6 +892,13 @@ The following durable requirements were retained from the consolidated business 
 - Product/component/equipment procurement uses PO and receiving, not operating expense. Expenses and later-paid bills are distinct. Expense evidence (receipt/photo) is required where applicable. Budget overrun must not block recording a real expense; it triggers the applicable additional-budget approval, including owner escalation where required.
 - Payroll is prepared and verified from source records, approved under the configured authority, then frozen when finalized. Worker App displays the employee's own results; historical payroll does not change when later rules or assignments change. Exact cutoff, commission, target, allowance, and statutory calculation rules are configurable/open where not finalized.
 - Store cash may be physically held or temporarily held by authorized staff; account holder does not determine business ownership. The business does not currently require dedicated store bank accounts or a general inter-store money-transfer workflow.
+- **Salesperson Monthly Commission Tiers & Showroom Leaderboard Privacy (`[G.17]`)**:
+  - Showroom salesperson commission operates on a tiered volume progression based on confirmed personal monthly sales volume within the monthly payroll/sales cutoff (e.g., Bronze, Silver, Gold, Platinum brackets).
+  - Terminology must strictly reflect professional retail performance and money management; gamification buzzwords (e.g., "gamified", "badges", "XP") are prohibited.
+  - **Strict Role-Based Access Control (RBAC) & Worker App Scoping**:
+    - Salesperson role on Worker App: Can ONLY view their own personal monthly sales actuals, active commission tier, remaining volume to next tier threshold, and projected commission payout. Peer leaderboards and store rankings are strictly hidden to preserve employee morale, avoid unhealthy friction, and uphold internal privacy.
+    - Supervisor (SPV) / Branch Manager role on Worker App: Permitted to view the showroom floor leaderboard and team ranking across salespersons for operational supervision, performance coaching, and shift balancing.
+  - **Money Management Invariant (Non-Banking)**: Commission projections and tier tracking are purely operational retail money management tools supporting compensation calculations and payroll cutoff preparation. The application is strictly not a banking app; it handles no deposit accounts, customer wallets, or banking transactions.
 
 #### Decision boundaries and records
 
@@ -1020,10 +1027,53 @@ Status Legend:
 - **Purpose**: Broadcast organizational announcements, store SOP updates, commission tier changes, and regulatory notices across web and mobile work centers.
 - **Scope**: Broadcast scheduling, target audience filtering (by role or store), acknowledgment tracking ("Mark as Read / Acknowledged").
 
-#### Feature 1.7: Employee-to-Employee Task Assignment & Collaboration Hub `[PROPOSED]` (Backlog `[L.4]`)
+#### Feature 1.7: Employee-to-Employee Task Assignment & Collaboration Hub `[IMPLEMENTED]` (Backlog `[L.4]`)
 
-- **Purpose**: Internal ad-hoc task assignment between managers, supervisors, and floor staff (e.g., "Prepare display unit for Customer X", "Investigate discrepancy in Bay 4").
-- **Scope**: Task creation with due dates, priority levels, document attachments, comment threads, and push notification triggers.
+- **Purpose**: Internal operational task management and collaboration platform connecting store managers, supervisors, floor salespersons, warehouse pickers, and field technicians. Streamlines ad-hoc store assignments (e.g., *Persiapan Display Sofa L-Shape*, *Audit Stok Meja Makan di Bay 3*, *Pengecekan Engsel Lemari Defect*) with due-date enforcement, priority flags, completion verification notes, and real-time discussion feeds.
+- **Enterprise Money Management Invariant (Strict Non-Banking Rule)**:
+  - Strictly an internal retail operation and showroom workflow tracking module to ensure merchandise condition, inventory audit accuracy, and facility maintenance.
+  - Contains no banking facilities, credit loans, wallet escrows, or payment gateway transactions.
+- **Backend Architecture (`core-backend`)**:
+  - **Database Migration (`V45__employee_operational_tasks.sql`)**:
+    - Table `operational_task`: `id` (UUID PK), `task_number` (VARCHAR(40) UNIQUE, format `TSK-yyyyMM-XXXX`), `title`, `description`, `category` (enum: `SHOWROOM_DISPLAY`, `STOCK_AUDIT`, `CUSTOMER_SERVICE`, `DOCUMENTATION`, `MAINTENANCE`, `GENERAL`), `priority` (enum: `LOW`, `MEDIUM`, `HIGH`, `URGENT`), `status` (enum: `PENDING`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`), `due_date` (TIMESTAMPTZ), `assigner_employee_id` (FK employee), `assignee_employee_id` (FK employee), `store_id` (FK store), `completed_at` (TIMESTAMPTZ), `completion_notes` (TEXT), `created_at`, `updated_at`.
+    - Table `task_comment`: `id` (UUID PK), `task_id` (FK operational_task CASCADE), `author_employee_id` (FK employee), `message` (TEXT), `attachment_url` (VARCHAR(500)), `created_at`, `updated_at`.
+    - Indexes on `assignee_employee_id`, `assigner_employee_id`, `status`, `due_date`, `store_id`, and `task_comment(task_id)`.
+  - **Repositories & Service (`OperationalTaskRepository`, `TaskCommentRepository`, `OperationalTaskService`)**:
+    - `findFilteredTasks`: Dynamic multi-criteria JPQL query filtering by store, status, priority, category, assignee, assigner, overdue status, and search keyword.
+    - `createTask`: Generates unique sequential task number (`TSK-yyyyMM-XXXX`), resolves assigner from auth principal context, validates assignee existence, and persists task with initial `PENDING` status.
+    - `updateTaskStatus`: Manages status transitions (`IN_PROGRESS`, `COMPLETED`, `CANCELLED`), records `completedAt = Instant.now()`, and saves completion notes.
+    - `addComment`: Appends collaboration comments to the task discussion thread.
+    - `getSummary`: Aggregates KPI metric counts (total, pending, in-progress, completed, overdue, myPendingTasks).
+  - **REST Endpoints (`OperationalTaskController.java` at `/api/v1/tasks`)**:
+    - `GET /api/v1/tasks`: Filtered task list (`OperationalTaskDto`).
+    - `GET /api/v1/tasks/summary`: Metric summary cards.
+    - `GET /api/v1/tasks/{id}`: Detailed task DTO with full comment thread.
+    - `POST /api/v1/tasks`: Task creation endpoint.
+    - `PATCH /api/v1/tasks/{id}/status`: Status & completion notes updater.
+    - `POST /api/v1/tasks/{id}/comments`: Task discussion comment poster.
+  - **Verification**: `OperationalTaskServiceTest.java` (JUnit 5) passing 5/5 tests.
+- **Management Web Application (`sms-web`)**:
+  - **Page (`src/features/tasks/OperationalTasksPage.tsx`)**:
+    - Header with KPI cards (*Total Tasks, Pending, In Progress, Completed, Overdue*).
+    - Multi-axis filter bar: Search query, Category dropdown, Status dropdown, Priority dropdown, Store dropdown.
+    - Data table displaying task number, title, category chip, priority badge (Urgent/High red, Medium orange, Low info), status badge, assignee/assigner names, due date with overdue warning icon, comments count chip, and action button.
+    - Create Task modal dialog with form validation for title, description, category, priority, assignee employee selection, store, and due date.
+    - Task Details & Collaboration dialog: Full metadata overview, status transition buttons (*Mulai Kerjakan*, *Tandai Selesai* with completion notes modal, *Batalkan Tugas*), and interactive discussion feed with real-time comment posting.
+  - **Navigation Integration (`AppLayout.tsx`, `App.tsx`)**:
+    - Added `/operational-tasks` route under protected session and added "Operational Tasks" link under the Operations navigation group.
+  - **Localization (`locale.ts`)**:
+    - Fully localized across English and Indonesian dictionaries.
+  - **Verification**: `OperationalTasksPage.test.tsx` (Vitest) passing 4/4 tests and `AppLayout.test.tsx` passing 4/4 tests.
+- **Worker Mobile Application (`workerapp-mobile`)**:
+  - **Models & Providers (`operational_task_model.dart`, `operational_task_service.dart`, `operational_task_provider.dart`)**:
+    - Strong typing for task models, comments, and Riverpod Notifier state management.
+  - **Task Detail Screen (`operational_task_detail_screen.dart`)**:
+    - Mobile-optimized screen with category/priority chips, due-date alert, assignee cards, status action buttons (*Mulai Kerjakan*, *Tandai Selesai* modal dialog with notes input), and chat-style discussion thread with bottom message composer.
+  - **Hub Integration (`my_work_screen.dart`, `app_router.dart`)**:
+    - Integrated operational tasks into the worker's unified work agenda (`OPERATIONAL` type filter chip, task number reference, priority color-coding).
+    - Registered `/operational-task/:id` route in GoRouter.
+  - **Verification**: `operational_task_test.dart` passing 5/5 tests and clean `flutter analyze` (0 issues).
+- **Status**: `[DONE]`
 
 ---
 
@@ -1238,6 +1288,46 @@ Status Legend:
 
 ---
 
+#### Feature 3.9: Multi-Product Credit Bundle Simulator `[IMPLEMENTED]` (Backlog `[G.15]`)
+
+- **Purpose**: Interactive showroom bundling and quotation tool allowing salespersons and customers to combine disparate merchandise (e.g. Smart TV from Electronics and Sofa Bed from Furniture) into a single blended financed installment contract with an aggregated down payment (DP) and a single shared monthly installment schedule. Bundling eliminates redundant processing and multiple administrative handling fees, delivering demonstrable savings compared to executing separate single-item credit contracts.
+- **Enterprise Financing Formula & Blended Matrix**:
+  - **Aggregated Cash Base**: $P = \sum_{i} (\text{cashPrice}_i \times \text{qty}_i)$
+  - **Aggregated Down Payment**: $DP = \sum_{i} DP_i$ or percentage of aggregate base ($0\%, 10\%, 20\%, \dots$).
+  - **Net Financed Principal**: $h_1 = P - DP$.
+  - **Interest Margin Base**: $h_2 = h_1 \times (1 + \text{marginRate})$ where $\text{marginRate} \approx 23\%$ for 10-month standard retail credit.
+  - **Single Administrative Handling Fee**: $h_3 = h_2 + \text{handlingFee}$ (Rp 150.000 charged once across the entire bundled package, rather than $N \times \text{handlingFee}$).
+  - **Monthly Installment Base**: $h_4 = \frac{h_3}{T}$ where $T \in \{6, 10, 12, 15, 18, 24\}$ months.
+  - **Installment Rounding**: $\text{Installment} = \text{Round}(h_4 / 5) \times 5 + 5$ (rounded to nearest Rp 5.000 increment + Rp 5.000 buffer).
+  - **Prompt Payment Discount**: $15\%$ monthly discount deductible for on-time payment before cutoff date.
+- **Cross-Application Implementation**:
+  - **Core Backend (`core-backend`)**:
+    - Endpoints in `PricingController.java`: `POST /api/stores/{storeId}/pricing/calculate-bundle`.
+    - Service logic in `PriceCalculationService.java` (`calculateBundle`).
+    - DTO models: `BundleCalculationRequest.java`, `BundleCalculationResponse.java`, `BundleItemDto.java`.
+    - Verified with JUnit tests in `PriceCalculationServiceTest.java` (6/6 passing).
+  - **Worker Mobile App (`workerapp-mobile`)**:
+    - Integrated into `credit_calculator_screen.dart` and `credit_calculator_service.dart`.
+    - Segmented switcher: `Simulasi Satuan (Custom DP)` vs `Paket Bundle Showroom`.
+    - Quick preset selection (Ruang Tamu, Kamar Tidur, Dapur), dynamic item quantity adjustments, custom DP inputs, and transparent formula inspector.
+    - 1-tap WhatsApp proposal generator (`generateBundleShareSummary`) copying formatted quotation directly to clipboard.
+    - Verified with Flutter tests in `credit_calculator_test.dart` (8/8 passing).
+  - **Management Web SPA (`sms-web`)**:
+    - Added Tab 3 **Kalkulator Kredit Showroom** to `PriceListPage.tsx` powered by `CreditCalculatorTab.tsx`.
+    - Provides seamless switching between Single Unit / Deposit Negotiator and Multi-Product Showroom Bundling.
+    - Supports custom margin adjustments, admin fee controls, and live comparison table displaying monthly savings versus standalone contracts.
+    - Verified with Vitest tests in `priceCalculator.test.ts` (6/6 passing) and `PriceListPage.test.tsx` (6/6 passing).
+  - **E-Commerce Web (`ecommerce-web`)**:
+    - Dedicated customer-facing route `/bundle-simulator` (`BundleSimulatorPage.tsx`).
+    - Showroom bundling presets, quick catalog recommendations, interactive DP selector (0%, 10%, 20%, Custom), and tenor selector cards.
+    - 1-click **Tambah Semua ke Keranjang** and WhatsApp quotation link generator.
+    - Verified with Vitest tests in `bundleCalculator.test.ts` (3/3 passing) and `BundleSimulatorPage.test.tsx` (2/2 passing).
+- **Money Management Invariant (Non-Banking)**:
+  - This simulator is purely an enterprise retail operational financing calculator. The application does not process banking payments, loan underwriting, bank deposits, or electronic wallet funds.
+- **Status**: `[DONE]`
+
+---
+
 #### Feature 3.8: Server-Side Price List Document Versioning, Stored Snapshots & Physical Date Stamping Engine `[IMPLEMENTED]` (Backlog `[G.18]`)
 
 - **Purpose**: Persistently stores frozen document snapshots of price lists directly in the database server to eliminate redundant recalculation on repeated download triggers. When users click "Generate & Simpan ke Server", the system renders the official retail price list, stamps the "Berlaku mulai tanggal [DD MMMM YYYY]" at the bottom right of each category section, assigns a structured immutable version code (`PL-YYYYMMDD-XXX`), and stores the frozen HTML snapshot with metadata in `price_list_version`. For seamless UX, generation immediately initiates automatic download. Subsequent downloads ("Unduh Versi Tersimpan") fetch the stored snapshot in sub-milliseconds without triggering server recalculation. Older versions are never overwritten; instead, a dedicated "Riwayat Versi Dokumen (Document Versioning)" tab allows managers to inspect historical versions, preview/print, download, or selectively delete obsolete versions.
@@ -1358,7 +1448,7 @@ Status Legend:
 - **Web UI**: `StockUnitListPage.tsx` with high-performance virtualized MUI X DataGrid.
 - **Status**: `[DONE]`
 - **What Is Done**: Serial number indexing, state transitions, optimistic TanStack Query availability mutations.
-- **Proposed Enhancements**: Minimum and maximum safety stock thresholds; slow-moving inventory aging buckets; automatic reservation expiration releasing units if order remains unreleased; serialized unit condition grading history; warehouse spatial location management (warehouse, zone, aisle, rack, shelf, bin/bay) (`[I.8]`).
+- **Proposed Enhancements**: Minimum and maximum safety stock thresholds; slow-moving inventory aging buckets; automatic reservation expiration releasing units if order remains unreleased; serialized unit condition grading history; bulky goods warehouse floor zone & staging bay management.
 
 #### Feature 6.2: Immutable Stock Movement Ledger
 
@@ -1442,7 +1532,7 @@ Status Legend:
 - **What Is Done**: Trip scheduling, vehicle assignment, stop sequence ordering for own-driver delivery method.
 - **Multi-Fulfillment & Decision Orthogonality**: Binds specific `FulfillmentGroup` instances to delivery stops, supporting partial order deliveries (Decision A) without splitting parent sales orders.
 - **Employee Operational Adjustment Governance**: Dispatchers may suggest re-routing or adjustments, but must never silently override the customer's approved arrangement; customer consent and change history are audited.
-- **Proposed Enhancements**: Vehicle maintenance tracking (mileage, service intervals, oil changes) (`[L.5]`); vehicle fuel log tracking (`[L.5]`); operational expense tracking per trip (toll, parking, fuel allowance) (`[L.5]`).
+- **Implemented Fleet Enhancements**: Delivery fleet vehicle maintenance scheduler, fuel consumption log tracking, and incident damage reporting (`[L.5]` / Feature 18.21). Additional proposed trip expense allowances tracked under `[L.9]`.
 
 #### Feature 8.2: Interactive Delivery Route Map
 
@@ -1646,6 +1736,22 @@ Status Legend:
 - **What Is Done**: Clean HTML layout, itemized earnings/deductions, printable PDF layout.
 - **Proposed Enhancements**: Bulk PDF slip generation; password-protected PDF export (using employee DOB) for automated email delivery.
 
+#### Feature 12.5: Dynamic Store Commission Tier Configuration & Evaluation Engine (`[DONE]`, Backlog `[G.17]`, `[D.8]`)
+
+- **Purpose**: Dynamic sales volume tiered commission brackets configurable by Store Owner/Manager in Management Web, paired with personal salesperson performance calculation and scoped API endpoints.
+- **Backend**:
+  - Flyway migration `V42__sales_commission_tiers.sql`: Creates `commission_tier` table with baseline default tiers (Bronze: Rp 0 - Rp 30M @ 1.0%; Silver: Rp 30M - Rp 60M @ 1.5%; Gold: Rp 60M - Rp 100M @ 2.0%; Platinum: > Rp 100M @ 2.5%) supporting multi-store isolation and configurable colors/rates.
+  - Entity & Repositories: `CommissionTier.java`, `CommissionTierRepository.java` (`findByStoreIdOrStoreIdIsNullOrderByMinSalesVolumeAsc`).
+  - DTOs: `CommissionTierDto.java`, `CommissionTierRequest.java`, `SalespersonTierProgressResponse.java`.
+  - Service: `CommissionTierService.java` providing full CRUD operations and dynamic tier evaluation engine (`evaluateSalesVolume(...)`).
+  - Scoped Reporting: `ReportingService.getMySalesPerformance(...)` and `ReportingController.getMySalesPerformance(...)` (`GET /api/v1/reporting/sales-performance/my-tier`) returning caller-scoped monthly sales volume, active tier, rate, and progress delta.
+  - Controllers: `CommissionTierController.java` (`/api/v1/commission-tiers`) role-gated by `OWNER`, `MANAGER`, `ADMIN`.
+- **Web UI**:
+  - `src/features/payroll/CommissionTiersPage.tsx`: Dedicated management UI with visual tier KPI cards, tier table, and Add/Edit dialog validating min/max boundaries and percentage rates.
+  - `src/App.tsx` & `src/components/AppLayout.tsx`: Configured lazy route `/commission-tiers` and navigation tab under Finance & People.
+- **Status**: `[DONE]`
+- **What Is Done**: Dynamic store-level commission tier configuration, volume calculation engine, scoped security boundary preventing peer salesperson data leakage, and full Web management suite.
+
 ---
 
 ### Group 13: Executive Analytics, Dashboards & Export Center
@@ -1756,15 +1862,16 @@ Status Legend:
 - **Status**: `[DONE]`
 - **What Is Done**: Biometric availability check, prompt simulation, session unlock.
 
-#### Feature 14.7: Salesperson Mobile Work Center (`[DONE]`, Backlog `[M.4]`)
+#### Feature 14.7: Salesperson Mobile Work Center (`[DONE]`, Backlog `[M.4]`, `[G.17]`, `[D.8]`, `[M.10]`)
 
-- **Purpose**: Empower showroom and field sales staff with customer lookup, lead tracking, quotation generation, and sales quota progress tracking.
+- **Purpose**: Empower showroom and field sales staff with customer lookup, lead tracking, quotation generation, personal monthly sales quota & tiered commission tracking, and supervisor showroom leaderboard oversight.
 - **Mobile**: `sales_work_center_screen.dart`, `sales_order_detail_screen.dart`.
-- **Status**: `[DONE]`
-- **What Is Done**: Real-time sales actuals integration with `/api/v1/reporting/sales-performance`, monthly sales quota target configuration (default Rp 50.000.000 benchmark), visual linear progress indicator with percentage achievement and tier color coding, customer search, product catalog browser, and draft quotation generation.
-- **Proposed Enhancements**: Audio chime upon reaching monthly quota milestones; offline draft quote creation queue.
+- **Backend**: `ReportingController.java` (`/api/v1/reporting/sales-performance/my-tier`, `/api/v1/reporting/sales-performance`), `CommissionTierService.java`.
+- **Status**: `[DONE]` (Baseline Work Center, Dynamic Commission Tier Progress Tracker & SPV Leaderboard).
+- **What Is Done**: Real-time personal sales actuals integration with `/api/v1/reporting/sales-performance/my-tier`, personal sales and commission tier card with active tier badge (Bronze, Silver, Gold, Platinum), monthly volume progress bar, remaining delta to next tier, and projected commission payout. Role-gated "Showroom Leaderboard (SPV View)" expansion tile visible strictly to `SPV`, `MANAGER`, and `ADMIN` users; regular salespersons are strictly blocked from viewing peer rankings to maintain psychological safety and privacy. Customer search, product catalog browser, and draft quotation generation.
+- **Proposed Enhancements**: Sales Commission Tier Upgrade Forecast Simulator (`[M.11]`); Tier Progression Milestone Audio & Haptic Celebration (`[M.13]`); offline draft quote creation queue.
 
-#### Feature 14.8: Warehouse Picking & Packing Verification (`[DONE]`, Backlog `[M.2]`, `[I.9]`)
+#### Feature 14.8: Warehouse Picking & Packing Verification (`[DONE]`, Backlog `[M.2]`)
 
 - **Purpose**: Guided mobile warehouse operations for staging and loading items onto delivery trucks with barcode manifest verification.
 - **Backend**: `DeliveryService.verifyPacking(...)`, `DeliveryOrderController.java`, `VerifyPackingRequest.java`.
@@ -2559,6 +2666,81 @@ Status Legend:
   - Frontend: 6/6 Vitest tests passing in `TruckListPage.test.tsx`.
   - Production build: `npm run build` passing cleanly with zero errors.
 
+#### Feature 18.21: Delivery Fleet Maintenance Scheduler, Fuel Consumption Log Tracking & Incident Damage Reporting `[IMPLEMENTED]` (Backlog `[L.5]`)
+
+- **Purpose**: Comprehensive delivery fleet asset reliability, operational health, running cost tracking, and safety compliance governance. Delivers end-to-end lifecycle management for scheduled periodic vehicle maintenance, fuel consumption and efficiency logging, and vehicular incident/damage reporting with automated maintenance grounding.
+- **Domain Invariants & Non-Banking Operational Money Management**:
+  - **Strictly Non-Banking Operational Expense & Asset Governance**: Vehicle maintenance costs, fuel spend, and repair expenses are internal store operating expenses (OPEX). No banking operations, payment gateways, or customer consumer financing are involved.
+  - **Automated Service Due / Overdue Calculation**: Maintenance schedules track target scheduled date and target odometer reading. If `current_odometer >= target_odometer_km` or `scheduled_date <= today`, system automatically marks `is_due = true`. If the target date has passed while remaining in `SCHEDULED` status, system marks `is_overdue = true`.
+  - **Fuel Consumption & Efficiency (km/L) Ledger**: Dynamic fuel economy (`deltaKm / fuelLiters`) is automatically calculated between successive odometer log entries per vehicle, exposing average fuel efficiency across fill-up histories.
+  - **Incident Severity Grounding & Maintenance Recovery**: Incidents with `HIGH` or `CRITICAL` severity automatically shift the assigned vehicle status to `VehicleStatus.MAINTENANCE` to prevent dangerous road dispatch. When the incident status transitions to `RESOLVED` or `REPAIRED`, vehicle status is safely restored to `AVAILABLE`.
+- **Database Architecture (`V46__fleet_maintenance_fuel_and_incidents.sql`)**:
+  - `vehicle_maintenance_schedule`:
+    - `id`: UUID PRIMARY KEY
+    - `vehicle_id`: UUID NOT NULL REFERENCES `vehicle(id)` ON DELETE CASCADE
+    - `maintenance_type`: VARCHAR(50) NOT NULL (`ROUTINE_SERVICE`, `OIL_CHANGE`, `TIRE_ROTATION`, `BRAKE_OVERHAUL`, `PERIODIC_INSPECTION`, `EMERGENCY_REPAIR`)
+    - `scheduled_date`: DATE NOT NULL
+    - `target_odometer_km`: INTEGER
+    - `estimated_cost`: NUMERIC(15,2)
+    - `actual_cost`: NUMERIC(15,2)
+    - `service_center`: VARCHAR(255)
+    - `description`: TEXT
+    - `status`: VARCHAR(30) NOT NULL (`SCHEDULED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`)
+    - `completed_at`: TIMESTAMPTZ
+    - `notes`: TEXT
+    - Indexes on `vehicle_id`, `scheduled_date`, and `status`.
+  - `vehicle_fuel_log`:
+    - `id`: UUID PRIMARY KEY
+    - `vehicle_id`: UUID NOT NULL REFERENCES `vehicle(id)` ON DELETE CASCADE
+    - `driver_employee_id`: UUID REFERENCES `employee(id)`
+    - `log_date`: DATE NOT NULL
+    - `odometer_km`: INTEGER NOT NULL
+    - `fuel_liters`: NUMERIC(8,2) NOT NULL
+    - `cost_per_liter`: NUMERIC(15,2)
+    - `total_cost`: NUMERIC(15,2) NOT NULL
+    - `fuel_type`: VARCHAR(50) (e.g. Solar, Dexlite, Pertamina Dex)
+    - `station_name`: VARCHAR(255) (e.g. SPBU Pertamina 31.123.01)
+    - `is_full_tank`: BOOLEAN DEFAULT TRUE
+    - `fuel_efficiency_km_per_liter`: NUMERIC(8,2)
+    - `notes`: TEXT
+    - Indexes on `vehicle_id`, `log_date`, and `driver_employee_id`.
+  - `vehicle_incident_report`:
+    - `id`: UUID PRIMARY KEY
+    - `vehicle_id`: UUID NOT NULL REFERENCES `vehicle(id)` ON DELETE CASCADE
+    - `reporter_employee_id`: UUID REFERENCES `employee(id)`
+    - `incident_date`: TIMESTAMPTZ NOT NULL
+    - `incident_type`: VARCHAR(50) NOT NULL (`ACCIDENT`, `BREAKDOWN`, `CARGO_DAMAGE`, `THEFT`, `VANDALISM`, `OTHER`)
+    - `severity`: VARCHAR(30) NOT NULL (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`)
+    - `location`: VARCHAR(255)
+    - `description`: TEXT NOT NULL
+    - `third_party_involved`: BOOLEAN DEFAULT FALSE
+    - `third_party_details`: TEXT
+    - `police_report_number`: VARCHAR(100)
+    - `estimated_repair_cost`: NUMERIC(15,2)
+    - `actual_repair_cost`: NUMERIC(15,2)
+    - `insurance_claim_filed`: BOOLEAN DEFAULT FALSE
+    - `status`: VARCHAR(30) NOT NULL (`REPORTED`, `UNDER_INSPECTION`, `REPAIR_SCHEDULED`, `REPAIRED`, `RESOLVED`, `REJECTED`)
+    - `resolved_at`: TIMESTAMPTZ
+    - Indexes on `vehicle_id`, `incident_date`, `status`, and `severity`.
+- **Backend Services & REST Endpoints (`FleetService.java` & `FleetController.java`)**:
+  - `GET /api/v1/fleet/vehicles/{id}/maintenance-schedules`: List all maintenance bookings with computed due/overdue status.
+  - `POST /api/v1/fleet/vehicles/{id}/maintenance-schedules`: Schedule new maintenance booking with estimated costs and target odometer.
+  - `PATCH /api/v1/fleet/maintenance-schedules/{scheduleId}`: Update schedule status (`IN_PROGRESS`, `COMPLETED`, `CANCELLED`) and record actual service cost.
+  - `GET /api/v1/fleet/vehicles/{id}/fuel-logs`: List all fuel fill-up logs with sequential delta km/L efficiency.
+  - `POST /api/v1/fleet/vehicles/{id}/fuel-logs`: Record refueling entry, auto-calculating total cost and mileage efficiency against preceding odometer log.
+  - `GET /api/v1/fleet/vehicles/{id}/incident-reports`: List all incident damage reports for a vehicle.
+  - `POST /api/v1/fleet/vehicles/{id}/incident-reports`: Report vehicular incident; auto-grounds vehicle to `MAINTENANCE` if severity is `HIGH` or `CRITICAL`.
+  - `PATCH /api/v1/fleet/incident-reports/{incidentId}`: Update incident report status; auto-restores vehicle to `AVAILABLE` upon `RESOLVED` or `REPAIRED`.
+- **Frontend Management UI (`FleetMaintenanceFuelIncidentTabs.tsx`, `TruckDetailsDialog.tsx`, `fleetApi.ts`, `hooks.ts`)**:
+  - Embedded 3 dedicated tab panels into `TruckDetailsDialog.tsx`:
+    - **Tab 3: Maintenance Schedules**: KPI summary (Total, Scheduled, In Progress, Due/Overdue Alert), booking table with Complete/Cancel actions, and `ScheduleMaintenanceDialog`.
+    - **Tab 4: Fuel Logs**: KPI summary (Total Spend, Total Liters, Average km/L Economy), full fill-up table with fuel type chips and station badges, and `RecordFuelLogDialog`.
+    - **Tab 5: Incident Reports**: KPI summary (Total Reports, Active Damage / Under Repair, Est. Repair Cost), severity chips (Low green, Med blue, High amber, Critical red), and `ReportIncidentDialog` with resolution dialog.
+- **Verification & Test Coverage**:
+  - Backend: 24/24 JUnit tests passing in `FleetServiceTest.java` (including 5 new tests for due/overdue calculation, fuel efficiency, and incident grounding/recovery).
+  - Frontend: 6/6 Vitest tests passing in `FleetMaintenanceFuelIncidentTabs.test.tsx` and 12/12 total truck tests passing in `TruckListPage.test.tsx`.
+  - Production build: `npm run build` passing cleanly with zero errors.
+
 #### Feature 18.12: Integration Matrix With Existing Modules `[IMPLEMENTED]` (Backlog `[Q.1]`, `[Q.8]`)
 
 - **Cross-Module Integration & Data Flow Architecture**:
@@ -2831,6 +3013,129 @@ Status Legend:
   - `ImageOptimizer` (`lib/core/image_optimizer.dart`): Added `preloadCriticalAsset(context, rawUrl, preset)`, `isPreloaded`, and `registerPreloadedUrl` backed by Flutter's `precacheImage(NetworkImage(optimizedUrl), context)` to warm the GPU image cache for hero banners and product detail views.
   - Verified with 6/6 Flutter tests passing (`wishlist_test.dart` & `widget_test.dart`) and 0 `flutter analyze` issues.
 
+#### Feature 19.17: Automated Push & Email Alert on Wishlist Price Drop `[IMPLEMENTED]` (Backlog `[P.26]`)
+
+- **Purpose**: Background pricing surveillance engine that daily monitors catalog prices and promotional discounts for all customer wishlisted items. When a wishlisted item experiences a price reduction meeting or exceeding the customer's configured drop threshold (defaulting to 5%), the system automatically dispatches instant FCM/APNs mobile push notifications and rich HTML email alerts, empowering shoppers to secure deals before stock depletes.
+- **User-Defined Threshold Customization (Exclusively Available in Mobile App)**:
+  - Per business requirements, the alert sensitivity configuration is strictly exclusive to the native mobile application (`ecommerce-mobile`).
+  - Mobile shoppers can customize their notification preferences on each individual wishlisted item or across saved items:
+    - Alert toggle: Enable or disable push & email notifications (`notifyOnPriceDrop`).
+    - Percentage threshold selector chips: Select minimum required price drop percentage: `5% (Standar)`, `10%`, `15%`, `20%`, or `25%`.
+    - Live target price estimator: Computes and displays the exact target trigger price in Indonesian Rupiah (e.g. "Notifikasi dikirim saat harga <= Rp 4.250.000").
+    - Web storefront (`ecommerce-web`) omits this setting UI, upholding mobile app channel exclusivity.
+- **Backend Architecture & Migration (`core-backend`)**:
+  - **Database Migration (`V43__wishlist_price_drop_alerts.sql`)**:
+    - Altered `customer_wishlist_item` adding `alert_drop_threshold_percent` (NUMERIC(5,2) default 5.00), `last_alerted_price` (NUMERIC(14,2)), and `last_alerted_at` (TIMESTAMPTZ).
+    - Created `wishlist_price_drop_alert_log` table with foreign keys to `customer_wishlist_item`, `storefront_customer`, `product`, `product_variant`, recording original price, previous alerted price, current price, drop amount, drop percentage, threshold percentage, push notification status, email delivery status, and dispatch timestamp.
+  - **Services & Schedulers**:
+    - `WishlistPriceDropAlertService.java`: Annotated with `@Scheduled(cron = "${sms.storefront.wishlist.price-drop-cron:0 0 9 * * ?}")` executing daily morning price scans.
+    - `scanAndDispatchPriceDropAlerts()`: Evaluates active watchers (`findActivePriceDropWatchers`), calculates percentage delta against initial added price, filters items satisfying customer's threshold, suppresses duplicate re-alerts if price has not dropped further, and logs dispatches.
+    - `StorefrontPushNotificationService.java`: Sends rich mobile push notifications with custom deep-link metadata (`WISHLIST_PRICE_DROP`, `productId`, `currentPrice`, `dropPercentage`).
+    - Multipart HTML Email Dispatcher: Generates formatted email alerts displaying customer name, product branding, percentage savings badge, old vs new prices, and showroom inventory notes.
+  - **REST Endpoints in `StorefrontWishlistController.java`**:
+    - `PUT /api/v1/storefront/wishlist/items/{itemId}/alert-settings`: Updates notification toggle and custom drop percentage threshold (validated 1% to 90%).
+    - `POST /api/v1/storefront/wishlist/scan-price-drops`: Manual trigger for price drop scan returning summary report (`PriceDropScanResultDto`).
+- **Mobile Storefront Integration (`ecommerce-mobile`)**:
+  - `WishlistItem` model updated with `notifyOnPriceDrop`, `alertDropThresholdPercent`, `lastAlertedPrice`, and `lastAlertedAt`.
+  - `api_client.dart`: Added `updateWishlistAlertSettings` with network and offline/mock test fallbacks.
+  - `wishlist_provider.dart`: Added `updateAlertSettings` action handler.
+  - `wishlist_screen.dart`: Added interactive alert status chip (`Alert: Turun >= X%` or `Notifikasi: Nonaktif`) on each card and bottom sheet modal (`_showPriceDropAlertModal`) for setting notification toggle and threshold chips.
+- **Money Management Invariant (Non-Banking)**:
+  - Price drop alert processing is purely an omnichannel merchandising and inventory demand management tool for consumer goods. It handles no banking accounts, debit transfers, interest accrual, or financial liabilities.
+- **Status**: `[DONE]`
+
+---
+
+#### Feature 19.18: Interactive 3D / WebXR Augmented Reality (AR) Furniture Room Preview `[IMPLEMENTED]` (Backlog `[P.35]`)
+
+- **Purpose**: Immersive 3D and WebXR Augmented Reality preview engine for large furniture items (sofas, wardrobes, dining sets, cabinets). Enables prospective buyers to inspect true-to-scale photorealistic 3D models with 360-degree orbit rotation, explore material/color variants, verify dimensional clearances against room dimensions, and project the furniture directly into their physical living room or bedroom via mobile camera / WebXR.
+- **Enterprise Money Management Invariant (Strict Non-Banking Rule)**:
+  - Pure visual merchandising and fit verification tool designed to minimize expensive post-delivery returns, transport damage during failed deliveries, and restock processing overhead.
+  - Has zero banking, credit issuance, escrow payment, or financial transaction capabilities.
+- **Backend Architecture (`core-backend`)**:
+  - **DTO Model (`ArModelDto.java`)**:
+    - Record encapsulating `furnitureType` (`SOFA`, `WARDROBE`, `DINING_SET`, `BED_FRAME`, `CABINET`), `modelGlbUrl` (glTF/GLB binary), `modelUsdzUrl` (Apple QuickLook USDZ), `widthCm`, `depthCm`, `heightCm`, `defaultColor`, `colorVariants` (list of color name, hex code, preview asset), `hotspots` (interactive 3D coordinate annotations for storage drawers, cushions, materials), `roomPlacement` (`FLOOR`, `WALL`), and `recommendedRoom` (`LIVING_ROOM`, `BEDROOM`, `DINING_ROOM`).
+  - **Payload Enrichment (`StorefrontProductDetailDto.java`)**:
+    - Added optional `ArModelDto arModel` field with backward-compatible constructor support across existing storefront catalog APIs.
+  - **Dynamic Furniture Resolution (`StorefrontCatalogService.java`)**:
+    - `resolveArModel(Product product)` dynamically inspects product category code, category name, and product title keywords (e.g., *sofa, couch, lemari, wardrobe, meja makan, dining table*) to synthesize accurate physical dimensions (e.g. 3-Seater Sofa: 215x90x85 cm; 3-Door Wardrobe: 160x60x210 cm; Dining Set: 180x90x75 cm) and upholstery swatch presets (*Charcoal Grey, Navy Blue, Warm Beige, Walnut Brown*).
+  - **Verification**: `StorefrontArModelTest.java` (JUnit 5) verifying dynamic detection across furniture categories and graceful omission for electronics/appliances.
+- **E-Commerce Web Application (`ecommerce-web`)**:
+  - **Modal Component (`src/components/ArRoomPreviewModal.tsx`)**:
+    - **Interactive 3D Studio**: Real-time canvas rendering with 360-degree interactive dragging (orbit azimuth/elevation), zoom slider (50% to 200%), perspective pitch tilt, and reset view controls.
+    - **Upholstery & Color Customizer**: Dynamic swatch selector instantly updating canvas render tones and material textures.
+    - **Part Animation & Feature Hotspots**: Interactive toggle buttons (*Buka Laci / Pintu*, *Lipat Sandaran*) animating movable sub-components in the 3D model.
+    - **Room Fit & Circulation Clearance Calculator**: Interactive calculator where customers input room width and depth in centimeters. Computes remaining perimeter clearance and displays contextual fit badges (*Sangat Lega / Nyaman*, *Pas / Cukup*, or *Terlalu Sempit*) with a minimum 60 cm walking corridor check.
+    - **WebXR & Camera Live Preview**: Live camera video feed overlay on supporting mobile browsers plus instant QR Code generator for seamless desktop-to-smartphone AR hand-off.
+  - **Product Detail Trigger (`src/pages/ProductDetailPage.tsx`)**:
+    - Contextual button (*Lihat di Ruangan Anda (3D / AR)*) with 3D cube badge rendered prominently next to product images for furniture items.
+  - **Comprehensive Localization (`src/i18n/catalog.ts`)**:
+    - Full dual-language Indonesian and English translation dictionary with 100% string coverage validated via AST-based `coverage.test.ts`.
+  - **Verification**: `ArRoomPreviewModal.test.tsx` (Vitest + React Testing Library) passing 4/4 tests with Canvas context mocking.
+- **E-Commerce Mobile Application (`ecommerce-mobile`)**:
+  - **Model & DTO Mapping (`lib/models/product_model.dart`)**:
+    - Added `isFurniture` category detector and `ArModelInfo`, `ArColorVariantInfo`, `ArHotspotInfo` domain records.
+  - **Interactive Preview Screen (`lib/screens/ar_furniture_preview_screen.dart`)**:
+    - Custom `Furniture3dPainter` using `CustomPainter` rendering high-precision isometric wireframes, volumetric shading, dimension annotations, and dynamic upholstery swatches.
+    - Full multi-touch pan and pinch-to-zoom gestures.
+    - Camera AR simulation overlay mode with room alignment reticle and floor plane grid.
+    - Bottom sheet Room Clearance Calculator (`_showClearanceSheet`) validating room length, width, and ceiling height.
+    - Native system link sharing using `share_plus` (`ShareParams`).
+  - **Storefront Integration (`lib/screens/product_detail_screen.dart`)**:
+    - Added prominent emerald action button (*Lihat di Ruangan Anda (3D / AR)*) navigating directly to `ArFurniturePreviewScreen`.
+  - **Verification**: `test/ar_furniture_preview_test.dart` passing 5/5 Flutter widget tests and 0 `flutter analyze` issues.
+- **Status**: `[DONE]`
+
+---
+
+#### Feature 19.19: Verified Customer Product Review & Rating System Strictly Gated by Delivery Confirmation `[IMPLEMENTED]` (Backlog `[P.15]`)
+
+- **Purpose**: Establishes an authentic customer product review and rating engine designed for high-value retail merchandise (smart TVs, refrigerators, sofas, bedding sets). Eliminates spam and fake feedback by strictly restricting 1–5 star reviews and written testimonials to verified buyers with a confirmed completed delivery order (`DeliveryOrderStatus.DELIVERED` or `SalesOrderStatus.COMPLETED`).
+- **Enterprise Money Management Invariant (Strict Non-Banking Rule)**:
+  - Strictly operational retail feedback and merchandise quality assurance. Functions as post-delivery satisfaction tracking to minimize high-cost merchandise returns and warranty disputes.
+  - Has zero payment gateway, banking, fund transfer, or credit issuance features.
+- **Backend Architecture (`core-backend`)**:
+  - **Flyway Database Migration (`V44__verified_product_reviews.sql`)**:
+    - Created `product_review` table linking `customer_id` (`storefront_customer`), `product_id` (`product`), optional `product_variant_id`, `sales_order_id`, and `delivery_order_id`.
+    - Enforced 1–5 star constraint: `CHECK (rating >= 1 AND rating <= 5)`.
+    - Established unique constraint `uq_product_review_customer_product UNIQUE (customer_id, product_id)` ensuring each customer provides a single verified review per product with support for subsequent edits.
+    - Performance indexes on `product_id`, `customer_id`, and `rating`.
+  - **Domain Model & Repository (`ProductReview.java`, `ProductReviewRepository.java`)**:
+    - Mapped JPA entities with relational audit fields.
+    - Added repository lookups `findByProductIdOrderByCreatedAtDesc`, `findByCustomerIdAndProductId`, and `hasReviewed`.
+  - **DTO Records (`ProductReviewDto.java`)**:
+    - `SubmitReviewRequest`: `@NotNull UUID productId`, `UUID productVariantId`, `@Min(1) @Max(5) int rating`, `String title`, `@NotBlank String content`.
+    - `ProductReviewItemDto`: review ID, customer ID, masked customer name, rating, title, content, verifiedPurchase flag, and createdAt.
+    - `RatingDistributionDto`: count breakdown for 5, 4, 3, 2, and 1 star ratings.
+    - `ProductReviewSummaryDto`: aggregate average rating (rounded to 1 decimal), total review count, rating distribution, and list of reviews.
+    - `ReviewEligibilityDto`: `eligible`, `alreadyReviewed`, `existingReviewId`, `orderNumber`, and `reason` (`AUTH_REQUIRED`, `NO_PURCHASE_FOUND`, `DELIVERY_PENDING`).
+  - **Business Service (`ProductReviewService.java`)**:
+    - `getProductReviews(UUID productId)`: aggregates rating summary, calculates star distribution breakdown, and automatically masks customer names (`Budi S.`) for buyer privacy.
+    - `checkEligibility(UUID customerId, UUID productId)`: evaluates customer order history. Blocks unverified accounts (`NO_PURCHASE_FOUND`) and orders that are still pending or in transit (`DELIVERY_PENDING`). Validates `DeliveryOrderStatus.DELIVERED` or `SalesOrderStatus.COMPLETED`.
+    - `submitReview(UUID customerId, SubmitReviewRequest request)`: validates delivery gate; throws 403 Forbidden with descriptive Indonesian error messages if delivery is not confirmed. Supports creating or updating verified reviews.
+  - **REST API Controller (`ProductReviewController.java`)**:
+    - `GET /api/v1/storefront/reviews/products/{productId}`: Public endpoint returning aggregate review summary and customer feedback list.
+    - `GET /api/v1/storefront/reviews/eligibility/{productId}`: Authenticated endpoint returning customer review eligibility status and order number.
+    - `POST /api/v1/storefront/reviews`: Authenticated endpoint submitting or updating verified review.
+  - **Automated Verification (`ProductReviewServiceTest.java`)**:
+    - 6 unit test scenarios verifying rating aggregation, name privacy masking, rejection of unverified buyers, blocking of pending deliveries with `DELIVERY_PENDING`, and successful submission with verified delivery linkage. 6/6 tests passing.
+- **E-Commerce Web Storefront (`ecommerce-web`)**:
+  - **Interactive Reviews Component (`ProductReviewsSection.tsx`)**:
+    - Integrated directly into `ProductDetailPage.tsx` below product specifications.
+    - Displays prominent aggregate score (e.g. 4.8 / 5.0), 5-star graphical visualization, total review count, and interactive 1–5 star distribution progress bars with percentage indicators.
+    - Star rating filter chips allowing shoppers to inspect specific star ratings.
+    - Verified review cards showcasing masked customer name, green `Pembelian Terverifikasi` badge with checkmark, star rating, formatted relative date, review title, and detailed feedback text.
+    - Interactive Review Modal: checks customer verification status. If delivery is still in transit, displays an alert banner explaining that reviews require delivery confirmation to guarantee authentic feedback. If eligible, presents an interactive star selector with hover feedback, optional title, and required content field.
+  - **Internationalization (`catalog.ts`)**:
+    - 100% localized translation coverage in Indonesian and English, verified by `src/i18n/coverage.test.ts`.
+  - **Automated Verification (`ProductReviewsSection.test.tsx`)**:
+    - 4/4 Vitest unit tests passing; full 13 test suites (48 tests) passing across `ecommerce-web`.
+- **E-Commerce Mobile Storefront (`ecommerce-mobile`)**:
+  - Enriched `ProductDetailScreen.dart` with verified reviews summary card, 4.8 average rating display, and 100% verified purchase badge.
+  - Validated with `flutter test` (48/48 tests passing) and `flutter analyze` (0 issues).
+
+---
+
 #### Feature 20: Enterprise Infrastructure & Cloud Environment Orchestration `[IMPLEMENTED & VERIFIED]` (Backlog `[A.1–A.5]`)
 
 - **Live Supabase Project Provisioning & Storage Security (`[A.1]`)**:
@@ -2907,8 +3212,8 @@ Status Legend:
 | **30** | Promise-to-Pay (PTP) Engine                                     | `CustomerPromiseToPay`, Lifecycle                                                                      | `CustomerDetailPage` (Tab 2)                                                                                      | PTP Quick Dialog & Offline                                                                         | 5 JUnit + 2 Vitest Passed                                    |        **100%**         |            `[J.3]`            |
 | **31** | _Sales Returns & Refunds_                                       | _Proposed_                                                                                             | _Proposed_                                                                                                        | _N/A_                                                                                              | _Under Architectural Review_                                 |    **0% (Proposed)**    |       `[K.1]`, `[K.2]`        |
 | **32** | _Inventory Costing (COGS/FIFO)_                                 | _Proposed_                                                                                             | _Proposed_                                                                                                        | _N/A_                                                                                              | _Under Architectural Review_                                 |    **0% (Proposed)**    |          `[I.1–I.4]`          |
-| **33** | _Warehouse Location & Picking_                                  | _Proposed_                                                                                             | _Proposed_                                                                                                        | _Proposed_                                                                                         | _Under Architectural Review_                                 |    **0% (Proposed)**    |   `[I.8]`, `[I.9]`, `[M.2]`   |
-| **34** | _Store Checklists & Fleet_                                      | _Proposed_                                                                                             | _Proposed_                                                                                                        | _Proposed_                                                                                         | _Under Architectural Review_                                 |    **0% (Proposed)**    | `[L.1]`, `[L.2]`, `[L.5–L.7]` |
+| **33** | _Bulky Goods Capacity & QC Checklist_                           | _Proposed_                                                                                             | _Proposed_                                                                                                        | _Proposed_                                                                                         | _Under Architectural Review_                                 |    **0% (Proposed)**    | `[I.11]`, `[I.12]`, `[M.12]`  |
+| **34** | _Store Checklists & Operating Procedures_                       | _Proposed_                                                                                             | _Proposed_                                                                                                        | _Proposed_                                                                                         | _Under Architectural Review_                                 |    **0% (Proposed)**    | `[L.1]`, `[L.2]`, `[L.6]`, `[L.7]` |
 | **35** | _Internal Bulletins & Tasks_                                    | _Proposed_                                                                                             | _Proposed_                                                                                                        | _Proposed_                                                                                         | _Under Architectural Review_                                 |    **0% (Proposed)**    |       `[L.3]`, `[L.4]`        |
 | **36** | Mobile Work Centers & Auditing                                  | Survey, DO, Stocktake, Notif                                                                           | N/A                                                                                                               | Screens (Sales, Pick, Audit, Hub)                                                                  | 77 JUnit + 5 Flutter Passed                                  |        **100%**         |          `[M.1–M.6]`          |
 | **37** | _Architecture, SRE & Security_                                  | _Proposed_                                                                                             | _Proposed_                                                                                                        | _Proposed_                                                                                         | _Under Architectural Review_                                 |    **0% (Proposed)**    |          `[N.1–N.7]`          |
@@ -2952,6 +3257,11 @@ Status Legend:
 | **75** | Preload Critical Above-The-Fold Hero Assets (LCP Optimization)  | `ImageOptimizationService` (`preloadLinkHeader`, `preloadHtmlTag`), `/preload-hint`                    | `preloadCriticalImage`, `ResponsiveImage` (`priority`), `HomePage`, `CatalogPage`, `ProductDetailPage`            | `ImageOptimizer.preloadCriticalAsset`, `precacheImage`                                             | 6/6 JUnit + Web Build + 6/6 Flutter Tests Pass               |        **100%**         |           `[P.22]`            |
 | **76** | Server-Side Price List Document Versioning & Validity Stamping  | `PriceListVersionService`, `PriceListService`, `PricingController`, Flyway `V34`                       | `PriceListPage.tsx` (Tabs, Generate Modal, Version Archive Table, Valid-From Date Stamping), `api.ts`, `hooks.ts` | _N/A_                                                                                              | 3 JUnit Tests + 7 Vitest Tests Pass                          |        **100%**         |           `[G.18]`            |
 | **77** | Master Data Truck with 1-to-1 Driver Link & STNK 1-Mo Tax Alert | `FleetService`, `VehiclePlateHistoryRepository`, Flyway `V38`                                          | `TruckListPage.tsx` (KPI Cards, 1:1 Driver Modal, Plate Change Dialog, History Modal), `hooks.ts`                 | _N/A_                                                                                              | 13/13 JUnit + 4/4 Vitest Tests Pass + Web Build Pass         |        **100%**         |           `[Q.32]`            |
+| **78** | Showroom Commission Tiers & SPV Leaderboard                     | `CommissionTierService`, `ReportingController` (`/my-tier`), `V42`                                     | `CommissionTiersPage.tsx` (KPI Cards, Tier Table, Add/Edit Dialog), `AppLayout.tsx`                               | `sales_work_center_screen.dart` (Personal Tier Card & SPV Leaderboard Expansion)                   | 12/12 JUnit + 6/6 Vitest + 42/42 Flutter Tests Pass          |        **100%**         | `[G.17]`, `[D.8]`, `[M.10]`   |
+| **79** | Interactive 3D / WebXR AR Furniture Room Preview                | `ArModelDto`, `StorefrontProductDetailDto`, `StorefrontCatalogService` (dynamic resolution)             | `ArRoomPreviewModal.tsx`, `ProductDetailPage.tsx` (3D Orbit Studio, Clearance Calc, QR WebXR)                     | `ar_furniture_preview_screen.dart`, `product_detail_screen.dart` (Furniture3dPainter, Camera AR)  | 10/10 JUnit + 4/4 Vitest + 5/5 Flutter Tests Pass           |        **100%**         |           `[P.35]`            |
+| **80** | Employee Operational Task Assignment & Collaboration Hub        | `OperationalTask`, `TaskComment`, `OperationalTaskService`, `OperationalTaskController`, Flyway `V45`   | `OperationalTasksPage.tsx`, `AppLayout.tsx` (`/operational-tasks`, KPI Cards, Discussion Thread, Notes Dialog)  | `operational_task_detail_screen.dart`, `my_work_screen.dart` (Riverpod Notifier, Mobile Chat Feed) | 5/5 JUnit + 4/4 Vitest + 5/5 Flutter Tests Pass            |        **100%**         |            `[L.4]`            |
+| **80** | Verified Customer Product Reviews & Rating Aggregation          | `ProductReviewService`, `V44__verified_product_reviews.sql`, privacy name masking                      | `ProductReviewsSection.tsx`, `ProductDetailPage.tsx` (Star Breakdown, Verified Badge)                             | `product_detail_screen.dart` (Customer Reviews Panel)                                              | 6/6 JUnit + 4/4 Vitest + 48/48 Flutter Tests Pass            |        **100%**         |           `[P.15]`            |
+| **81** | Fleet Maintenance Scheduler, Fuel Log & Incident Reporting      | `FleetService`, `V46__fleet_maintenance_fuel_and_incidents.sql`, due calculation, km/L efficiency       | `FleetMaintenanceFuelIncidentTabs.tsx`, `TruckDetailsDialog.tsx` (Tabs 3-5: Schedule, Fuel, Incidents)            | _N/A_                                                                                              | 24/24 JUnit + 12/12 Vitest Tests Pass + Web Build Pass       |        **100%**         |            `[L.5]`            |
 
 ---
 
@@ -2976,7 +3286,7 @@ This section summarizes remaining work only. The detailed feature inventory, ver
 
 ### Proposed Business Domains
 
-- Full accounting/general ledger and statutory reporting (`[H.1–H.10]`), inventory valuation/COGS (`[I.1–I.4]`), expanded warehouse operations (`[I.6–I.9]`), and structured sales returns/refunds (`[K.1–K.2]`) remain proposed.
+- Full accounting/general ledger and statutory reporting (`[H.1–H.10]`), inventory valuation/COGS (`[I.1–I.4]`), bulky retail warehouse labeling and bundling (`[I.6–I.7]`), and structured sales returns/refunds (`[K.1–K.2]`) remain proposed.
 - Remaining customer, store operations, workflow, and experience enhancements are tracked in the canonical backlog. CRM, mobile stocktaking, pickup, and fleet capabilities already implemented must not be described as wholly unbuilt.
 
 ### Consolidated Business Decisions Still Open
@@ -3099,6 +3409,38 @@ To ensure complete transparency and prevent arbitrary decisions, the following f
 
 ## 8. Chronological Task Execution History
 
+- **2026-11-01 (Update 26)**:
+  - **Showroom Floor Sales Commission Tier Tracker, SPV Leaderboard & Dynamic Tier Management (Version 3.27 / Backlog `[G.17]`, `[D.8]`, `[M.10]`)**:
+    - **Database Migration (`core-backend`)**: Created Flyway migration `V42__sales_commission_tiers.sql` defining `commission_tier` table with baseline default brackets (Bronze: Rp 0 - Rp 30M @ 1.0%; Silver: Rp 30M - Rp 60M @ 1.5%; Gold: Rp 60M - Rp 100M @ 2.0%; Platinum: > Rp 100M @ 2.5%) supporting multi-store isolation and configurable colors/rates.
+    - **Backend Services & Controller (`core-backend`)**:
+      - Implemented `CommissionTier.java`, `CommissionTierRepository.java`, and DTOs (`CommissionTierDto`, `CommissionTierRequest`, `SalespersonTierProgressResponse`).
+      - Created `CommissionTierService.java` with CRUD management, validation against negative/inverted thresholds, and dynamic sales volume evaluation (`evaluateSalesVolume(...)`).
+      - Created `CommissionTierController.java` (`/api/v1/commission-tiers`) gated by `OWNER`, `MANAGER`, `ADMIN`.
+      - Enriched `SalesPerformanceItem.java` with dynamic tier name, badge color, and commission percentage.
+      - Implemented scoped endpoint `GET /api/v1/reporting/sales-performance/my-tier` in `ReportingController.java` and `ReportingService.java` preventing peer data exposure to regular salespersons (`[D.8]`).
+      - Verified backend with 12/12 unit tests passing in `CommissionTierServiceTest` and `ReportingServiceTest`.
+    - **Management Web (`sms-web`)**:
+      - Added `CommissionTiersPage.tsx` with responsive KPI tier cards, summary table, and Add/Edit Dialog with min/max volume and percentage rate validation.
+      - Integrated route `/commission-tiers` and navigation tab under "Finance & people" in `AppLayout.tsx`. Added localization strings to `locale.ts`.
+      - Verified with 2 Vitest unit tests in `CommissionTiersPage.test.tsx` and 4 Vitest navigation tests in `AppLayout.test.tsx`.
+    - **Worker Mobile App (`workerapp-mobile`)**:
+      - Updated `sales_work_center_screen.dart` to fetch personal metrics from `/api/v1/reporting/sales-performance/my-tier`.
+      - Added dynamic Personal Commission Tier Card displaying confirmed monthly volume, active tier badge, rate, linear progress bar, remaining distance to next tier, and projected commission payout.
+      - Built role-gated "Showroom Leaderboard (SPV View)" expansion tile visible exclusively to `SPV`, `MANAGER`, and `ADMIN` roles (`[M.10]`); strictly hidden from regular salespersons to protect morale and employee privacy.
+      - Verified with 42 Flutter tests passing (`flutter analyze` with 0 issues).
+    - **Money Management Invariant Compliance**: Reaffirmed strict retail money management boundaries. Tier tracking performs internal compensation forecasting only; no banking, wallet custody, or payment activities.
+
+- **2026-11-01 (Update 25)**:
+  - **Showroom Floor Sales Commission Tier Tracker & SPV Leaderboard Specification Refinement (Version 3.26 / Backlog `[G.17]`)**:
+    - **Terminology Refinement**: Fully eliminated "gamification" / "gamified" phrasing from feature specifications. Established clean retail enterprise money management terminology ("Tiered Commission Progression", "Monthly Volume Brackets").
+    - **Strict Data Privacy & RBAC Segregation**:
+      - Defined explicit visibility boundary for the Worker Mobile App:
+        - Regular Salespersons: Allowed to view ONLY their own personal monthly sales volume, active commission tier (Bronze, Silver, Gold, Platinum), progress towards next tier threshold, and projected commission earnings. Showroom-wide rankings and peer sales numbers are strictly hidden to safeguard staff morale, maintain privacy, and avoid toxic floor rivalry.
+        - Showroom Supervisors (SPV) / Branch Managers: Allowed to view the Showroom Floor Leaderboard inside the Worker App to monitor team performance, conduct 1-on-1 coaching, and balance floor assignments.
+      - Defined backend security requirement (`[D.8]`): Scoped endpoint `/api/v1/reporting/sales-performance/my-tier` to ensure peer sales records are never transmitted over the network to salesperson devices.
+    - **Money Management Invariant Compliance**: Reaffirmed that commission tracking is purely an internal compensation and operational money management calculation. The platform strictly does not engage in banking, wallet balances, or payment disbursements.
+    - **Backlog & Recommendations**: Updated backlog item `[G.17]` in Section 9. Registered new recommendations `[D.8]` (Personal Salesperson Scoped Endpoint), `[M.10]` (Worker App SPV Showroom Leaderboard Tab), and `[M.11]` (Commission Tier Upgrade Forecast Simulator).
+
 - **2026-10-31 (Update 24)**:
   - **Driver License (SIM) Registration, 30-Day Expiry Monitoring & Proactive Notifications (Version 3.23 / Backlog `[Q.40]`)**:
     - **Database Migration (`core-backend`)**: Created Flyway migration `V40__driver_license_and_expiry_notifications.sql` defining `driver_license` table with foreign key to `employee`, indexes, and unique constraint on `(employee_id, license_type)`.
@@ -3173,7 +3515,7 @@ To ensure complete transparency and prevent arbitrary decisions, the following f
     - **Architectural Governance Elevation**: Promoted Architectural Decision Records (ADR-01 to ADR-15) and the 7 core architectural tensions into a dedicated Section 7 directly following the gap analysis.
     - **Fresh Task & Feature Additions**: Added 14 high-value task recommendations across performance, showroom money management, mobile field ergonomics, customer experience, and logistics optimization:
       - _Performance & Caching_: Virtualized table windowing (`[E.8]`), persistent table filter presets (`[E.9]`), multi-tier hybrid caching (`[N.8]`).
-      - _Showroom Money Management_: Shift-level cash drawer balancing & petty cash float reconciliation (`[D.7]`), commission leaderboard & tier tracker (`[G.17]`), slow-moving furniture & aged electronics liquidation discount advisor (`[I.10]`).
+      - _Showroom Money Management_: Shift-level cash drawer balancing & petty cash float reconciliation (`[D.7]`), commission tier tracker & SPV leaderboard (`[G.17]`), slow-moving furniture & aged electronics liquidation discount advisor (`[I.10]`).
       - _Mobile Ergonomics_: Haptic & audio barcode feedback (`[C.7]`), offline showroom bundle builder (`[M.7]`), high-contrast outdoor theme (`[M.8]`).
       - _E-commerce Storefront_: Self-service delivery rescheduling portal (`[P.33]`), showroom branch stock availability indicator (`[P.34]`), WebXR AR furniture room preview (`[P.35]`).
       - _Logistics & Fleet_: Turn-by-turn navigation handoff to Google Maps/Waze (`[Q.30]`), LIFO multi-drop truck loading optimizer (`[Q.31]`).
@@ -3527,14 +3869,153 @@ To ensure complete transparency and prevent arbitrary decisions, the following f
 
 ---
 
+- **2026-11-01 (Update 23)**:
+  - **Multi-Product Credit Bundle Simulator across Showroom Worker App, Management SPA, E-Commerce, and Core Backend (Version 3.27 / Backlog `[G.15]`)**:
+    - Implemented showroom credit bundling engine allowing sales teams and retail shoppers to combine multiple electronics and furniture items into a unified financing package with aggregated down payment and single shared installment matrix.
+    - **Backend (`core-backend`)**:
+      - Created DTOs (`BundleItemDto.java`, `BundleCalculationRequest.java`, `BundleCalculationResponse.java`).
+      - Implemented `calculateBundle` in `PriceCalculationService.java` with single handling fee consolidation and blended margin pricing.
+      - Exposed `POST /api/stores/{storeId}/pricing/calculate-bundle` in `PricingController.java`.
+      - Verified with 6/6 tests passing in `PriceCalculationServiceTest.java`.
+    - **Worker Mobile App (`workerapp-mobile`)**:
+      - Enhanced `credit_calculator_screen.dart` and `credit_calculator_service.dart` supporting dual calculator modes (Single Unit DP Negotiator vs Multi-Product Bundle Simulator).
+      - Added showroom preset bundles, quantity steppers, DP mode selectors, and WhatsApp quote sharing.
+      - Verified with 8/8 tests passing in `credit_calculator_test.dart`.
+    - **Management Web SPA (`sms-web`)**:
+      - Implemented `calculateBundleSimulation` in `priceCalculator.ts` and created `CreditCalculatorTab.tsx`.
+      - Added Tab 3 to `PriceListPage.tsx` supporting both single-product custom DP and multi-product showroom bundling with live comparison savings indicators.
+      - Verified with 6/6 Vitest tests passing in `priceCalculator.test.ts` and 6/6 in `PriceListPage.test.tsx`.
+    - **E-Commerce Web (`ecommerce-web`)**:
+      - Created `bundleCalculator.ts` and `BundleSimulatorPage.tsx` with preset bundles, add-to-cart dispatch, and responsive comparison cards.
+      - Registered route `/bundle-simulator` in `App.tsx` and navigation button in `Navbar.tsx`.
+      - Verified with 11/11 test suites (40/40 tests) passing in `ecommerce-web`.
+    - **Documentation**: Updated `about_project.md` to Version 3.27, documented Feature 3.9, marked `[G.15]` as completed, and added task recommendations `[G.22]` and `[G.23]` to Master Action Backlog.
+  - **System Backlog Realignment & Bulky Goods Task Calibration (Version 3.28)**:
+    - **Backlog Pruning & Domain Alignment**: Conducted comprehensive review of Master Action Backlog (`Section 9`) removing 13 out-of-scope, technically unviable, or redundant tasks misaligned with an electronics & furniture retail money management system:
+      - Removed `[I.8]` (Micro-spatial warehouse rack/shelf/bin hierarchy): Electronics and furniture are bulky items stored in warehouse floor zones and staging bays, not small-parts shelving.
+      - Removed `[I.9]` (Wave picking / automated tote routing): Replaced by bulky goods loading manifests (`[M.2]`) and LIFO truck staging (`[Q.31]`).
+      - Removed `[P.24]` (Electronic pickup lockers): Bulky sofas, wardrobes, TVs, and appliances cannot fit in pickup lockers; pickup handled via showroom handover desk.
+      - Removed `[P.19]` (Continuous background customer app geofencing for arrival): Invasive and unrealistic privacy violation for retail furniture pickup.
+      - Removed `[Q.22]`, `[Q.25]`, `[Q.39]` (Speculative IoT hardware / BLE caliper telematics / motorcycle vibration sensing): Out of scope for enterprise retail software.
+      - Removed `[Q.26]` (Dishub KIR online booking API): Dishub has no public booking API across Indonesian municipalities.
+      - Removed `[Q.27]` (Samsat e-toll QR code): Factually incorrect; toll payments use RFID smartcards (e-Money/Flazz), not Samsat QR.
+      - Removed `[Q.42]` (Korlantas driver penalty points API): No private corporate API exists with Indonesian traffic police.
+      - Consolidated duplicates: `[F.4]` into `[A.8]` (DB backup), `[M.8]` into `[C.7]` (scanner feedback), `[O.4]` into `[E.11]` (saved table filters).
+      - Realigned `[J.10]` to strictly exclude salespersons per Invariant 15, and realigned `[H.4]` to standard CSV bank mutation matching without SWIFT protocols (Rule 4 pure money management).
+    - **Bulky Goods Recommendations Added (Rule 3)**:
+      - Added `[I.11] (Bulky Goods Truck CBM & Weight Capacity Matcher)`: Vehicle dispatch cubic volume and payload optimization.
+      - Added `[I.12] (Electronics Assembly & Pre-Dispatch QC Inspection Checklist)`: Pre-delivery unboxing, screen test, and furniture assembly inspection.
+      - Added `[M.12] (Dual-Serial / Pair Scanner for Split Electronics & Multi-Box Furniture)`: Worker App matching scanner for paired units (AC indoor/outdoor, multi-box sofa sets).
+  - **Multi-Tier Backlog Categorization: Core Retail Software [Level 1] vs Exploratory Hardware & IoT Incubator [Level 2] (Version 3.29)**:
+    - Formalized a two-level backlog architecture in Section 9:
+      - **Level 1 (Core Retail Operations & Money Management Software)**: Sections A through Q containing production-oriented features across Management Web, E-commerce Web/Mobile, and Worker Mobile App.
+      - **Level 2 (Exploratory Hardware, IoT & Smart Retail Incubator)**: Dedicated Section R capturing advanced physical IoT integrations, BLE telematics, and warehouse automation for future hardware exploration.
+    - Added tasks `[R.1–R.7]` under Section R covering wearable BLE quick-pause triggers, vehicle mount vibration sensing, digital tire caliper telematics, hardwired OBD-II GPS blackbox tracking, showroom entrance smart accessory lockers, BLE indoor asset beacons for high-value display electronics, and loading dock UHF RFID gate scanners.
+
+---
+
+- **2026-11-01 (Update 25)**:
+  - **Automated Push & Email Alert on Wishlist Price Drop with Exclusive Mobile Threshold Settings (Version 3.29 / Backlog `[P.26]`)**:
+    - Implemented background price surveillance engine scanning daily price movements to trigger FCM/APNs push notifications and email alerts when wishlisted items drop by >= user-configured threshold (default 5%).
+    - **Backend (`core-backend`)**:
+      - Authored migration `V43__wishlist_price_drop_alerts.sql` and created `WishlistPriceDropAlertLog` audit model.
+      - Built `WishlistPriceDropAlertService.java` with automated `@Scheduled` morning cron and duplicate alert suppression.
+      - Exposed `PUT /api/v1/storefront/wishlist/items/{itemId}/alert-settings` and `POST /scan-price-drops` in `StorefrontWishlistController.java`.
+      - Verified with 3/3 tests passing in `WishlistPriceDropAlertServiceTest.java` and 27/27 total storefront tests passing.
+    - **Mobile App (`ecommerce-mobile`)**:
+      - Built exclusive mobile UI in `wishlist_screen.dart` featuring status chips and `_showPriceDropAlertModal` bottom sheet allowing shoppers to customize minimum percentage drop threshold (5%, 10%, 15%, 20%, 25%) and toggle notifications.
+      - Updated `WishlistItem`, `ApiClient`, and `WishlistNotifier`.
+      - Verified with 6/6 tests passing in `wishlist_test.dart` and clean `flutter analyze` (0 issues).
+    - **Documentation**: Updated `about_project.md` to Version 3.29, documented Feature 19.17, marked `[P.26]` as completed, and added task recommendations `[P.33]` and `[P.34]` to Master Action Backlog.
+
+---
+
+- **2026-11-01 (Update 27)**:
+  - **Interactive 3D / WebXR Augmented Reality (AR) Furniture Room Preview ("Lihat di Ruangan Anda") (Version 3.30 / Backlog `[P.35]`)**:
+    - Implemented cross-platform 3D visualization and WebXR / Camera Augmented Reality preview engine for sofas, wardrobes, and dining sets across `core-backend`, `ecommerce-web`, and `ecommerce-mobile`.
+    - **Backend (`core-backend`)**:
+      - Created `ArModelDto.java` encapsulating 3D model asset URLs (`.glb`, `.usdz`), physical dimensions (W x D x H in cm), color swatches, interactive hotspots, and room placement tags.
+      - Enriched `StorefrontProductDetailDto.java` with backward-compatible constructor overloads.
+      - Built dynamic furniture dimension & swatch resolver in `StorefrontCatalogService.java` (`resolveArModel`).
+      - Verified with `StorefrontArModelTest.java` (JUnit 5) and full storefront test suite.
+    - **E-Commerce Web (`ecommerce-web`)**:
+      - Built `ArRoomPreviewModal.tsx` featuring 3D Canvas Orbit Studio, 360-degree rotation, pitch tilt, zoom scaling, dynamic color swatch switching, animated drawer/door toggles, camera stream + WebXR QR code hand-off, and Room Fit & Circulation Clearance Calculator.
+      - Integrated AR trigger button in `ProductDetailPage.tsx`.
+      - Maintained 100% localized translation coverage in `src/i18n/catalog.ts`.
+      - Verified with 4/4 tests passing in `ArRoomPreviewModal.test.tsx` and 44/44 total suite tests passing.
+    - **E-Commerce Mobile (`ecommerce-mobile`)**:
+      - Built `ArFurniturePreviewScreen.dart` with custom `Furniture3dPainter`, touch pan/zoom gestures, live camera AR overlay, bottom sheet room clearance validator, and system share link.
+      - Integrated AR trigger button into `ProductDetailScreen.dart`.
+      - Verified with 5/5 tests in `ar_furniture_preview_test.dart` and 48/48 total suite tests passing with 0 `flutter analyze` issues.
+    - **Documentation**: Updated `about_project.md` to Version 3.30, documented Feature 19.18, moved `[P.35]` from Todo list to completed features, and added task recommendations `[P.40]` and `[P.41]`.
+
+  - **Verified Customer Product Review & Rating System Strictly Gated by Delivery Confirmation (Version 3.31 / Backlog `[P.15]`)**:
+    - Implemented authentic product review and rating engine strictly restricted to authenticated buyers who have confirmed completed order deliveries (`DeliveryOrderStatus.DELIVERED` or `SalesOrderStatus.COMPLETED`).
+    - **Backend (`core-backend`)**:
+      - Created Flyway migration `V44__verified_product_reviews.sql` establishing `product_review` table with 1–5 star check constraint, audit fields, and unique constraint on `(customer_id, product_id)`.
+      - Built `ProductReview.java`, `ProductReviewRepository.java`, and `ProductReviewDto.java`.
+      - Implemented `ProductReviewService.java` with rating aggregation, star distribution breakdown (5 to 1), customer name privacy masking (`Budi S.`), and strict completed delivery verification.
+      - Implemented `ProductReviewController.java` with public review summary endpoint and authenticated eligibility and submission endpoints.
+      - Verified with 6/6 unit tests passing in `ProductReviewServiceTest.java`.
+    - **E-Commerce Web (`ecommerce-web`)**:
+      - Built `ProductReviewsSection.tsx` embedded in `ProductDetailPage.tsx` featuring aggregate rating score, 1-5 star distribution breakdown, star filter tabs, verified review cards with `Pembelian Terverifikasi` badge, and interactive submission modal dialog.
+      - Maintained 100% localized Indonesian and English translations in `catalog.ts`.
+      - Verified with 4/4 tests passing in `ProductReviewsSection.test.tsx` and 48/48 total suite tests passing.
+    - **E-Commerce Mobile (`ecommerce-mobile`)**:
+      - Added verified customer reviews overview panel to `ProductDetailScreen.dart`.
+      - Verified with 48/48 tests in `flutter test` and 0 issues in `flutter analyze`.
+    - **Documentation**: Updated `about_project.md` to Version 3.31, documented Feature 19.19, moved `[P.15]` from Todo list to completed features, and added task recommendations `[P.42]` and `[P.43]`.
+
+  - **Delivery Fleet Vehicle Maintenance Scheduler, Fuel Consumption Log Tracking & Incident Damage Reporting (Version 3.32 / Backlog `[L.5]`)**:
+    - Implemented comprehensive delivery fleet asset reliability, operational running cost tracking, and vehicular safety governance across `core-backend` and `sms-web`.
+    - **Backend (`core-backend`)**:
+      - Authored Flyway migration `V46__fleet_maintenance_fuel_and_incidents.sql` establishing `vehicle_maintenance_schedule`, `vehicle_fuel_log`, and `vehicle_incident_report` tables with audit timestamps and foreign keys.
+      - Created JPA entities `VehicleMaintenanceSchedule.java`, `VehicleFuelLog.java`, `VehicleIncidentReport.java` and corresponding repositories in `com.sms.fleet`.
+      - Created DTO records `VehicleMaintenanceScheduleDto.java`, `VehicleFuelLogDto.java`, `VehicleIncidentReportDto.java`.
+      - Extended `FleetService.java` with automated maintenance due/overdue calculation, fuel efficiency (km/L) computation based on prior odometer reading, and incident report handling with automated vehicle grounding (`VehicleStatus.MAINTENANCE` on HIGH/CRITICAL) and restoration (`AVAILABLE` on RESOLVED/REPAIRED).
+      - Extended `FleetController.java` with 8 REST endpoints for maintenance schedules, fuel logs, and incident reports.
+      - Verified with 24/24 JUnit tests passing in `FleetServiceTest.java` (including 5 new tests for due/overdue detection, fuel efficiency, and incident grounding/recovery).
+    - **Management Web (`sms-web`)**:
+      - Added TypeScript interfaces and API functions to `fleetApi.ts`.
+      - Added React Query query keys and mutations (`useMaintenanceSchedules`, `useCreateMaintenanceSchedule`, `useUpdateMaintenanceScheduleStatus`, `useFuelLogs`, `useRecordFuelLog`, `useIncidentReports`, `useReportIncident`, `useUpdateIncidentStatus`) to `hooks.ts`.
+      - Built `FleetMaintenanceFuelIncidentTabs.tsx` providing Tab 3 (Maintenance Schedules + KPI cards + modal), Tab 4 (Fuel Logs + KPI cards + modal), and Tab 5 (Incident Reports + KPI cards + resolution modal).
+      - Integrated tabs and dynamic badge counts into `TruckDetailsDialog.tsx`.
+      - Verified with 6/6 tests passing in `FleetMaintenanceFuelIncidentTabs.test.tsx` and 12/12 total truck tests passing in `TruckListPage.test.tsx`.
+    - **Documentation**: Updated `about_project.md` to Version 3.32, documented Feature 18.21, moved `[L.5]` from Todo list to completed features, and added task recommendations `[L.8]` and `[L.9]`.
+
+---
+
+- **2026-11-01 (Update 28)**:
+  - **Employee Operational Task Assignment, Due-Date Tracking & Collaboration Hub (Version 3.31 / Backlog `[L.4]`)**:
+    - Delivered end-to-end employee task assignment and team collaboration hub across `core-backend`, `sms-web`, and `workerapp-mobile`.
+    - **Backend (`core-backend`)**:
+      - Authored migration `V45__employee_operational_tasks.sql` creating `operational_task` and `task_comment` tables with indexes.
+      - Built `OperationalTask.java`, `TaskComment.java`, `TaskCategory`, `TaskPriority`, `TaskStatus`, and DTO records.
+      - Implemented `OperationalTaskRepository.java`, `TaskCommentRepository.java`, and `OperationalTaskService.java` with task number generator (`TSK-yyyyMM-XXXX`), dynamic filtering, status lifecycle management, completion notes, and metric counts.
+      - Exposed REST endpoints at `/api/v1/tasks` in `OperationalTaskController.java`.
+      - Verified with 5/5 tests in `OperationalTaskServiceTest.java`.
+    - **Management Web (`sms-web`)**:
+      - Built `OperationalTasksPage.tsx` with KPI summary cards, multi-axis filter controls, Create Task modal dialog, and Task Details modal with live discussion comments and completion notes dialog.
+      - Added navigation item in `AppLayout.tsx` and route in `App.tsx` (`/operational-tasks`).
+      - Localized across Indonesian and English dictionaries in `locale.ts`.
+      - Verified with 4/4 tests in `OperationalTasksPage.test.tsx` and 4/4 tests in `AppLayout.test.tsx`.
+    - **Worker Mobile App (`workerapp-mobile`)**:
+      - Created `operational_task_model.dart`, `operational_task_service.dart`, and `operational_task_provider.dart` using modern Riverpod Notifier.
+      - Built `operational_task_detail_screen.dart` featuring task metadata, overdue indicators, status transition buttons, and real-time chat comments feed.
+      - Integrated into `my_work_screen.dart` and registered `/operational-task/:id` route in `app_router.dart`.
+      - Verified with 5/5 tests in `operational_task_test.dart` and 47/47 suite tests passing with 0 `flutter analyze` issues.
+    - **Documentation**: Updated `about_project.md` to Version 3.31, marked Feature 1.7 as `[DONE]`, added Row 80 in Section 5 table, relocated `[L.4]` from Todo list to completed features, and added task recommendations `[L.7]` and `[L.8]`.
+
+---
+
 ## 9. Master Action Backlog & Todo List (Canonical Source of Truth)
 
-> **Important**: This section is the **canonical single source of truth** for all **open/pending Todo tasks** (`[ ]`) across the entire SMS project. All completed tasks (`[A.1–A.5]`, `[B.1–B.6]`, `[C.1–C.6]`, `[D.1–D.5]`, `[E.1–E.9]`, `[G.2, G.3, G.13, G.14]`, `[J.1–J.7]`, `[M.1–M.6]`, `[O.5, O.6]`, `[P.1, P.2, P.4–P.7, P.11–P.14, P.16, P.20, P.22, P.28–P.31]`, `[Q.1–Q.11, Q.16–Q.19, Q.21]`, and `ADR-12`) have been removed from this Todo List upon completion and moved to the top Architecture & Feature Specifications (**Sections 2, 3, 4, and 5**).
+> **Important**: This section is the **canonical single source of truth** for all **open/pending Todo tasks** (`[ ]`) across the entire SMS project. All completed tasks (`[A.1–A.5]`, `[B.1–B.6]`, `[C.1–C.6]`, `[D.1–D.5]`, `[E.1–E.9]`, `[G.2, G.3, G.13, G.14]`, `[J.1–J.7]`, `[L.5]`, `[M.1–M.6]`, `[O.5, O.6]`, `[P.1, P.2, P.4–P.7, P.11–P.14, P.15, P.16, P.20, P.22, P.28–P.31, P.35]`, `[Q.1–Q.11, Q.16–Q.19, Q.21, Q.32, Q.36, Q.40]`, and `ADR-12`) have been removed from this Todo List upon completion and moved to the top Architecture & Feature Specifications (**Sections 2, 3, 4, and 5**).
 
 | Metric                                           |  Count  | Status                                                                                    |
 | ------------------------------------------------ | :-----: | ----------------------------------------------------------------------------------------- |
-| - **Completed & Relocated to Top Feature Specs** | **86**  | Explained in detail in Sections 2–5 (`ADR-12`, `[G.18]`, and all implemented features)    |
-| - **Pending / Open Todo Tasks (`[ ]`)**          | **112** | Active Todo items scheduled for future architectural, performance, and UI/UX enhancements |
+| - **Completed & Relocated to Top Feature Specs** | **89**  | Explained in detail in Sections 2–5 (`ADR-12`, `[G.18]`, `[L.5]`, and all implemented features) |
+| - **Pending / Open Todo Tasks (`[ ]`)**          | **128** | 120 Level-1 Core Software Tasks + 8 Level-2 Exploratory Hardware/IoT Tasks |
 
 ### A. Environment & Infrastructure Setup
 
@@ -3549,11 +4030,13 @@ To ensure complete transparency and prevent arbitrary decisions, the following f
 ### D. Backend Enhancements & Showroom Money Management
 
 - [ ] **D.7 (Money Management)**: Shift-level cash drawer balancing and petty cash float reconciliation ledger for showroom cashiers (strictly internal retail money management, non-banking).
+- [ ] **D.9 (Commission Cutoff Payout Forecast & What-If Sandbox)**: Real-time projection engine in Management Web for Store Owner/Manager to preview total store commission liability under simulated volume adjustments before monthly payroll cutoff freeze.
 
 ### E. Web App UI/UX & Performance Improvements
 
 - [ ] **E.10 (Performance)**: Windowed row virtualization and sticky multi-column pinning for 10,000+ row financial aging and inventory tables.
 - [ ] **E.11 (UI/UX)**: Saved custom filter presets and shareable URL query state across Sales Order, Inventory, and Finance views.
+- [ ] **E.12 (Optimistic Commission Tier Re-ordering with Drag-and-Drop)**: Visual drag-and-drop tier threshold adjustment in CommissionTiersPage.tsx with immediate optimistic UI feedback and bulk sequence persistence.
 
 ### F. Testing, Quality Assurance & DevOps
 
@@ -3561,7 +4044,7 @@ To ensure complete transparency and prevent arbitrary decisions, the following f
   - Sales Order Draft → Price Approval → Survey → Confirm → Deliver → Finance Installment.
 - [ ] **F.2**: Mobile integration tests (`integration_test`) verifying offline-to-online sync queue.
 - [ ] **F.3**: GitHub Actions CI/CD pipeline running backend Maven build & tests, web lint/build/tests, and mobile analyze/tests on every pull request.
-- [ ] **F.4**: Automated database backup script and disaster recovery procedure.
+
 
 ### G. Advanced Analytics, Reporting & PWA Backlog
 
@@ -3575,9 +4058,9 @@ To ensure complete transparency and prevent arbitrary decisions, the following f
 - [ ] **G.10 (Batch Statement)**: Customer account billing statement PDF batch export with installment ledger.
 - [ ] **G.11 (Thermal POS Slip)**: 58mm/80mm ESC/POS thermal receipt formatting for walk-in counter sales and cashier desk printers.
 - [ ] **G.12 (Driver Trip Sheet)**: Printable delivery trip manifest and routing worksheet with stop checklist and COD collection summary.
-- [ ] **G.15 (Multi-Product Credit Bundle Simulator)**: Interactive showroom bundling tool allowing salespersons to combine electronics (TV) and furniture (Sofa) into a single blended financed contract with aggregated DP and shared installment schedule.
+- [ ] **G.22 (Bundle Quotation QR Code Scanner & Cashier POS Pickup)**: Fast-checkout workflow where salesperson or customer generates a QR code for a simulated bundle quote, and showroom cashier scans it to auto-populate the items and agreed financing terms into a sales order draft.
+- [ ] **G.23 (Cross-Category Dynamic Bundle Discount Matrix)**: Margin rules engine applying an additional promotional discount percentage (e.g., extra 3% to 5% off) when bundling across disparate categories (Electronics + Furniture).
 - [ ] **G.16 (Trade-in / Tukar Tambah Deduction Engine)**: Showroom appraisal module deducting appraised value of customer's old electronic/furniture unit directly as down payment credit against new installment contract.
-- [ ] **G.17 (Showroom Floor Sales Commission Leaderboard & Tier Tracker)**: Real-time ranking of showroom salespersons with gamified tier progress badges (Bronze, Silver, Gold, Platinum) and projected commission payout forecast.
 - [ ] **G.19 (Price List Version Comparison / Diff Engine)**: Side-by-side visual diff tool highlighting price adjustments, new items, and removed models between two price list versions with percentage delta indicators.
 - [ ] **G.20 (Scheduled Price List Snapshot Auto-Archiving)**: Automated background cron snapshot taking a frozen snapshot on monthly pricing cycle cutoffs or major catalog updates.
 - [ ] **G.21 (Headless Chromium PDF Generation for Printables)**: Server-side rendering using Playwright/Puppeteer to convert HTML price lists and invoices into byte-perfect A4 PDF attachments.
@@ -3589,7 +4072,7 @@ To ensure complete transparency and prevent arbitrary decisions, the following f
 - [ ] **H.1**: Hierarchical Chart of Accounts (COA) master categorized into Assets, Liabilities, Equity, Revenue, COGS, and Expenses with store-level segmentation.
 - [ ] **H.2**: Automated double-entry operational journal voucher posting engine for purchases, sales deliveries, payments, discrepancies, and repossessions.
 - [ ] **H.3**: Accounts Payable (AP) and Accounts Receivable (AR) sub-ledger integration into general ledger control accounts.
-- [ ] **H.4**: Multi-account Cash & Bank registers with electronic statement import (CSV, MT940, OFX) and rule-based auto-reconciliation engine.
+- [ ] **H.4**: Multi-account Cash & Bank registers with electronic bank mutation statement import (CSV) and rule-based auto-reconciliation engine.
 - [ ] **H.5**: Financial statements generation engine: Trial Balance, Profit & Loss (Income Statement), Balance Sheet, and Cash Flow Statements (Direct and Indirect).
 - [ ] **H.6**: Opening balances ledger setup and historical data conversion support.
 - [ ] **H.7**: Monthly and annual financial period-end closing lock mechanism with adjusting journal entries.
@@ -3604,17 +4087,17 @@ To ensure complete transparency and prevent arbitrary decisions, the following f
 - [ ] **I.3**: Inventory write-down / impairment accounting ledger for damaged, obsolete, or aged showroom display units.
 - [ ] **I.4**: Valuation model for repossessed and refurbished stock units (appraised recovery value + refurbishing repair component costs).
 - [ ] **I.5**: Physical Stocktaking (Stock Opname) management module with scheduled sessions, blind counting mode, recount workflows, and balancing stock movement adjustments.
-- [ ] **I.6**: Barcode label generation and printable label-template management (shelf edge tags, unit serial stickers, custom template designer).
+- [ ] **I.6**: Barcode label generation and printable label-template management (showroom display unit specification cards, carton serial stickers, custom template designer).
 - [ ] **I.7**: Product bundling and combo sales engine (commercial kits, multi-item bundles with auto-deduction of component stock upon order release).
-- [ ] **I.8**: Warehouse spatial location management (hierarchical warehouse, zone, aisle, rack, shelf, bin/bay).
-- [ ] **I.9**: Advanced warehouse picking and put-away workflows (wave picking, directed put-away routing, item mismatch validation).
+- [ ] **I.11 (Bulky Goods Truck CBM & Weight Capacity Matcher)**: Delivery dispatch optimization calculating total cubic meters (CBM) and weight of scheduled furniture and appliances against assigned vehicle load limits (Engkel box, Blind Van, Pickup) to prevent truck overloading and transport damage.
+- [ ] **I.12 (Electronics Assembly & Pre-Dispatch QC Inspection Checklist)**: Worker App checklist verifying pre-delivery unboxing/assembly of knock-down furniture (e.g. wardrobe alignment) or electronics power-on testing (TV dead-pixel screen test, AC indoor/outdoor pair completeness) prior to loading onto delivery trucks.
 - [ ] **I.10**: Slow-moving furniture & aged electronics liquidation discount advisor based on warehouse dwell-time aging buckets (> 90 / 180 days).
 
 ### J. Customer 360, CRM & Omnichannel Experience (Proposed Extensions)
 
 - [ ] **J.8**: Automated WhatsApp Business API integration via webhook for interactive 2-way payment reminders, PTP confirmations, and post-delivery NPS feedback.
 - [ ] **J.9**: Dynamic retail invoice payment links with QRIS generation for installment payments linked to PTP promises.
-- [ ] **J.10**: Geofenced GPS check-in validation for field collector and sales visits with automatic proximity confirmation.
+- [ ] **J.10**: Geofenced GPS check-in validation for field collector and surveyor visits with automatic proximity confirmation (salespersons strictly excluded per Invariant 15).
 - [ ] **J.11**: Sentiment analysis and keyword flag extraction on customer interaction notes for proactive delinquency and churn mitigation.
 
 ### K. Supply Chain, Procurement & Returns Refinements (Proposed)
@@ -3630,16 +4113,20 @@ To ensure complete transparency and prevent arbitrary decisions, the following f
 - [ ] **L.1**: Store Opening and Closing daily operational verification checklists with manager sign-off.
 - [ ] **L.2**: Shift handover notes and cash register changeover logs.
 - [ ] **L.3**: Platform-wide internal announcements and policy memo broadcasting with employee acknowledgment tracking.
-- [ ] **L.4**: Employee-to-employee operational task assignment, due-date tracking, and collaboration hub.
-- [ ] **L.5**: Delivery fleet vehicle maintenance scheduler, fuel consumption log tracking, and incident damage reporting.
+- [ ] **L.7**: Recurring Store Operational Checklists & Auto-Generating Daily Morning Routines: Automated daily/weekly recurring task generation for showroom opening checks, cash register tape verification, and evening security lockup.
+- [ ] **L.8**: Photo Proof & Barcode Attachment for Completed Operational Tasks: Enforce compulsory camera photo snapshot or stock unit barcode scan before marking maintenance or stock audit tasks completed.
 - [ ] **L.6**: Business continuity procedures and operational disaster recovery runbooks (manual offline sales slips, power outage failover protocol).
 - [ ] **L.7**: Shift operational issue tracking and resolution log.
+- [ ] **L.8 (Fleet Telematics & IoT)**: Automated Bluetooth OBD-II / CAN bus odometer and fuel sensor telemetry ingestion for real-time delivery truck diagnostics.
+- [ ] **L.9 (Preventive Fleet Money Management)**: Fleet Total Cost of Ownership (TCO) & Fuel Anomaly Detection: statistical anomaly detection flagging fuel theft or abnormal L/100km fuel spikes above store baseline.
 
 ### M. Mobile Work Center Enhancements (Proposed Extensions)
 
 - [ ] **M.7**: Offline map tile caching and one-tap turn-by-turn navigation deep-linking to Google Maps / Waze using survey-captured GPS destination coordinates.
-- [ ] **M.8**: Acoustic / haptic feedback engine for mobile barcode scanner (distinct audio-tactile signatures for successful scan, duplicate buffer scan, and manifest mismatch).
+- [ ] **M.12 (Dual-Serial / Pair Scanner for Split Electronics & Multi-Box Furniture)**: Worker App barcode scanner supporting paired unit validation (e.g., matching AC Indoor + Outdoor unit serials, or 2-box sofa set Carton 1/2 + Carton 2/2) ensuring incomplete sets are never loaded onto delivery trucks.
 - [ ] **M.9**: Wireless Bluetooth ESC/POS thermal printer integration for printing serialized warehouse barcode labels and customer receipt slips directly from mobile worker app.
+- [ ] **M.11 (Sales Commission Tier Upgrade Forecast Simulator)**: In-app simulation tool in Worker App allowing salespersons to calculate how many additional units or sales volume are needed to reach the next higher commission tier before cutoff.
+- [ ] **M.13 (Tier Progression Milestone Audio & Haptic Celebration)**: Subtle sensory haptic and acoustic confirmation when salesperson opens the Worker App having unlocked a higher commission tier during the active monthly cycle.
 
 ### N. Platform Architecture, Reliability & Security Hardening (Proposed)
 
@@ -3657,7 +4144,7 @@ To ensure complete transparency and prevent arbitrary decisions, the following f
 - [ ] **O.1**: Document expiry monitoring and automated reminders (quotations, contracts, warranties, supplier agreements).
 - [ ] **O.2**: Approval delegation when assigned approver is unavailable (temporary proxy assignment).
 - [ ] **O.3**: Approval escalation, timeout rules, and automatic reassignment upon inactivity.
-- [ ] **O.4**: Saved custom table filters and persistent column preferences stored per user.
+
 - [ ] **O.7**: Master data change history audit log capturing field-level diffs.
 - [ ] **O.8**: Dynamic watermarking for confidential customer ID attachments (NIK/KTP) embedding reviewer name and timestamp on preview canvas.
 - [ ] **O.9**: Multi-page thumbnail navigation drawer sidebar in universal document previewer modal.
@@ -3672,20 +4159,21 @@ To ensure complete transparency and prevent arbitrary decisions, the following f
 - [ ] **P.8**: Online digital payment gateway integration (QRIS dynamic barcodes, Virtual Accounts, Credit Cards) with cryptographic signature validation, idempotent webhook callback reconciliation, and decoupled sales order multi-tender payment recording.
 - [ ] **P.9**: Cross-application event propagation test suite and transactional outbox dispatcher validating at-least-once message delivery and state machine coherence across all 4 applications.
 - [ ] **P.10**: Worker Mobile App field logistics extensions: delivery destination access profiling (gang senggol, stairs, vehicle limits) and active task-bounded GPS tracking.
-- [ ] **P.15**: Verified Customer Product Review & Rating System strictly gated by completed Sales Order delivery confirmation.
 - [ ] **P.17**: Real-Time Storefront Inventory Polling / Server-Sent Events (SSE) notifying online shoppers when low-stock items are reserved by other concurrent shoppers.
 - [ ] **P.18**: Push Notification Customization: in-app notification sound preferences, vibration haptic feedback toggles, and notification quiet hours.
-- [ ] **P.19**: Geofence-Triggered Automated Arrival Alerts: customer mobile app proximity detection notifying store staging staff 5 minutes before customer arrives for store pickup.
+
 - [ ] **P.21**: Next-Gen AVIF Image Codec delivery pipeline with automatic WebP/JPEG fallback for ultra-low bandwidth mobile networks.
 - [ ] **P.23**: Offline Vector Asset Fallback: SVG icon and offline-cached fallback rendering when network drops entirely during customer storefront browsing.
-- [ ] **P.24**: Self-Service Pickup Locker & Time-Limited OTP Handover: integration with smart electronic lockers at showroom entrances for after-hours contactless pickups.
+
 - [ ] **P.25**: Customer Pickup Delay Expiry & Re-Stocking Automation: automatic staging reminder at Day 5 and restocking forfeiture rule at Day 14 if customer fails to claim staged goods.
-- [ ] **P.26**: Automated Push & Email Alert on Wishlist Price Drop: Background scheduler scanning daily price movements to trigger FCM/APNs push notifications and email alerts when wishlisted items drop by >= 5%.
+- [ ] **P.33 (Wishlist Target Price Forecast & Historical Price Graph)**: Visual 30-day price trend chart on wishlisted item modal showing seasonal promotions and predicting likelihood of reaching customer's target price.
+- [ ] **P.34 (In-App Notification Center Feed for Wishlist Drops)**: Persistent in-app notification inbox tab in mobile app storing past price drop announcements with 1-tap direct checkout buttons.
 - [ ] **P.27**: Wishlist Shared Link & Social Export: Generate shareable public links (`/wishlist/share/:token`) allowing customers to share their furniture/electronics wishlist with family or wedding gift registries.
 - [ ] **P.32**: Margin Impact & Gross Profit Warning Indicator: Real-time calculation of gross profit margin in Pricing Management alerting managers if promotional discounts erode margins below store threshold (e.g. < 12%).
 - [x] **P.33**: Self-Service Delivery Rescheduling Portal on web and app. Account-owned pending deliveries can request date/window changes at least 24 hours before planned dispatch (exact boundary allowed), with dispatcher approval, morning 09:00-12:00 or afternoon 12:00-17:00 Asia/Jakarta windows, single-stop reassignment, request/decision history, and explicit errors. Apply V36 and configure actual departure times; legacy date-only trips remain ineligible.
 - [ ] **P.34**: Real-Time Showroom Branch Stock Availability Indicator ("Tersedia di Showroom Cabang X") on product detail pages.
-- [ ] **P.35**: Interactive 3D / WebXR Augmented Reality (AR) Furniture Room Preview ("Lihat di Ruangan Anda") for sofas, wardrobes, and dining sets.
+- [ ] **P.40**: Multi-Item AR Room Staging & Living Room Set Bundling: Place multiple furniture items (e.g. 3-seater sofa + coffee table + credenza) into a unified 3D/AR room scene with collision overlap checks.
+- [ ] **P.41**: LiDAR / Camera Room Dimension Auto-Scanning & Spatial Clearance Estimator: Native mobile LiDAR depth-sensing integration for automatic floor plane detection and door frame pass-through clearance checks.
 - [ ] **P.36**: Next.js Dynamic XML Sitemap (`sitemap.xml`) & JSON-LD Rich Product Schema (`Product`, `Offer`, `AggregateOffer`) for automated Google Shopping & organic search indexing of furniture and electronics SKUs.
 - [ ] **P.37**: Redis-Distributed Token-Bucket Storefront Rate Limiter: Upgrade `StorefrontApiGatewayFilter` from per-node in-memory buckets to a distributed Redis Lua atomic token bucket for multi-replica horizontal backend scaling.
 - [ ] **P.38**: HTTP `103 Early Hints` & Edge Preconnect Dispatcher: Emit `103 Early Hints` with `Link: rel=preload` and `rel=preconnect` headers at the Next.js / reverse-proxy edge prior to full SSR response streaming.
@@ -3695,12 +4183,12 @@ To ensure complete transparency and prevent arbitrary decisions, the following f
 
 - [ ] **Q.12**: Future Fleet Roadmap: Dedicated in-vehicle telematics hardware, automated customer arrival notifications (ETA), dynamic geofencing, route optimization algorithms, and predictive fleet maintenance.
 - [ ] **Q.20**: Route Heatmapping & Transit Congestion Overlays: Density heatmaps visualizing high-traffic bottleneck zones on historical route playback maps.
-- [ ] **Q.22**: Wearable / Smartwatch Companion Quick-Pause Trigger: Bluetooth Low Energy companion trigger for motorcycle drivers to toggle tracking pause from handlebar or smartwatch.
+
 - [ ] **Q.23**: Accelerometer Crash & Hard Braking Automatic Pause Detection: Device accelerometer sensor spike detection initiating an emergency pause and safety dispatch alert.
 - [ ] **Q.24**: Ambient Weather & Rain Mode GPS Dampening: Automatically relax GPS sampling frequency during torrential tropical downpours to prevent rapid battery drainage from signal attenuation.
-- [ ] **Q.25**: Vehicle Vibration & Mount Dislodgement Detection: Accelerometer pattern analysis detecting phone detachment from motorcycle handlebar mount.
-- [ ] **Q.26**: Automated Dishub KIR Online Booking Integration: Automatic pre-booking with local Dinas Perhubungan inspection centers when vehicles enter 30-day KIR expiration window.
-- [ ] **Q.27**: Digital Samsat e-STNK Document Vault: Secure multi-resolution encrypted document upload and Samsat e-toll QR code retrieval for fleet driver mobile wallet.
+
+
+
 - [ ] **Q.28**: Automated Customer Arrival SMS / WhatsApp Webhook: Automatically dispatch customer arrival notification ("Driver is 300m away, please prepare for delivery") via transactional webhook when geofence triggers.
 - [ ] **Q.29**: Geofence Departure & Dwell Time Telematics: Automatically detect when vehicle exits customer 300m geofence perimeter and calculate total on-site dwell duration.
 - [x] **Q.30**: One-Tap External Navigation Handover: Driver trip sheet action button passing validated GPS destination coordinates directly to Google Maps, Waze, or Apple Maps. Remembered app choice enables one-tap reuse; Google Maps iOS supports an explicit return deep link, while other apps use lifecycle resume callbacks. Return does not confirm delivery. Native device smoke testing remains required.
@@ -3712,9 +4200,21 @@ To ensure complete transparency and prevent arbitrary decisions, the following f
 - [x] **Q.36**: Master Data Truck Phase 2 Service Logs, Delivery Distance Analytics & Monthly Health Check Inspection Checklists: Maintenance cost tracking, workshop invoices, delivery trip distance calculation from GPS tracking sessions, and monthly multi-point roadworthiness inspection checklist with automatic maintenance flagging.
 - [ ] **Q.37**: Automated Monthly Vehicle Health Inspection Cron & Dispatch Notifications: Scheduled monthly reminder job alerting fleet managers and assigned drivers when a truck's monthly health inspection is due or overdue.
 - [ ] **Q.38**: Workshop Maintenance Expense Budgeting & Bengkel Vendor Cost Comparison: Aggregated monthly fleet repair expense reporting and cost-per-kilometer comparison across authorized service centers and local workshops.
-- [ ] **Q.39**: Digital Tire Tread Depth Gauge & PSI Bluetooth Sensor Telematics: Direct BLE telematics integration with digital tire calipers and pressure sensors to automatically log millimeter tread depths into monthly health checks.
+
 - [x] **Q.40**: Driver License (SIM) Registration, 30-Day Expiry Monitoring & Automated Renewal Notifications: Driver driving license registry (SIM A, SIM B1, SIM B1 Umum, SIM B2, SIM B2 Umum, SIM C), daily automated 30-day expiration scanner, in-app and mobile push notification dispatch to drivers, and management renewal reminders.
 - [ ] **Q.41**: Driver License Physical Photo Upload & Samsat Digital Verification: Mobile camera attachment upload of physical SIM cards with automated OCR validation of license number and expiry dates.
-- [ ] **Q.42**: Commercial Driver Safety Score & License Penalty Points Tracker: Monitor driver traffic violations, ticket settlements, and internal safety incidents against driver profile.
+
+### R. Exploratory Hardware, IoT & Smart Retail Incubator (Level 2 / Horizon 3 Roadmap)
+
+> **Architectural Boundary**: Items in this section represent forward-looking hardware, Internet of Things (IoT), and telematics explorations. They are formally separated from Level 1 core retail software sprints to prevent premature hardware dependency while preserving strategic roadmaps.
+
+- [ ] **R.1 (Wearable BLE Companion Quick-Pause Trigger)**: Bluetooth Low Energy companion trigger (e.g. BLE handlebar remote or smartwatch widget) allowing delivery drivers and collectors to toggle GPS tracking pause without taking phone out of pocket.
+- [ ] **R.2 (Vehicle Mount Dislodgement & Vibration Sensor)**: Accelerometer and gyroscope pattern analysis detecting when a worker's phone is detached or dislodged from vehicle mount during delivery transit.
+- [ ] **R.3 (Digital Tire Tread Depth Gauge & PSI Bluetooth Sensor Telematics)**: Direct BLE telematics integration with digital tire calipers and pressure sensors to automatically log millimeter tread depths into monthly vehicle health checks.
+- [ ] **R.4 (Hardwired In-Vehicle OBD-II Telematics & GPS Blackbox Tracker)**: Independent vehicle-mounted GPS/CAN-bus tracking unit wired to truck battery, providing uninterrupted fleet telemetry even when driver phone battery dies or app terminates.
+- [ ] **R.5 (Showroom Entrance Smart Parcel Locker for Small Electronics & Accessories)**: Contactless after-hours pickup locker integration with time-limited OTP/QR verification for small accessories, headphones, smartphones, and spare parts.
+- [ ] **R.6 (BLE Indoor Micro-Positioning Asset Beacons for Showroom Displays)**: Bluetooth Low Energy iBeacon / Eddystone tags attached to high-value showroom electronics (flagship OLED TVs, French door refrigerators) for floor asset tracking, unauthorized movement alerts, and proximity customer product cards.
+- [ ] **R.7 (Warehouse Loading Dock UHF RFID Portal Gate Scanners)**: Fixed overhead RFID gate readers at warehouse dispatch bays automatically scanning tagged cartons as forklifts or dollies pass into delivery trucks.
+
 
 ---

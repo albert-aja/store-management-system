@@ -16,6 +16,14 @@ import {
   type VehicleDto,
   type VehiclePlateHistoryDto,
   type VehicleStatus,
+  type VehicleMaintenanceScheduleDto,
+  type CreateMaintenanceScheduleRequest,
+  type UpdateMaintenanceScheduleStatusRequest,
+  type VehicleFuelLogDto,
+  type CreateFuelLogRequest,
+  type VehicleIncidentReportDto,
+  type CreateIncidentReportRequest,
+  type UpdateIncidentStatusRequest,
 } from "../fleet/fleetApi";
 
 const TRUCKS_KEY = ["trucks"];
@@ -240,6 +248,95 @@ export function useSendLicenseRenewalReminder() {
     onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: driverLicensesKey(vars.employeeId) });
       queryClient.invalidateQueries({ queryKey: expiringLicensesKey });
+    },
+  });
+}
+
+// --- Backlog [L.5] Maintenance, Fuel & Incident Hooks ---
+
+export function useMaintenanceSchedules(vehicleId: string | null) {
+  return useQuery<VehicleMaintenanceScheduleDto[]>({
+    queryKey: maintenanceSchedulesKey(vehicleId ?? ""),
+    queryFn: () => fleetApi.getMaintenanceSchedules(vehicleId as string),
+    enabled: !!vehicleId,
+  });
+}
+
+export function useCreateMaintenanceSchedule() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ vehicleId, data }: { vehicleId: string; data: CreateMaintenanceScheduleRequest }) =>
+      fleetApi.createMaintenanceSchedule(vehicleId, data),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: maintenanceSchedulesKey(vars.vehicleId) });
+      queryClient.invalidateQueries({ queryKey: TRUCKS_KEY });
+    },
+  });
+}
+
+export function useUpdateMaintenanceScheduleStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ scheduleId, vehicleId: _vehicleId, data }: { scheduleId: string; vehicleId: string; data: UpdateMaintenanceScheduleStatusRequest }) =>
+      fleetApi.updateMaintenanceScheduleStatus(scheduleId, data),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: maintenanceSchedulesKey(vars.vehicleId) });
+      queryClient.invalidateQueries({ queryKey: TRUCKS_KEY });
+    },
+  });
+}
+
+export function useFuelLogs(vehicleId: string | null) {
+  return useQuery<VehicleFuelLogDto[]>({
+    queryKey: fuelLogsKey(vehicleId ?? ""),
+    queryFn: () => fleetApi.getFuelLogs(vehicleId as string),
+    enabled: !!vehicleId,
+  });
+}
+
+export function useRecordFuelLog() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ vehicleId, data }: { vehicleId: string; data: CreateFuelLogRequest }) =>
+      fleetApi.recordFuelLog(vehicleId, data),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: fuelLogsKey(vars.vehicleId) });
+      queryClient.invalidateQueries({ queryKey: TRUCKS_KEY });
+      queryClient.invalidateQueries({ queryKey: truckKey(vars.vehicleId) });
+    },
+  });
+}
+
+export function useIncidentReports(vehicleId: string | null) {
+  return useQuery<VehicleIncidentReportDto[]>({
+    queryKey: incidentReportsKey(vehicleId ?? ""),
+    queryFn: () => fleetApi.getIncidentReports(vehicleId as string),
+    enabled: !!vehicleId,
+  });
+}
+
+export function useReportIncident() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ vehicleId, data }: { vehicleId: string; data: CreateIncidentReportRequest }) =>
+      fleetApi.reportIncident(vehicleId, data),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: incidentReportsKey(vars.vehicleId) });
+      queryClient.invalidateQueries({ queryKey: TRUCKS_KEY });
+      queryClient.invalidateQueries({ queryKey: truckKey(vars.vehicleId) });
+    },
+  });
+}
+
+export function useUpdateIncidentStatus() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ incidentId, vehicleId: _vehicleId, data }: { incidentId: string; vehicleId: string; data: UpdateIncidentStatusRequest }) =>
+      fleetApi.updateIncidentStatus(incidentId, data),
+    onSuccess: (_, vars) => {
+      queryClient.invalidateQueries({ queryKey: incidentReportsKey(vars.vehicleId) });
+      queryClient.invalidateQueries({ queryKey: TRUCKS_KEY });
+      queryClient.invalidateQueries({ queryKey: truckKey(vars.vehicleId) });
     },
   });
 }

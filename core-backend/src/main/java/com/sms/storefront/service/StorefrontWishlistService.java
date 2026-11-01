@@ -131,6 +131,10 @@ public class StorefrontWishlistService {
                     priceDropAmount,
                     priceDropPercentage,
                     item.getNotes(),
+                    item.isNotifyOnPriceDrop(),
+                    item.getAlertDropThresholdPercent() != null ? item.getAlertDropThresholdPercent() : new BigDecimal("5.00"),
+                    item.getLastAlertedPrice(),
+                    item.getLastAlertedAt(),
                     item.getCreatedAt()
             ));
         }
@@ -190,6 +194,12 @@ public class StorefrontWishlistService {
             if (request.notes() != null) {
                 item.setNotes(request.notes());
             }
+            if (request.notifyOnPriceDrop() != null) {
+                item.setNotifyOnPriceDrop(request.notifyOnPriceDrop());
+            }
+            if (request.alertDropThresholdPercent() != null) {
+                item.setAlertDropThresholdPercent(request.alertDropThresholdPercent());
+            }
         } else {
             item = new CustomerWishlistItem();
             item.setCustomer(customer);
@@ -199,7 +209,10 @@ public class StorefrontWishlistService {
             item.setAddedPrice(currentPrice);
             item.setCurrentPrice(currentPrice);
             item.setNotes(request.notes());
-            item.setNotifyOnPriceDrop(true);
+            item.setNotifyOnPriceDrop(request.notifyOnPriceDrop() != null ? request.notifyOnPriceDrop() : true);
+            if (request.alertDropThresholdPercent() != null) {
+                item.setAlertDropThresholdPercent(request.alertDropThresholdPercent());
+            }
         }
 
         CustomerWishlistItem saved = wishlistRepository.save(item);
@@ -223,8 +236,38 @@ public class StorefrontWishlistService {
                 BigDecimal.ZERO,
                 0.0,
                 saved.getNotes(),
+                saved.isNotifyOnPriceDrop(),
+                saved.getAlertDropThresholdPercent() != null ? saved.getAlertDropThresholdPercent() : new BigDecimal("5.00"),
+                saved.getLastAlertedPrice(),
+                saved.getLastAlertedAt(),
                 saved.getCreatedAt()
         );
+    }
+
+    @Transactional
+    public WishlistItemDto updateAlertSettings(UUID itemId, UpdateWishlistAlertSettingsRequest request) {
+        CustomerWishlistItem item = wishlistRepository.findById(itemId)
+                .orElseThrow(() -> new NotFoundException("Wishlist item not found: " + itemId));
+
+        if (request != null) {
+            if (request.notifyOnPriceDrop() != null) {
+                item.setNotifyOnPriceDrop(request.notifyOnPriceDrop());
+            }
+            if (request.alertDropThresholdPercent() != null) {
+                if (request.alertDropThresholdPercent().compareTo(BigDecimal.ONE) < 0 ||
+                        request.alertDropThresholdPercent().compareTo(BigDecimal.valueOf(90)) > 0) {
+                    throw new IllegalArgumentException("Alert drop threshold percentage must be between 1% and 90%");
+                }
+                item.setAlertDropThresholdPercent(request.alertDropThresholdPercent());
+            }
+        }
+
+        CustomerWishlistItem saved = wishlistRepository.save(item);
+        return getWishlist(saved.getSessionId(), saved.getCustomer() != null ? saved.getCustomer().getId() : null)
+                .items().stream()
+                .filter(i -> i.id().equals(itemId))
+                .findFirst()
+                .orElseThrow();
     }
 
     public void removeFromWishlist(UUID itemId) {

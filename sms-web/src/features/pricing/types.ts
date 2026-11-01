@@ -85,6 +85,7 @@ export interface PriceListVersion {
   createdBy?: string | null;
   viewUrl: string;
   downloadUrl: string;
+  downloadPdfUrl?: string;
 }
 
 export interface GeneratePriceListVersionRequest {

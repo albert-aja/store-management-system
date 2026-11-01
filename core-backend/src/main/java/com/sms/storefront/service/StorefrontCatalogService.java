@@ -13,6 +13,7 @@ import com.sms.product.repository.ProductBrandRepository;
 import com.sms.product.repository.ProductCategoryRepository;
 import com.sms.product.repository.ProductRepository;
 import com.sms.product.repository.ProductVariantRepository;
+import com.sms.storefront.dto.ArModelDto;
 import com.sms.storefront.dto.StorefrontBannerDto;
 import com.sms.storefront.dto.StorefrontCategoryDto;
 import com.sms.storefront.dto.StorefrontProductDetailDto;
@@ -243,6 +244,8 @@ public class StorefrontCatalogService {
         specs.put("Warranty", "1 Year Official Brand Warranty");
         specs.put("Delivery Coverage", "National & Local Instant Dispatch");
 
+        ArModelDto arModel = resolveArModel(product);
+
         return new StorefrontProductDetailDto(
                 product.getId(),
                 product.getName(),
@@ -262,7 +265,113 @@ public class StorefrontCatalogService {
                 variantDtos,
                 specs,
                 hasFlashSale,
-                flashSaleEndsAt
+                flashSaleEndsAt,
+                arModel
+        );
+    }
+
+    public ArModelDto resolveArModel(Product product) {
+        String catName = product.getCategory() != null && product.getCategory().getName() != null
+                ? product.getCategory().getName().toLowerCase() : "";
+        String prodName = product.getName() != null ? product.getName().toLowerCase() : "";
+
+        boolean isFurniture = catName.contains("furniture") || catName.contains("mebel")
+                || prodName.contains("sofa") || prodName.contains("wardrobe") || prodName.contains("lemari")
+                || prodName.contains("meja makan") || prodName.contains("dining") || prodName.contains("kursi")
+                || prodName.contains("bed") || prodName.contains("kasur") || prodName.contains("rak") || prodName.contains("cabinet");
+
+        if (!isFurniture) {
+            return new ArModelDto(false, null, null, null, 0, 0, 0, null, List.of(), List.of(), "FLOOR", null);
+        }
+
+        String type;
+        int widthCm;
+        int depthCm;
+        int heightCm;
+        String room;
+        List<ArModelDto.ArColorVariantDto> colorVariants;
+        List<ArModelDto.ArHotspotDto> hotspots;
+
+        if (prodName.contains("sofa")) {
+            type = "SOFA";
+            widthCm = 210;
+            depthCm = 90;
+            heightCm = 85;
+            room = "LIVING_ROOM";
+            colorVariants = List.of(
+                    new ArModelDto.ArColorVariantDto("Charcoal Grey", "#374151", "Woven Fabric"),
+                    new ArModelDto.ArColorVariantDto("Cream White", "#F3F4F6", "Boucle Fabric"),
+                    new ArModelDto.ArColorVariantDto("Navy Blue", "#1E3A8A", "Velvet Fabric"),
+                    new ArModelDto.ArColorVariantDto("Cognac Brown", "#92400E", "Synthetic Leather")
+            );
+            hotspots = List.of(
+                    new ArModelDto.ArHotspotDto("Busa High-Density 30", "Bantalan busa cetak tahan kempes hingga 5 tahun", 0.0, 0.45, 0.1),
+                    new ArModelDto.ArHotspotDto("Rangka Kayu Solid Mahoni", "Struktur kayu oven anti-rayap kuat menahan beban 300kg", -0.8, 0.2, 0.0),
+                    new ArModelDto.ArHotspotDto("Kain Pelapis Anti-Noda", "Lapisan water-repellent mudah dibersihkan dari tumpahan cairan", 0.5, 0.4, 0.3)
+            );
+        } else if (prodName.contains("wardrobe") || prodName.contains("lemari")) {
+            type = "WARDROBE";
+            widthCm = 120;
+            depthCm = 60;
+            heightCm = 200;
+            room = "BEDROOM";
+            colorVariants = List.of(
+                    new ArModelDto.ArColorVariantDto("Warm Oak", "#B45309", "Wood Grain Melamine"),
+                    new ArModelDto.ArColorVariantDto("Pure White Gloss", "#F9FAFB", "High Gloss Lacquer"),
+                    new ArModelDto.ArColorVariantDto("Modern Grey", "#4B5563", "Matte Textured")
+            );
+            hotspots = List.of(
+                    new ArModelDto.ArHotspotDto("Engsel Soft-Close Hidrolik", "Pintu menutup perlahan tanpa bunyi bantingan", -0.55, 1.0, 0.3),
+                    new ArModelDto.ArHotspotDto("Gantungan Baju Stainless", "Kapasitas hingga 40 set pakaian jas dan gaun", 0.0, 1.5, 0.0),
+                    new ArModelDto.ArHotspotDto("Laci Kunci Tersembunyi", "Penyimpanan aman untuk perhiasan dan dokumen berharga", 0.3, 0.3, 0.2)
+            );
+        } else if (prodName.contains("makan") || prodName.contains("dining")) {
+            type = "DINING_SET";
+            widthCm = 160;
+            depthCm = 90;
+            heightCm = 75;
+            room = "DINING_ROOM";
+            colorVariants = List.of(
+                    new ArModelDto.ArColorVariantDto("Walnut Solid", "#78350F", "Natural Wood Finish"),
+                    new ArModelDto.ArColorVariantDto("Carrara White Marble", "#E5E7EB", "Engineered Sintered Stone"),
+                    new ArModelDto.ArColorVariantDto("Black Ash", "#1F2937", "Matte Powder Coating")
+            );
+            hotspots = List.of(
+                    new ArModelDto.ArHotspotDto("Top Table Tahan Gores & Panas", "Batu sintered stone tahan suhu mangkuk panas s/d 200°C", 0.0, 0.75, 0.0),
+                    new ArModelDto.ArHotspotDto("Kaki Meja Metal Heavy-Duty", "Baja profil kotak kokoh stabil tanpa goyang", -0.7, 0.3, -0.3),
+                    new ArModelDto.ArHotspotDto("Kursi Ergonomis Busa Rebound", "Sandaran melengkung nyaman menopang punggung", 0.6, 0.5, 0.4)
+            );
+        } else {
+            type = "FURNITURE_GENERAL";
+            widthCm = 150;
+            depthCm = 80;
+            heightCm = 80;
+            room = "LIVING_ROOM";
+            colorVariants = List.of(
+                    new ArModelDto.ArColorVariantDto("Natural Wood", "#D97706", "Veneer Finish"),
+                    new ArModelDto.ArColorVariantDto("Minimalist White", "#FFFFFF", "Matte Melamine")
+            );
+            hotspots = List.of(
+                    new ArModelDto.ArHotspotDto("Konstruksi Presisi Knock-Down", "Perakitan presisi cepat dengan instruksi nomor part", 0.0, 0.5, 0.0)
+            );
+        }
+
+        String glb = "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/SheenChair/glTF-Binary/SheenChair.glb";
+        String usdz = "https://developer.apple.com/augmented-reality/quick-look/models/chair/chair.usdz";
+
+        return new ArModelDto(
+                true,
+                type,
+                glb,
+                usdz,
+                widthCm,
+                depthCm,
+                heightCm,
+                colorVariants.get(0).name(),
+                colorVariants,
+                hotspots,
+                "FLOOR",
+                room
         );
     }
 

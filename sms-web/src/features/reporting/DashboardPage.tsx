@@ -30,6 +30,8 @@ import Inventory2Icon from '@mui/icons-material/Inventory2';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import DownloadIcon from '@mui/icons-material/Download';
 import TableChartIcon from '@mui/icons-material/TableChart';
+import ScheduleSendIcon from '@mui/icons-material/ScheduleSend';
+import { ScheduledReportsModal } from './ScheduledReportsModal';
 import { exportFinancialAgingToExcel, exportStockBalanceToExcel, exportToExcel } from '../../lib/exportExcel';
 import LeaderboardIcon from '@mui/icons-material/Leaderboard';
 import AssessmentIcon from '@mui/icons-material/Assessment';
@@ -54,6 +56,7 @@ export default function DashboardPage() {
   const [storeFilter, setStoreFilter] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [scheduledModalOpen, setScheduledModalOpen] = useState(false);
 
   const { data: stores = [] } = useStores();
 
@@ -225,7 +228,18 @@ export default function DashboardPage() {
           </Typography>
         </Box>
 
-        <FormControl size="small" sx={{ minWidth: 220 }}>
+        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+          <Button
+            variant="outlined"
+            color="primary"
+            startIcon={<ScheduleSendIcon />}
+            onClick={() => setScheduledModalOpen(true)}
+            sx={{ fontWeight: 600, height: 40 }}
+          >
+            {t("Scheduled Reports (Email Digest)")}
+          </Button>
+
+          <FormControl size="small" sx={{ minWidth: 220 }}>
           <InputLabel>{t("Filter Store Scope")}</InputLabel>
           <Select
             value={storeFilter}
@@ -240,6 +254,7 @@ export default function DashboardPage() {
             ))}
           </Select>
         </FormControl>
+        </Box>
       </Box>
 
       {/* Primary KPI Metric Cards */}
@@ -677,6 +692,29 @@ export default function DashboardPage() {
           </Typography>
 
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+            <Card variant="outlined" sx={{ borderRadius: 2, gridColumn: { xs: '1', md: 'span 2' }, borderColor: '#2563eb' }}>
+              <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <ScheduleSendIcon color="primary" />
+                  <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                    {t("Automated Scheduled Reports & Email Digest Dispatch (G.9)")}
+                  </Typography>
+                </Box>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  {t("Automated daily/weekly background digest dispatching multi-sheet Excel (.xlsx) financial aging and stock balance reports to store managers.")}
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<ScheduleSendIcon />}
+                    onClick={() => setScheduledModalOpen(true)}
+                  >
+                    {t("Manage Scheduled Reports")}
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
             <Card variant="outlined" sx={{ borderRadius: 2 }}>
               <CardContent>
                 <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
@@ -737,6 +775,11 @@ export default function DashboardPage() {
           </Box>
         </Box>
       )}
+      <ScheduledReportsModal
+        open={scheduledModalOpen}
+        onClose={() => setScheduledModalOpen(false)}
+        selectedStoreId={storeFilter || undefined}
+      />
     </Box>
   );
 }

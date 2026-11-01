@@ -14,7 +14,9 @@ import {
   Minus,
   Share2,
   Heart,
+  Sparkles,
 } from "lucide-react";
+import { ArRoomPreviewModal } from "../components/ArRoomPreviewModal";
 import { ResponsiveImage } from "../components/ResponsiveImage";
 import {
   getOptimizedImageUrl,
@@ -25,6 +27,7 @@ import { ProductDetail, Variant } from "../types";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 import { FlashSaleBadge } from "../components/FlashSaleBadge";
+import { ProductReviewsSection } from "../components/ProductReviewsSection";
 
 export const ProductDetailPage: React.FC = () => {
   const { t, message, locale } = useI18n();
@@ -39,6 +42,7 @@ export const ProductDetailPage: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [isAdded, setIsAdded] = useState(false);
+  const [isArModalOpen, setIsArModalOpen] = useState(false);
 
   const wishlisted = product ? isWishlisted(product.id) : false;
 
@@ -192,6 +196,22 @@ export const ProductDetailPage: React.FC = () => {
                 </button>
               ))}
             </div>
+          )}
+
+          {/* Backlog [P.35]: WebXR 3D / AR Room Preview trigger for furniture items */}
+          {Boolean(
+            product.arModel?.isSupported ||
+            product.categoryName?.toLowerCase().includes("furniture") ||
+            product.categoryName?.toLowerCase().includes("mebel") ||
+            /sofa|lemari|wardrobe|makan|dining|kursi|bed|kasur/i.test(product.name)
+          ) && (
+            <button
+              onClick={() => setIsArModalOpen(true)}
+              className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-sky-50 via-indigo-50 to-sky-50 hover:from-sky-100 hover:to-indigo-100 border border-sky-200 text-sky-800 text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm group"
+            >
+              <Sparkles className="w-4 h-4 text-sky-600 group-hover:scale-110 transition-transform" />
+              <span>{t("Lihat di Ruangan Anda (3D / AR)")}</span>
+            </button>
           )}
         </div>
 
@@ -429,7 +449,19 @@ export const ProductDetailPage: React.FC = () => {
             </table>
           </div>
         )}
+        {/* Backlog [P.15]: Verified Customer Reviews and Ratings */}
+        <ProductReviewsSection
+          productId={product.id}
+          productName={product.name}
+        />
       </div>
+
+      {/* 3D / WebXR AR Furniture Room Preview Modal */}
+      <ArRoomPreviewModal
+        isOpen={isArModalOpen}
+        onClose={() => setIsArModalOpen(false)}
+        product={product}
+      />
     </div>
   );
 };

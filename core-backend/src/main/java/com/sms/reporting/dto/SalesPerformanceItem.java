@@ -14,4 +14,7 @@ public class SalesPerformanceItem {
     private long confirmedOrdersCount;
     private BigDecimal totalSalesVolume;
     private BigDecimal estimatedCommission;
+    private String tierName;
+    private String tierColor;
+    private BigDecimal commissionRate;
 }

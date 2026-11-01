@@ -267,4 +267,69 @@ public class FleetController {
     public int scanAndNotifyExpiringLicenses() {
         return fleetService.scanAndNotifyExpiringLicenses();
     }
+
+    // --- Maintenance Scheduler (Backlog [L.5]) ---
+
+    @GetMapping("/vehicles/{id}/maintenance-schedules")
+    public List<VehicleMaintenanceScheduleDto.Response> getMaintenanceSchedules(@PathVariable UUID id) {
+        return fleetService.getMaintenanceSchedules(id);
+    }
+
+    @PostMapping("/vehicles/{id}/maintenance-schedules")
+    @ResponseStatus(HttpStatus.CREATED)
+    public VehicleMaintenanceScheduleDto.Response createMaintenanceSchedule(
+            @PathVariable UUID id,
+            @Valid @RequestBody VehicleMaintenanceScheduleDto.CreateRequest request
+    ) {
+        return fleetService.createMaintenanceSchedule(id, request);
+    }
+
+    @PatchMapping("/maintenance-schedules/{scheduleId}")
+    public VehicleMaintenanceScheduleDto.Response updateMaintenanceScheduleStatus(
+            @PathVariable UUID scheduleId,
+            @Valid @RequestBody VehicleMaintenanceScheduleDto.UpdateStatusRequest request
+    ) {
+        return fleetService.updateMaintenanceScheduleStatus(scheduleId, request);
+    }
+
+    // --- Fuel Consumption Log Tracking (Backlog [L.5]) ---
+
+    @GetMapping("/vehicles/{id}/fuel-logs")
+    public List<VehicleFuelLogDto.Response> getFuelLogs(@PathVariable UUID id) {
+        return fleetService.getFuelLogs(id);
+    }
+
+    @PostMapping("/vehicles/{id}/fuel-logs")
+    @ResponseStatus(HttpStatus.CREATED)
+    public VehicleFuelLogDto.Response recordFuelLog(
+            @PathVariable UUID id,
+            @Valid @RequestBody VehicleFuelLogDto.CreateRequest request
+    ) {
+        return fleetService.recordFuelLog(id, request);
+    }
+
+    // --- Incident Damage Reporting (Backlog [L.5]) ---
+
+    @GetMapping("/vehicles/{id}/incident-reports")
+    public List<VehicleIncidentReportDto.Response> getIncidentReports(@PathVariable UUID id) {
+        return fleetService.getIncidentReports(id);
+    }
+
+    @PostMapping("/vehicles/{id}/incident-reports")
+    @ResponseStatus(HttpStatus.CREATED)
+    public VehicleIncidentReportDto.Response reportIncident(
+            @PathVariable UUID id,
+            @Valid @RequestBody VehicleIncidentReportDto.CreateRequest request
+    ) {
+        return fleetService.reportIncident(id, request);
+    }
+
+    @PatchMapping("/incident-reports/{incidentId}")
+    public VehicleIncidentReportDto.Response updateIncidentStatus(
+            @PathVariable UUID incidentId,
+            @Valid @RequestBody VehicleIncidentReportDto.UpdateStatusRequest request
+    ) {
+        return fleetService.updateIncidentStatus(incidentId, request);
+    }
+
 }

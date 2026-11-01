@@ -135,3 +135,26 @@ export interface PayrollSlip {
   notes?: string;
   createdAt: string;
 }
+
+export interface CommissionTier {
+  id: string;
+  tierName: string;
+  minSalesVolume: number;
+  maxSalesVolume: number | null;
+  commissionRate: number;
+  colorCode: string;
+  displayOrder: number;
+  isActive: boolean;
+  storeId?: string | null;
+}
+
+export interface CommissionTierRequest {
+  tierName: string;
+  minSalesVolume: number;
+  maxSalesVolume?: number | null;
+  commissionRate: number;
+  colorCode?: string;
+  displayOrder?: number;
+  isActive?: boolean;
+  storeId?: string | null;
+}

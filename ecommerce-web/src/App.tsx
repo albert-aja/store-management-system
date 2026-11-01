@@ -18,6 +18,7 @@ import { AccountPage } from './pages/AccountPage';
 import { WishlistPage } from './pages/WishlistPage';
 import { I18nProvider } from './i18n';
 import { SharedWishlistPage } from './pages/SharedWishlistPage';
+import { BundleSimulatorPage } from './pages/BundleSimulatorPage';
 
 export const App: React.FC = () => {
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
@@ -37,6 +38,7 @@ export const App: React.FC = () => {
                   <Route path="/products/:id" element={<ProductDetailPage />} />
                   <Route path="/wishlist" element={<WishlistPage />} />
                   <Route path="/wishlist/share/:token" element={<SharedWishlistPage />} />
+                  <Route path="/bundle-simulator" element={<BundleSimulatorPage />} />
                   <Route path="/cart" element={<CartPage />} />
                   <Route path="/checkout" element={<CheckoutPage />} />
                   <Route path="/order-success/:orderNumber" element={<OrderSuccessPage />} />

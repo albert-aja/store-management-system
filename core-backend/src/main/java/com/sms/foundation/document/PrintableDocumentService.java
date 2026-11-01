@@ -3,12 +3,18 @@ package com.sms.foundation.document;
 import com.sms.common.web.NotFoundException;
 import com.sms.customer.Customer;
 import com.sms.customer.CustomerAddress;
+import com.sms.customer.CustomerRepository;
 import com.sms.delivery.DeliveryItem;
 import com.sms.delivery.DeliveryOrder;
 import com.sms.delivery.DeliveryOrderRepository;
 import com.sms.finance.CustomerPayment;
 import com.sms.finance.CustomerPaymentRepository;
+import com.sms.finance.InstallmentStatus;
 import com.sms.finance.PaymentAllocation;
+import com.sms.finance.Receivable;
+import com.sms.finance.ReceivableInstallment;
+import com.sms.finance.ReceivableRepository;
+import com.sms.finance.ReceivableStatus;
 import com.sms.payroll.PayrollSlip;
 import com.sms.payroll.PayrollSlipRepository;
 import com.sms.repossession.StockReturn;
@@ -19,10 +25,13 @@ import com.sms.sales.SalesOrderItemRepository;
 import com.sms.sales.SalesOrderRepository;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,6 +48,8 @@ public class PrintableDocumentService {
     private final CustomerPaymentRepository customerPaymentRepository;
     private final PayrollSlipRepository payrollSlipRepository;
     private final StockReturnRepository stockReturnRepository;
+    private final ReceivableRepository receivableRepository;
+    private final CustomerRepository customerRepository;
 
     private static final Locale ID_LOCALE = Locale.of("id", "ID");
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd MMMM yyyy", ID_LOCALE);
@@ -71,6 +82,17 @@ public class PrintableDocumentService {
                 "    table.data-table th { background-color: #f1f5f9; text-align: left; font-weight: 700; color: #334155; }\n" +
                 "    .text-right { text-align: right; }\n" +
                 "    .text-center { text-align: center; }\n" +
+                "    .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }\n" +
+                "    .badge-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }\n" +
+                "    .badge-warning { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }\n" +
+                "    .badge-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }\n" +
+                "    .badge-info { background: #e0f2fe; color: #075985; border: 1px solid #7dd3fc; }\n" +
+                "    .badge-neutral { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }\n" +
+                "    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }\n" +
+                "    .metric-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; text-align: center; }\n" +
+                "    .metric-label { font-size: 10px; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }\n" +
+                "    .metric-value { font-size: 14px; font-weight: 800; color: #0f172a; }\n" +
+                "    .notice-box { background: #f8fafc; border: 1px dashed #94a3b8; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: #475569; margin-top: 15px; }\n" +
                 "    .signatures { display: flex; justify-content: space-between; margin-top: 40px; page-break-inside: avoid; }\n" +
                 "    .sig-box { width: 30%; text-align: center; font-size: 11px; }\n" +
                 "    .sig-line { margin-top: 60px; border-bottom: 1px solid #334155; font-weight: 700; padding-bottom: 2px; }\n" +
@@ -115,6 +137,17 @@ public class PrintableDocumentService {
                 "    table.data-table th { background-color: #f1f5f9; text-align: left; font-weight: 700; color: #334155; }\n" +
                 "    .text-right { text-align: right; }\n" +
                 "    .text-center { text-align: center; }\n" +
+                "    .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }\n" +
+                "    .badge-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }\n" +
+                "    .badge-warning { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }\n" +
+                "    .badge-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }\n" +
+                "    .badge-info { background: #e0f2fe; color: #075985; border: 1px solid #7dd3fc; }\n" +
+                "    .badge-neutral { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }\n" +
+                "    .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }\n" +
+                "    .metric-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; text-align: center; }\n" +
+                "    .metric-label { font-size: 10px; font-weight: 600; color: #64748b; text-transform: uppercase; margin-bottom: 4px; }\n" +
+                "    .metric-value { font-size: 14px; font-weight: 800; color: #0f172a; }\n" +
+                "    .notice-box { background: #f8fafc; border: 1px dashed #94a3b8; border-radius: 6px; padding: 10px 14px; font-size: 11px; color: #475569; margin-top: 15px; }\n" +
                 "    .signatures { display: flex; justify-content: space-between; margin-top: 40px; page-break-inside: avoid; }\n" +
                 "    .sig-box { width: 30%; text-align: center; font-size: 11px; }\n" +
                 "    .sig-line { margin-top: 60px; border-bottom: 1px solid #334155; font-weight: 700; padding-bottom: 2px; }\n" +
@@ -719,6 +752,16 @@ public class PrintableDocumentService {
                                 .orElseThrow(() -> new NotFoundException("Return not found: " + id));
                         singleDocContent = generateRepossessionNoticeContent(sr);
                     }
+                    case "CUSTOMER_STATEMENT", "STATEMENT", "BILLING_STATEMENT" -> {
+                        Customer c = customerRepository.findById(id).orElse(null);
+                        if (c != null) {
+                            singleDocContent = generateCustomerBillingStatementContent(c);
+                        } else {
+                            Receivable r = receivableRepository.findById(id)
+                                    .orElseThrow(() -> new NotFoundException("Customer or Receivable not found: " + id));
+                            singleDocContent = generateCustomerBillingStatementContent(r.getCustomer());
+                        }
+                    }
                     default -> throw new IllegalArgumentException("Unknown document type: " + documentType);
                 }
 
@@ -733,5 +776,337 @@ public class PrintableDocumentService {
         }
 
         return baseBulkHtml("Cetak Massal " + documentType, bulkContent.toString(), count);
+    }
+
+    /** 8. Official Customer Billing Statement & Installment Ledger (G.10) */
+    public String generateCustomerBillingStatementHtml(UUID customerId) {
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new NotFoundException("Customer not found: " + customerId));
+        return baseHtml("Lembar Rekening Koran Tagihan - " + customer.getFullName(),
+                generateCustomerBillingStatementContent(customer));
+    }
+
+    public String generateReceivableStatementHtml(UUID receivableId) {
+        Receivable receivable = receivableRepository.findById(receivableId)
+                .orElseThrow(() -> new NotFoundException("Receivable obligation not found: " + receivableId));
+        return baseHtml("Lembar Tagihan Angsuran - " + receivable.getReceivableNumber(),
+                generateCustomerBillingStatementContent(receivable.getCustomer()));
+    }
+
+    public String generateCustomerStatementsBatchHtml(UUID storeId, List<UUID> customerIds, String status) {
+        List<Customer> customers;
+        if (customerIds != null && !customerIds.isEmpty()) {
+            customers = customerRepository.findAllById(customerIds);
+        } else {
+            ReceivableStatus recStatus = null;
+            if (status != null && !status.isBlank() && !status.equalsIgnoreCase("ALL")) {
+                try {
+                    recStatus = ReceivableStatus.valueOf(status.toUpperCase());
+                } catch (IllegalArgumentException ignored) {}
+            }
+            List<Receivable> receivables = receivableRepository.search(storeId, null, recStatus);
+            customers = receivables.stream()
+                    .map(Receivable::getCustomer)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .toList();
+        }
+
+        if (customers.isEmpty()) {
+            return baseHtml("Rekening Tagihan Pelanggan (Batch)", "<p>Tidak ada data pelanggan yang memenuhi kriteria untuk dicetak.</p>");
+        }
+
+        StringBuilder bulkContent = new StringBuilder();
+        int count = 0;
+        for (Customer c : customers) {
+            String singleDocContent = generateCustomerBillingStatementContent(c);
+            if (count > 0) {
+                bulkContent.append("<div class=\"page-break\"></div>\n");
+            }
+            bulkContent.append(singleDocContent).append("\n");
+            count++;
+        }
+
+        return baseBulkHtml("Rekening Koran & Tagihan Pelanggan", bulkContent.toString(), count);
+    }
+
+    public String generateCustomerBillingStatementContent(Customer customer) {
+        List<Receivable> receivables = receivableRepository.findByCustomerId(customer.getId());
+        List<CustomerPayment> payments = customerPaymentRepository.findByCustomerIdOrderByPaidAtDesc(customer.getId());
+
+        String storeName = "SMS MEBEL & ELEKTRONIK";
+        String storeAddress = "Jl. Raya Industri Utama No. 88, Jawa Timur";
+        String storePhone = "(031) 892-1100 / WhatsApp: 0812-3456-7890";
+        if (!receivables.isEmpty() && receivables.get(0).getStore() != null) {
+            var st = receivables.get(0).getStore();
+            if (st.getName() != null && !st.getName().isBlank()) storeName = st.getName();
+            if (st.getAddress() != null && !st.getAddress().isBlank()) storeAddress = st.getAddress();
+        }
+
+        String printDateStr = DATE_FMT.format(LocalDate.now());
+        String statementNumber = "STM-" + (customer.getNik() != null && !customer.getNik().isBlank() 
+                ? customer.getNik() 
+                : customer.getId().toString().substring(0, 8).toUpperCase()) + "-" + LocalDate.now().toString().replace("-", "");
+
+        BigDecimal totalFinanced = BigDecimal.ZERO;
+        BigDecimal totalPaid = BigDecimal.ZERO;
+        BigDecimal totalRemaining = BigDecimal.ZERO;
+        BigDecimal totalOverdue = BigDecimal.ZERO;
+        int totalInstallmentOverdueCount = 0;
+
+        for (Receivable r : receivables) {
+            totalFinanced = totalFinanced.add(r.getFinancedAmount() != null ? r.getFinancedAmount() : BigDecimal.ZERO);
+            totalPaid = totalPaid.add(r.getTotalPaid() != null ? r.getTotalPaid() : BigDecimal.ZERO);
+            totalRemaining = totalRemaining.add(r.getRemainingBalance() != null ? r.getRemainingBalance() : BigDecimal.ZERO);
+            if (r.getInstallments() != null) {
+                for (ReceivableInstallment inst : r.getInstallments()) {
+                    if (inst.getDueDate().isBefore(LocalDate.now()) && inst.getStatus() != InstallmentStatus.PAID && inst.getStatus() != InstallmentStatus.FORGIVEN) {
+                        BigDecimal due = inst.getAmountDue() != null ? inst.getAmountDue() : BigDecimal.ZERO;
+                        BigDecimal paid = inst.getAmountPaid() != null ? inst.getAmountPaid() : BigDecimal.ZERO;
+                        BigDecimal bal = due.subtract(paid);
+                        if (bal.compareTo(BigDecimal.ZERO) > 0) {
+                            totalOverdue = totalOverdue.add(bal);
+                            totalInstallmentOverdueCount++;
+                        }
+                    }
+                }
+            }
+        }
+
+        String creditStatusBadge;
+        if (totalOverdue.compareTo(BigDecimal.ZERO) > 0) {
+            creditStatusBadge = "<span class=\"badge badge-danger\">PERHATIAN KHUSUS (" + totalInstallmentOverdueCount + " TERTUNGGAK)</span>";
+        } else if (totalRemaining.compareTo(BigDecimal.ZERO) == 0 && !receivables.isEmpty()) {
+            creditStatusBadge = "<span class=\"badge badge-success\">LUNAS (PAID IN FULL)</span>";
+        } else if (receivables.isEmpty()) {
+            creditStatusBadge = "<span class=\"badge badge-neutral\">TIDAK ADA KONTRAK AKTIF</span>";
+        } else {
+            creditStatusBadge = "<span class=\"badge badge-info\">LANCAR (CURRENT)</span>";
+        }
+
+        StringBuilder html = new StringBuilder();
+        html.append("<div class=\"doc-boundary\">\n");
+
+        // Header
+        html.append("<div class=\"header\">\n")
+            .append("  <div>\n")
+            .append("    <div class=\"store-name\">").append(storeName).append("</div>\n")
+            .append("    <div class=\"store-info\">").append(storeAddress).append("<br/>Telp/WA: ").append(storePhone).append("<br/><em>Sistem Manajemen Angsuran & Penjualan Ritel</em></div>\n")
+            .append("  </div>\n")
+            .append("  <div class=\"doc-title\">\n")
+            .append("    <div class=\"doc-name\">LEMBAR REKENING KORAN TAGIHAN</div>\n")
+            .append("    <div class=\"doc-number\">No: ").append(statementNumber).append("</div>\n")
+            .append("    <div class=\"store-info\">Tanggal Cetak: ").append(printDateStr).append("</div>\n")
+            .append("  </div>\n")
+            .append("</div>\n");
+
+        // Customer Profile Section
+        html.append("<div class=\"section\">\n")
+            .append("  <div class=\"section-title\">INFORMASI DEBITUR / PELANGGAN</div>\n")
+            .append("  <table style=\"width: 100%; font-size: 12px; margin-bottom: 12px;\">\n")
+            .append("    <tr>\n")
+            .append("      <td style=\"width: 20%; font-weight: 700; color: #64748b;\">Nama Lengkap:</td>\n")
+            .append("      <td style=\"width: 30%; font-weight: 700; font-size: 13px;\">").append(customer.getFullName()).append("</td>\n")
+            .append("      <td style=\"width: 20%; font-weight: 700; color: #64748b;\">Segmen CRM:</td>\n")
+            .append("      <td style=\"width: 30%;\">").append(customer.getSegment() != null ? customer.getSegment() : "STANDARD").append("</td>\n")
+            .append("    </tr>\n")
+            .append("    <tr>\n")
+            .append("      <td style=\"font-weight: 700; color: #64748b;\">No. KTP / NIK:</td>\n")
+            .append("      <td>").append(customer.getNik() != null ? customer.getNik() : "-").append("</td>\n")
+            .append("      <td style=\"font-weight: 700; color: #64748b;\">Peringkat Kredit:</td>\n")
+            .append("      <td>Grade ").append(customer.getCreditScoreGrade() != null ? customer.getCreditScoreGrade() : "B").append(" (").append(customer.getCreditScorePoints()).append(" Poin)</td>\n")
+            .append("    </tr>\n")
+            .append("    <tr>\n")
+            .append("      <td style=\"font-weight: 700; color: #64748b;\">Nomor Telepon:</td>\n")
+            .append("      <td>").append(customer.getPrimaryPhone() != null ? customer.getPrimaryPhone() : "-").append("</td>\n")
+            .append("      <td style=\"font-weight: 700; color: #64748b;\">Kolektibilitas:</td>\n")
+            .append("      <td>").append(creditStatusBadge).append("</td>\n")
+            .append("    </tr>\n")
+            .append("  </table>\n")
+            .append("</div>\n");
+
+        // Portfolio Summary Metrics
+        html.append("<div class=\"metrics-grid\">\n")
+            .append("  <div class=\"metric-card\">\n")
+            .append("    <div class=\"metric-label\">Total Pembiayaan Pokok</div>\n")
+            .append("    <div class=\"metric-value\">").append(formatRp(totalFinanced)).append("</div>\n")
+            .append("  </div>\n")
+            .append("  <div class=\"metric-card\">\n")
+            .append("    <div class=\"metric-label\">Total Pembayaran Masuk</div>\n")
+            .append("    <div class=\"metric-value\" style=\"color: #166534;\">").append(formatRp(totalPaid)).append("</div>\n")
+            .append("  </div>\n")
+            .append("  <div class=\"metric-card\">\n")
+            .append("    <div class=\"metric-label\">Sisa Saldo Pokok</div>\n")
+            .append("    <div class=\"metric-value\" style=\"color: ").append(totalRemaining.compareTo(BigDecimal.ZERO) > 0 ? "#1e3a8a" : "#64748b").append(";\">").append(formatRp(totalRemaining)).append("</div>\n")
+            .append("  </div>\n")
+            .append("  <div class=\"metric-card\">\n")
+            .append("    <div class=\"metric-label\">Tunggakan Jatuh Tempo</div>\n")
+            .append("    <div class=\"metric-value\" style=\"color: ").append(totalOverdue.compareTo(BigDecimal.ZERO) > 0 ? "#b91c1c" : "#166534").append(";\">").append(formatRp(totalOverdue)).append("</div>\n")
+            .append("  </div>\n")
+            .append("</div>\n");
+
+        // Contracts & Installment Ledgers
+        if (receivables.isEmpty()) {
+            html.append("<div class=\"section\">\n")
+                .append("  <div class=\"section-title\">BUKU ANGSURAN & KONTRAK PIUTANG</div>\n")
+                .append("  <p style=\"color: #64748b; font-style: italic;\">Belum ada akun piutang / kontrak kredit terdaftar untuk pelanggan ini.</p>\n")
+                .append("</div>\n");
+        } else {
+            for (Receivable r : receivables) {
+                String soNumber = r.getSalesOrder() != null && r.getSalesOrder().getNumber() != null ? r.getSalesOrder().getNumber() : "-";
+                String contractDate = r.getCreatedAt() != null 
+                        ? DATE_FMT.format(r.getCreatedAt().atZone(ZoneId.systemDefault()))
+                        : "-";
+                
+                // Get ordered products description
+                StringBuilder productsDesc = new StringBuilder();
+                if (r.getSalesOrder() != null && r.getSalesOrder().getId() != null) {
+                    List<SalesOrderItem> items = salesOrderItemRepository.findBySalesOrderId(r.getSalesOrder().getId());
+                    for (int i = 0; i < items.size(); i++) {
+                        SalesOrderItem it = items.get(i);
+                        if (i > 0) productsDesc.append(", ");
+                        productsDesc.append(it.getProductVariant() != null ? it.getProductVariant().getVariantName() : "Unit");
+                        productsDesc.append(" (").append(it.getQuantity()).append("x)");
+                    }
+                }
+                if (productsDesc.length() == 0) productsDesc.append("Barang Financed Konsumen");
+
+                html.append("<div class=\"section\" style=\"margin-top: 15px;\">\n")
+                    .append("  <div style=\"background: #e2e8f0; padding: 6px 10px; border-radius: 4px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;\">\n")
+                    .append("    <span>KONTRAK: ").append(r.getReceivableNumber()).append(" (SO: ").append(soNumber).append(") - Tenor: ").append(r.getPaymentTermMonths()).append(" Bulan</span>\n")
+                    .append("    <span class=\"badge badge-neutral\">").append(r.getStatus()).append("</span>\n")
+                    .append("  </div>\n")
+                    .append("  <div style=\"font-size: 11px; color: #475569; margin: 4px 0 8px 2px;\">\n")
+                    .append("    <strong>Komoditas/Unit:</strong> ").append(productsDesc).append(" | <strong>Tgl Kontrak:</strong> ").append(contractDate).append(" | <strong>Total Nilai:</strong> ").append(formatRp(r.getTotalAmount())).append(" | <strong>DP:</strong> ").append(formatRp(r.getDownPaymentAmount())).append(" | <strong>Sisa:</strong> ").append(formatRp(r.getRemainingBalance())).append("\n")
+                    .append("  </div>\n")
+                    .append("  <table class=\"data-table\">\n")
+                    .append("    <thead>\n")
+                    .append("      <tr>\n")
+                    .append("        <th class=\"text-center\" style=\"width: 35px;\">#</th>\n")
+                    .append("        <th style=\"width: 100px;\">Jatuh Tempo</th>\n")
+                    .append("        <th class=\"text-right\">Tagihan (Rp)</th>\n")
+                    .append("        <th class=\"text-right\">Dibayar (Rp)</th>\n")
+                    .append("        <th class=\"text-right\">Sisa (Rp)</th>\n")
+                    .append("        <th style=\"width: 100px;\">Tgl Bayar</th>\n")
+                    .append("        <th class=\"text-center\" style=\"width: 110px;\">Status</th>\n")
+                    .append("        <th>Catatan / Keterangan</th>\n")
+                    .append("      </tr>\n")
+                    .append("    </thead>\n")
+                    .append("    <tbody>\n");
+
+                List<ReceivableInstallment> insts = r.getInstallments();
+                if (insts == null || insts.isEmpty()) {
+                    html.append("      <tr><td colspan=\"8\" class=\"text-center\" style=\"color: #64748b;\">Tidak ada jadwal angsuran ditemukan</td></tr>\n");
+                } else {
+                    for (ReceivableInstallment inst : insts) {
+                        BigDecimal due = inst.getAmountDue() != null ? inst.getAmountDue() : BigDecimal.ZERO;
+                        BigDecimal paid = inst.getAmountPaid() != null ? inst.getAmountPaid() : BigDecimal.ZERO;
+                        BigDecimal rem = due.subtract(paid);
+                        if (rem.compareTo(BigDecimal.ZERO) < 0) rem = BigDecimal.ZERO;
+
+                        String dueDateStr = inst.getDueDate() != null ? DATE_FMT.format(inst.getDueDate()) : "-";
+                        String paidDateStr = inst.getPaidAt() != null 
+                                ? DATE_FMT.format(inst.getPaidAt().atZone(ZoneId.systemDefault()))
+                                : "-";
+
+                        String statusBadge;
+                        String note = inst.getNotes() != null ? inst.getNotes() : "";
+                        if (inst.getStatus() == InstallmentStatus.PAID) {
+                            statusBadge = "<span class=\"badge badge-success\">LUNAS</span>";
+                        } else if (inst.getStatus() == InstallmentStatus.PARTIAL) {
+                            statusBadge = "<span class=\"badge badge-warning\">SEBAGIAN</span>";
+                        } else if (inst.getDueDate().isBefore(LocalDate.now())) {
+                            long days = ChronoUnit.DAYS.between(inst.getDueDate(), LocalDate.now());
+                            statusBadge = "<span class=\"badge badge-danger\">TERTUNGGAK</span>";
+                            if (note.isEmpty()) note = "Lewat jatuh tempo " + days + " hari";
+                        } else {
+                            statusBadge = "<span class=\"badge badge-info\">BELUM JATUH TEMPO</span>";
+                        }
+
+                        html.append("      <tr>\n")
+                            .append("        <td class=\"text-center\" style=\"font-weight: 700;\">").append(inst.getInstallmentNumber()).append("</td>\n")
+                            .append("        <td>").append(dueDateStr).append("</td>\n")
+                            .append("        <td class=\"text-right\">").append(formatRp(due)).append("</td>\n")
+                            .append("        <td class=\"text-right\">").append(formatRp(paid)).append("</td>\n")
+                            .append("        <td class=\"text-right\" style=\"font-weight: 700; color: ").append(rem.compareTo(BigDecimal.ZERO) > 0 ? "#b91c1c" : "#166534").append(";\">").append(formatRp(rem)).append("</td>\n")
+                            .append("        <td>").append(paidDateStr).append("</td>\n")
+                            .append("        <td class=\"text-center\">").append(statusBadge).append("</td>\n")
+                            .append("        <td style=\"font-size: 11px;\">").append(note).append("</td>\n")
+                            .append("      </tr>\n");
+                    }
+                }
+
+                html.append("    </tbody>\n")
+                    .append("  </table>\n")
+                    .append("</div>\n");
+            }
+        }
+
+        // Recent Payment History Ledger
+        if (payments != null && !payments.isEmpty()) {
+            html.append("<div class=\"section\" style=\"margin-top: 15px;\">\n")
+                .append("  <div class=\"section-title\">BUKU CATATAN PEMBAYARAN MASUK TERAKHIR</div>\n")
+                .append("  <table class=\"data-table\">\n")
+                .append("    <thead>\n")
+                .append("      <tr>\n")
+                .append("        <th style=\"width: 130px;\">No. Kuitansi</th>\n")
+                .append("        <th style=\"width: 110px;\">Tanggal & Waktu</th>\n")
+                .append("        <th>Metode Pembayaran</th>\n")
+                .append("        <th class=\"text-right\" style=\"width: 120px;\">Nominal Diterima</th>\n")
+                .append("        <th>Petugas Penerima</th>\n")
+                .append("        <th>Keterangan</th>\n")
+                .append("      </tr>\n")
+                .append("    </thead>\n")
+                .append("    <tbody>\n");
+
+            int paymentLimit = Math.min(payments.size(), 10);
+            for (int i = 0; i < paymentLimit; i++) {
+                CustomerPayment p = payments.get(i);
+                String payDate = p.getPaidAt() != null 
+                        ? DATE_FMT.format(p.getPaidAt().atZone(ZoneId.systemDefault()))
+                        : "-";
+                String collectorName = p.getCollectedBy() != null ? p.getCollectedBy().getFullName() : "Kasir Showroom";
+                
+                html.append("      <tr>\n")
+                    .append("        <td style=\"font-weight: 700;\">").append(p.getPaymentNumber()).append("</td>\n")
+                    .append("        <td>").append(payDate).append("</td>\n")
+                    .append("        <td>").append(p.getPaymentMethod()).append(" (").append(p.getPaymentType()).append(")</td>\n")
+                    .append("        <td class=\"text-right\" style=\"font-weight: 700; color: #166534;\">").append(formatRp(p.getAmount())).append("</td>\n")
+                    .append("        <td>").append(collectorName).append("</td>\n")
+                    .append("        <td style=\"font-size: 11px;\">").append(p.getNotes() != null ? p.getNotes() : "-").append("</td>\n")
+                    .append("      </tr>\n");
+            }
+
+            html.append("    </tbody>\n")
+                .append("  </table>\n")
+                .append("</div>\n");
+        }
+
+        // Legal & Money Management Disclaimer
+        html.append("<div class=\"notice-box\">\n")
+            .append("  <strong>PEMBERITAHUAN MANAJEMEN ANGSURAN & PEMBAYARAN KONSUMEN:</strong><br/>\n")
+            .append("  1. Dokumen ini adalah lembar rekening koran dan tagihan angsuran internal sistem manajemen keuangan ritel (bukan rekening perbankan komersial).<br/>\n")
+            .append("  2. Pembayaran resmi hanya sah apabila disetorkan ke meja kasir showroom resmi atau diterima oleh kolektor lapangan resmi dengan bukti kuitansi sistem bernomor valid.<br/>\n")
+            .append("  3. Simpan seluruh lembar bukti pembayaran Anda sebagai bukti sah pelunasan kewajiban angsuran pembiayaan barang.\n")
+            .append("</div>\n");
+
+        // Signatures
+        html.append("<div class=\"signatures\">\n")
+            .append("  <div class=\"sig-box\">\n")
+            .append("    <div>Bagian Finance & Admin Piutang</div>\n")
+            .append("    <div class=\"sig-line\">( Staf Finance )</div>\n")
+            .append("  </div>\n")
+            .append("  <div class=\"sig-box\">\n")
+            .append("    <div>Mengetahui, Kepala Toko</div>\n")
+            .append("    <div class=\"sig-line\">( Branch Manager )</div>\n")
+            .append("  </div>\n")
+            .append("  <div class=\"sig-box\">\n")
+            .append("    <div>Diterima & Diakui Debitur</div>\n")
+            .append("    <div class=\"sig-line\">( ").append(customer.getFullName()).append(" )</div>\n")
+            .append("  </div>\n")
+            .append("</div>\n");
+
+        html.append("</div>\n");
+        return html.toString();
     }
 }

@@ -38,6 +38,19 @@ import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import CancelIcon from "@mui/icons-material/Cancel";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import RouteIcon from "@mui/icons-material/Route";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import LocalGasStationIcon from "@mui/icons-material/LocalGasStation";
+import ReportProblemIcon from "@mui/icons-material/ReportProblem";
+import {
+  MaintenanceScheduleTabContent,
+  FuelLogTabContent,
+  IncidentReportTabContent,
+} from "./FleetMaintenanceFuelIncidentTabs";
+import {
+  useMaintenanceSchedules,
+  useFuelLogs,
+  useIncidentReports,
+} from "./hooks";
 import { useSnackbar } from "notistack";
 import {
   useServiceLogs,
@@ -74,6 +87,9 @@ export function TruckDetailsDialog({ open, truck, onClose }: TruckDetailsDialogP
   const { data: serviceLogs = [], isLoading: logsLoading } = useServiceLogs(vehicleId);
   const { data: travelDistance, isLoading: travelLoading } = useTruckTravelDistance(vehicleId);
   const { data: healthChecks = [], isLoading: healthLoading } = useMonthlyHealthChecks(vehicleId);
+  const { data: maintenanceSchedules = [] } = useMaintenanceSchedules(vehicleId);
+  const { data: fuelLogs = [] } = useFuelLogs(vehicleId);
+  const { data: incidentReports = [] } = useIncidentReports(vehicleId);
 
   // Mutations
   const recordServiceMutation = useRecordServiceLog();
@@ -557,6 +573,14 @@ export function TruckDetailsDialog({ open, truck, onClose }: TruckDetailsDialogP
               )}
             </Box>
           )}
+          {/* ══════════════ TAB 3: MAINTENANCE SCHEDULER (Backlog [L.5]) ══════════════ */}
+          {activeTab === 3 && <MaintenanceScheduleTabContent truck={truck} />}
+
+          {/* ══════════════ TAB 4: FUEL CONSUMPTION LOGS (Backlog [L.5]) ══════════════ */}
+          {activeTab === 4 && <FuelLogTabContent truck={truck} />}
+
+          {/* ══════════════ TAB 5: INCIDENT DAMAGE REPORTS (Backlog [L.5]) ══════════════ */}
+          {activeTab === 5 && <IncidentReportTabContent truck={truck} />}
         </DialogContent>
 
         <DialogActions sx={{ p: 2 }}>

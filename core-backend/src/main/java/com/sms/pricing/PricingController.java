@@ -1,7 +1,10 @@
 package com.sms.pricing;
 
 import com.sms.common.security.SmsUserPrincipal;
+import com.sms.foundation.document.HeadlessPdfService;
 import com.sms.pricing.dto.AutoApplyPricingRequest;
+import com.sms.pricing.dto.BundleCalculationRequest;
+import com.sms.pricing.dto.BundleCalculationResponse;
 import com.sms.pricing.dto.GeneratePriceListVersionRequest;
 import com.sms.pricing.dto.PriceCalculationRequest;
 import com.sms.pricing.dto.PriceCalculationResponse;
@@ -37,6 +40,7 @@ public class PricingController {
     private final PriceCalculationService calculationService;
     private final PriceListService priceListService;
     private final PriceListVersionService priceListVersionService;
+    private final HeadlessPdfService headlessPdfService;
 
     @GetMapping
     public List<PriceResponse> listByStore(@PathVariable UUID storeId) {
@@ -85,6 +89,14 @@ public class PricingController {
     @PostMapping("/calculate")
     public PriceCalculationResponse calculatePreview(@PathVariable UUID storeId, @RequestBody PriceCalculationRequest request) {
         return calculationService.calculate(request);
+    }
+
+    /**
+     * Preview calculation of multi-product credit bundle financing.
+     */
+    @PostMapping("/calculate-bundle")
+    public BundleCalculationResponse calculateBundle(@PathVariable UUID storeId, @RequestBody BundleCalculationRequest request) {
+        return calculationService.calculateBundle(request);
     }
 
     /**
@@ -196,6 +208,40 @@ public class PricingController {
                 .contentType(MediaType.parseMediaType(entity.getMimeType() != null ? entity.getMimeType() : "text/html"))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + entity.getFileName() + "\"")
                 .body(bytes);
+    }
+
+    /**
+     * Generate byte-perfect A4 PDF for live price list report (G.21).
+     */
+    @GetMapping(value = "/price-list/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> getPriceListPdf(
+            @PathVariable UUID storeId,
+            @RequestParam(required = false, defaultValue = "category") String groupBy,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate validFrom) {
+        String html = priceListService.generatePriceListHtml(storeId, groupBy, validFrom);
+        byte[] pdfBytes = headlessPdfService.renderHtmlToPdf(html, false);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"price-list-" + storeId + ".pdf\"")
+                .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
+    }
+
+    /**
+     * Download stored price list version rendered as byte-perfect A4 PDF (G.21).
+     */
+    @GetMapping(value = "/price-list/versions/{versionId}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> downloadPriceListVersionPdf(
+            @PathVariable UUID storeId,
+            @PathVariable UUID versionId) {
+        PriceListVersion entity = priceListVersionService.getVersionEntity(versionId);
+        byte[] pdfBytes = headlessPdfService.renderHtmlToPdf(entity.getContentHtml(), false);
+        String filename = entity.getVersionCode() != null ? entity.getVersionCode() + ".pdf" : "price-list.pdf";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdfBytes);
     }
 
     /**

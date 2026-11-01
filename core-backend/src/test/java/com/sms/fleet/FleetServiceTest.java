@@ -61,6 +61,12 @@ class FleetServiceTest {
     private EmployeeRoleRepository employeeRoleRepository;
     @Mock
     private StoreRepository storeRepository;
+    @Mock
+    private VehicleMaintenanceScheduleRepository maintenanceScheduleRepository;
+    @Mock
+    private VehicleFuelLogRepository fuelLogRepository;
+    @Mock
+    private VehicleIncidentReportRepository incidentReportRepository;
 
     @InjectMocks
     private FleetService fleetService;
@@ -588,4 +594,197 @@ class FleetServiceTest {
                 eq("DRIVER_LICENSE"), eq(licId), contains("Cecep Santoso"), contains("5 hari"), eq(List.of(drvId))
         );
     }
+
+    // --- Backlog [L.5] Maintenance Scheduler Tests ---
+
+    @Test
+    void createMaintenanceSchedule_setsScheduledStatusAndCalculatesOverdue() {
+        UUID vId = UUID.randomUUID();
+        Vehicle v = new Vehicle();
+        ReflectionTestUtils.setField(v, "id", vId);
+        v.setRegistrationNumber("B 1234 CD");
+        v.setOdometerKm(15000);
+
+        when(vehicleRepository.findById(vId)).thenReturn(Optional.of(v));
+        when(maintenanceScheduleRepository.save(any(VehicleMaintenanceSchedule.class))).thenAnswer(inv -> {
+            VehicleMaintenanceSchedule s = inv.getArgument(0);
+            ReflectionTestUtils.setField(s, "id", UUID.randomUUID());
+            return s;
+        });
+
+        VehicleMaintenanceScheduleDto.CreateRequest req = new VehicleMaintenanceScheduleDto.CreateRequest(
+                LocalDate.now().plusDays(7),
+                "ROUTINE_SERVICE",
+                12000, // target is 12000, current is 15000 -> isDueOrOverdue is true!
+                new BigDecimal("1500000"),
+                "Bengkel Resmi Hino",
+                "Servis berkala 10.000 km"
+        );
+
+        VehicleMaintenanceScheduleDto.Response res = fleetService.createMaintenanceSchedule(vId, req);
+
+        assertThat(res.maintenanceType()).isEqualTo("ROUTINE_SERVICE");
+        assertThat(res.status()).isEqualTo("SCHEDULED");
+        assertThat(res.isDueOrOverdue()).isTrue();
+        assertThat(res.serviceCenter()).isEqualTo("Bengkel Resmi Hino");
+    }
+
+    @Test
+    void updateMaintenanceScheduleStatus_whenCompleted_updatesVehicleLastService() {
+        UUID sId = UUID.randomUUID();
+        UUID vId = UUID.randomUUID();
+        Vehicle v = new Vehicle();
+        ReflectionTestUtils.setField(v, "id", vId);
+        v.setRegistrationNumber("B 1234 CD");
+        v.setOdometerKm(20500);
+
+        VehicleMaintenanceSchedule schedule = new VehicleMaintenanceSchedule();
+        ReflectionTestUtils.setField(schedule, "id", sId);
+        schedule.setVehicle(v);
+        schedule.setScheduledDate(LocalDate.now());
+        schedule.setMaintenanceType("OIL_CHANGE");
+        schedule.setStatus("SCHEDULED");
+
+        when(maintenanceScheduleRepository.findById(sId)).thenReturn(Optional.of(schedule));
+        when(maintenanceScheduleRepository.save(any(VehicleMaintenanceSchedule.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        VehicleMaintenanceScheduleDto.UpdateStatusRequest req = new VehicleMaintenanceScheduleDto.UpdateStatusRequest(
+                "COMPLETED",
+                new BigDecimal("850000"),
+                "Ganti oli mesin dan filter oli selesai"
+        );
+
+        VehicleMaintenanceScheduleDto.Response res = fleetService.updateMaintenanceScheduleStatus(sId, req);
+
+        assertThat(res.status()).isEqualTo("COMPLETED");
+        assertThat(res.actualCost()).isEqualByComparingTo("850000");
+        assertThat(res.completedAt()).isNotNull();
+        assertThat(v.getLastServiceOdometerKm()).isEqualTo(20500);
+        assertThat(v.getLastServiceDate()).isEqualTo(LocalDate.now());
+        verify(vehicleRepository, times(1)).save(v);
+    }
+
+    // --- Backlog [L.5] Fuel Consumption Log Tests ---
+
+    @Test
+    void recordFuelLog_calculatesEfficiencyAndUpdatesOdometer() {
+        UUID vId = UUID.randomUUID();
+        Vehicle v = new Vehicle();
+        ReflectionTestUtils.setField(v, "id", vId);
+        v.setRegistrationNumber("B 5555 XYZ");
+        v.setOdometerKm(10000);
+        v.setFuelType("SOLAR");
+
+        VehicleFuelLog previousLog = new VehicleFuelLog();
+        previousLog.setOdometerKm(9500); // 500 km delta
+        previousLog.setFuelLiters(new BigDecimal("50.00"));
+
+        when(vehicleRepository.findById(vId)).thenReturn(Optional.of(v));
+        when(fuelLogRepository.findLatestByVehicleId(vId)).thenReturn(List.of(previousLog));
+        when(fuelLogRepository.save(any(VehicleFuelLog.class))).thenAnswer(inv -> {
+            VehicleFuelLog l = inv.getArgument(0);
+            ReflectionTestUtils.setField(l, "id", UUID.randomUUID());
+            return l;
+        });
+
+        // Current refuel: 50 liters at 10,000 km -> 500 km / 50 L = 10.00 km/L
+        VehicleFuelLogDto.CreateRequest req = new VehicleFuelLogDto.CreateRequest(
+                LocalDate.now(),
+                null,
+                10000,
+                new BigDecimal("50.00"),
+                new BigDecimal("6800.00"),
+                new BigDecimal("340000.00"),
+                "SOLAR",
+                "SPBU Pertamina Daan Mogot",
+                true,
+                null,
+                "INV-FUEL-001",
+                "Isi penuh"
+        );
+
+        VehicleFuelLogDto.Response res = fleetService.recordFuelLog(vId, req);
+
+        assertThat(res.odometerKm()).isEqualTo(10000);
+        assertThat(res.fuelLiters()).isEqualByComparingTo("50.00");
+        assertThat(res.totalCost()).isEqualByComparingTo("340000.00");
+        assertThat(res.efficiencyKmPerLiter()).isEqualByComparingTo("10.00");
+        assertThat(v.getOdometerKm()).isEqualTo(10000);
+    }
+
+    // --- Backlog [L.5] Incident Damage Reporting Tests ---
+
+    @Test
+    void reportIncident_criticalSeverity_putsVehicleInMaintenance() {
+        UUID vId = UUID.randomUUID();
+        Vehicle v = new Vehicle();
+        ReflectionTestUtils.setField(v, "id", vId);
+        v.setRegistrationNumber("B 9999 DEF");
+        v.setStatus(VehicleStatus.AVAILABLE);
+
+        when(vehicleRepository.findById(vId)).thenReturn(Optional.of(v));
+        when(incidentReportRepository.save(any(VehicleIncidentReport.class))).thenAnswer(inv -> {
+            VehicleIncidentReport r = inv.getArgument(0);
+            ReflectionTestUtils.setField(r, "id", UUID.randomUUID());
+            return r;
+        });
+
+        VehicleIncidentReportDto.CreateRequest req = new VehicleIncidentReportDto.CreateRequest(
+                LocalDate.now(),
+                null,
+                "COLLISION_MAJOR",
+                "CRITICAL",
+                "Jl. Tol Jagorawi KM 15",
+                "Tabrakan beruntun saat hujan lebat, bumper depan dan radiator rusak parah",
+                true,
+                "Sopir truk tronton lawan B 1111 AA",
+                "LP/123/XI/2026",
+                null,
+                new BigDecimal("12000000"),
+                true,
+                "CLM-ASURANSI-888"
+        );
+
+        VehicleIncidentReportDto.Response res = fleetService.reportIncident(vId, req);
+
+        assertThat(res.incidentType()).isEqualTo("COLLISION_MAJOR");
+        assertThat(res.severity()).isEqualTo("CRITICAL");
+        assertThat(res.status()).isEqualTo("REPORTED");
+        assertThat(v.getStatus()).isEqualTo(VehicleStatus.MAINTENANCE);
+        verify(vehicleRepository, times(1)).save(v);
+    }
+
+    @Test
+    void updateIncidentStatus_whenResolved_restoresVehicleToAvailable() {
+        UUID incId = UUID.randomUUID();
+        UUID vId = UUID.randomUUID();
+        Vehicle v = new Vehicle();
+        ReflectionTestUtils.setField(v, "id", vId);
+        v.setRegistrationNumber("B 9999 DEF");
+        v.setStatus(VehicleStatus.MAINTENANCE);
+
+        VehicleIncidentReport incident = new VehicleIncidentReport();
+        ReflectionTestUtils.setField(incident, "id", incId);
+        incident.setVehicle(v);
+        incident.setStatus("REPORTED");
+        incident.setSeverity("HIGH");
+
+        when(incidentReportRepository.findById(incId)).thenReturn(Optional.of(incident));
+        when(incidentReportRepository.save(any(VehicleIncidentReport.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        VehicleIncidentReportDto.UpdateStatusRequest req = new VehicleIncidentReportDto.UpdateStatusRequest(
+                "RESOLVED",
+                new BigDecimal("9500000"),
+                "Perbaikan selesai oleh bengkel rekanan asuransi, kondisi layak jalan."
+        );
+
+        VehicleIncidentReportDto.Response res = fleetService.updateIncidentStatus(incId, req);
+
+        assertThat(res.status()).isEqualTo("RESOLVED");
+        assertThat(res.actualRepairCost()).isEqualByComparingTo("9500000");
+        assertThat(res.resolvedAt()).isNotNull();
+        assertThat(v.getStatus()).isEqualTo(VehicleStatus.AVAILABLE);
+        verify(vehicleRepository, times(1)).save(v);
+    }
+
 }

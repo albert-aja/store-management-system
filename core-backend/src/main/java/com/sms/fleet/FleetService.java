@@ -43,6 +43,9 @@ public class FleetService {
     private final EmployeeRepository employeeRepository;
     private final EmployeeRoleRepository employeeRoleRepository;
     private final StoreRepository storeRepository;
+    private final VehicleMaintenanceScheduleRepository maintenanceScheduleRepository;
+    private final VehicleFuelLogRepository fuelLogRepository;
+    private final VehicleIncidentReportRepository incidentReportRepository;
 
     public static final String ETHICAL_OPERATIONAL_NOTICE =
             "STATUTORY & ETHICAL OPERATIONAL NOTICE: GPS-derived telemetry reflects automated machine observations only "
@@ -1374,4 +1377,268 @@ public class FleetService {
                 .createdAt(l.getCreatedAt())
                 .build();
     }
+
+    // --- Maintenance Scheduler (Backlog [L.5]) ---
+
+    @Transactional(readOnly = true)
+    public List<VehicleMaintenanceScheduleDto.Response> getMaintenanceSchedules(UUID vehicleId) {
+        return maintenanceScheduleRepository.findByVehicleIdOrderByScheduledDateDesc(vehicleId).stream()
+                .map(this::toMaintenanceScheduleDto)
+                .toList();
+    }
+
+    @Transactional
+    public VehicleMaintenanceScheduleDto.Response createMaintenanceSchedule(UUID vehicleId, VehicleMaintenanceScheduleDto.CreateRequest request) {
+        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new IllegalArgumentException("Vehicle not found: " + vehicleId));
+
+        VehicleMaintenanceSchedule schedule = new VehicleMaintenanceSchedule();
+        schedule.setVehicle(vehicle);
+        schedule.setScheduledDate(request.scheduledDate());
+        schedule.setMaintenanceType(request.maintenanceType());
+        schedule.setTargetOdometerKm(request.targetOdometerKm());
+        schedule.setEstimatedCost(request.estimatedCost() != null ? request.estimatedCost() : BigDecimal.ZERO);
+        schedule.setServiceCenter(request.serviceCenter());
+        schedule.setNotes(request.notes());
+        schedule.setStatus("SCHEDULED");
+
+        VehicleMaintenanceSchedule saved = maintenanceScheduleRepository.save(schedule);
+        return toMaintenanceScheduleDto(saved);
+    }
+
+    @Transactional
+    public VehicleMaintenanceScheduleDto.Response updateMaintenanceScheduleStatus(UUID scheduleId, VehicleMaintenanceScheduleDto.UpdateStatusRequest request) {
+        VehicleMaintenanceSchedule schedule = maintenanceScheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new IllegalArgumentException("Maintenance schedule not found: " + scheduleId));
+
+        schedule.setStatus(request.status());
+        if (request.actualCost() != null) {
+            schedule.setActualCost(request.actualCost());
+        }
+        if (request.notes() != null) {
+            schedule.setNotes(request.notes());
+        }
+        if ("COMPLETED".equalsIgnoreCase(request.status())) {
+            schedule.setCompletedAt(Instant.now());
+            if (schedule.getVehicle() != null) {
+                schedule.getVehicle().setLastServiceDate(schedule.getScheduledDate());
+                if (schedule.getVehicle().getOdometerKm() != null) {
+                    schedule.getVehicle().setLastServiceOdometerKm(schedule.getVehicle().getOdometerKm());
+                }
+                vehicleRepository.save(schedule.getVehicle());
+            }
+        }
+
+        VehicleMaintenanceSchedule saved = maintenanceScheduleRepository.save(schedule);
+        return toMaintenanceScheduleDto(saved);
+    }
+
+    // --- Fuel Consumption Log Tracking (Backlog [L.5]) ---
+
+    @Transactional(readOnly = true)
+    public List<VehicleFuelLogDto.Response> getFuelLogs(UUID vehicleId) {
+        return fuelLogRepository.findByVehicleIdOrderByLogDateDesc(vehicleId).stream()
+                .map(this::toFuelLogDto)
+                .toList();
+    }
+
+    @Transactional
+    public VehicleFuelLogDto.Response recordFuelLog(UUID vehicleId, VehicleFuelLogDto.CreateRequest request) {
+        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new IllegalArgumentException("Vehicle not found: " + vehicleId));
+
+        Employee driver = null;
+        if (request.driverEmployeeId() != null) {
+            driver = employeeRepository.findById(request.driverEmployeeId()).orElse(null);
+        }
+        if (driver == null) {
+            driver = vehicle.getAssignedDriver();
+        }
+
+        BigDecimal totalCost = request.totalCost();
+        if (totalCost == null && request.fuelLiters() != null && request.costPerLiter() != null) {
+            totalCost = request.fuelLiters().multiply(request.costPerLiter());
+        }
+
+        BigDecimal efficiency = null;
+        List<VehicleFuelLog> latestLogs = fuelLogRepository.findLatestByVehicleId(vehicleId);
+        if (!latestLogs.isEmpty()) {
+            VehicleFuelLog prev = latestLogs.get(0);
+            if (prev.getOdometerKm() != null && request.odometerKm() > prev.getOdometerKm() && request.fuelLiters().compareTo(BigDecimal.ZERO) > 0) {
+                int deltaKm = request.odometerKm() - prev.getOdometerKm();
+                efficiency = BigDecimal.valueOf(deltaKm).divide(request.fuelLiters(), 2, RoundingMode.HALF_UP);
+            }
+        }
+
+        VehicleFuelLog logEntry = new VehicleFuelLog();
+        logEntry.setVehicle(vehicle);
+        logEntry.setDriverEmployee(driver);
+        logEntry.setLogDate(request.logDate());
+        logEntry.setOdometerKm(request.odometerKm());
+        logEntry.setFuelLiters(request.fuelLiters());
+        logEntry.setCostPerLiter(request.costPerLiter());
+        logEntry.setTotalCost(totalCost != null ? totalCost : BigDecimal.ZERO);
+        logEntry.setFuelType(request.fuelType() != null ? request.fuelType() : vehicle.getFuelType());
+        logEntry.setGasStationName(request.gasStationName());
+        logEntry.setFullTank(request.fullTank() == null || request.fullTank());
+        logEntry.setEfficiencyKmPerLiter(efficiency);
+        logEntry.setReceiptPhotoUrl(request.receiptPhotoUrl());
+        logEntry.setInvoiceNumber(request.invoiceNumber());
+        logEntry.setNotes(request.notes());
+
+        if (vehicle.getOdometerKm() == null || request.odometerKm() > vehicle.getOdometerKm()) {
+            vehicle.setOdometerKm(request.odometerKm());
+            vehicleRepository.save(vehicle);
+        }
+
+        VehicleFuelLog saved = fuelLogRepository.save(logEntry);
+        return toFuelLogDto(saved);
+    }
+
+    // --- Incident Damage Reporting (Backlog [L.5]) ---
+
+    @Transactional(readOnly = true)
+    public List<VehicleIncidentReportDto.Response> getIncidentReports(UUID vehicleId) {
+        return incidentReportRepository.findByVehicleIdOrderByIncidentDateDesc(vehicleId).stream()
+                .map(this::toIncidentReportDto)
+                .toList();
+    }
+
+    @Transactional
+    public VehicleIncidentReportDto.Response reportIncident(UUID vehicleId, VehicleIncidentReportDto.CreateRequest request) {
+        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() -> new IllegalArgumentException("Vehicle not found: " + vehicleId));
+
+        Employee reporter = null;
+        if (request.reporterEmployeeId() != null) {
+            reporter = employeeRepository.findById(request.reporterEmployeeId()).orElse(null);
+        }
+        if (reporter == null) {
+            reporter = vehicle.getAssignedDriver();
+        }
+
+        VehicleIncidentReport incident = new VehicleIncidentReport();
+        incident.setVehicle(vehicle);
+        incident.setReporterEmployee(reporter);
+        incident.setIncidentDate(request.incidentDate());
+        incident.setIncidentType(request.incidentType());
+        incident.setSeverity(request.severity());
+        incident.setLocation(request.location());
+        incident.setDescription(request.description());
+        incident.setThirdPartyInvolved(Boolean.TRUE.equals(request.thirdPartyInvolved()));
+        incident.setThirdPartyDetails(request.thirdPartyDetails());
+        incident.setPoliceReportNumber(request.policeReportNumber());
+        incident.setDamagePhotoUrls(request.damagePhotoUrls());
+        incident.setEstimatedRepairCost(request.estimatedRepairCost() != null ? request.estimatedRepairCost() : BigDecimal.ZERO);
+        incident.setInsuranceClaimed(Boolean.TRUE.equals(request.insuranceClaimed()));
+        incident.setInsuranceClaimNumber(request.insuranceClaimNumber());
+        incident.setStatus("REPORTED");
+
+        if ("HIGH".equalsIgnoreCase(request.severity()) || "CRITICAL".equalsIgnoreCase(request.severity())) {
+            vehicle.setStatus(VehicleStatus.MAINTENANCE);
+            vehicleRepository.save(vehicle);
+        }
+
+        VehicleIncidentReport saved = incidentReportRepository.save(incident);
+        return toIncidentReportDto(saved);
+    }
+
+    @Transactional
+    public VehicleIncidentReportDto.Response updateIncidentStatus(UUID incidentId, VehicleIncidentReportDto.UpdateStatusRequest request) {
+        VehicleIncidentReport incident = incidentReportRepository.findById(incidentId)
+                .orElseThrow(() -> new IllegalArgumentException("Incident report not found: " + incidentId));
+
+        incident.setStatus(request.status());
+        if (request.actualRepairCost() != null) {
+            incident.setActualRepairCost(request.actualRepairCost());
+        }
+        if (request.resolutionNotes() != null) {
+            incident.setResolutionNotes(request.resolutionNotes());
+        }
+        if ("RESOLVED".equalsIgnoreCase(request.status()) || "REPAIRED".equalsIgnoreCase(request.status())) {
+            incident.setResolvedAt(Instant.now());
+            Vehicle vehicle = incident.getVehicle();
+            if (vehicle != null && vehicle.getStatus() == VehicleStatus.MAINTENANCE) {
+                vehicle.setStatus(VehicleStatus.AVAILABLE);
+                vehicleRepository.save(vehicle);
+            }
+        }
+
+        VehicleIncidentReport saved = incidentReportRepository.save(incident);
+        return toIncidentReportDto(saved);
+    }
+
+    private VehicleMaintenanceScheduleDto.Response toMaintenanceScheduleDto(VehicleMaintenanceSchedule s) {
+        boolean isDueOrOverdue = !"COMPLETED".equalsIgnoreCase(s.getStatus()) && !"CANCELLED".equalsIgnoreCase(s.getStatus()) &&
+                (s.getScheduledDate().isBefore(LocalDate.now()) || s.getScheduledDate().isEqual(LocalDate.now()) ||
+                 (s.getTargetOdometerKm() != null && s.getVehicle().getOdometerKm() != null && s.getVehicle().getOdometerKm() >= s.getTargetOdometerKm()));
+
+        return new VehicleMaintenanceScheduleDto.Response(
+                s.getId(),
+                s.getVehicle().getId(),
+                s.getVehicle().getRegistrationNumber(),
+                s.getScheduledDate(),
+                s.getMaintenanceType(),
+                s.getTargetOdometerKm(),
+                s.getEstimatedCost(),
+                s.getActualCost(),
+                s.getServiceCenter(),
+                s.getStatus(),
+                s.getCompletedAt(),
+                s.getNotes(),
+                isDueOrOverdue,
+                s.getCreatedAt()
+        );
+    }
+
+    private VehicleFuelLogDto.Response toFuelLogDto(VehicleFuelLog l) {
+        return new VehicleFuelLogDto.Response(
+                l.getId(),
+                l.getVehicle().getId(),
+                l.getVehicle().getRegistrationNumber(),
+                l.getDriverEmployee() != null ? l.getDriverEmployee().getId() : null,
+                l.getDriverEmployee() != null ? l.getDriverEmployee().getFullName() : null,
+                l.getLogDate(),
+                l.getOdometerKm(),
+                l.getFuelLiters(),
+                l.getCostPerLiter(),
+                l.getTotalCost(),
+                l.getFuelType(),
+                l.getGasStationName(),
+                l.isFullTank(),
+                l.getEfficiencyKmPerLiter(),
+                l.getReceiptPhotoUrl(),
+                l.getInvoiceNumber(),
+                l.getNotes(),
+                l.getCreatedAt()
+        );
+    }
+
+    private VehicleIncidentReportDto.Response toIncidentReportDto(VehicleIncidentReport r) {
+        return new VehicleIncidentReportDto.Response(
+                r.getId(),
+                r.getVehicle().getId(),
+                r.getVehicle().getRegistrationNumber(),
+                r.getReporterEmployee() != null ? r.getReporterEmployee().getId() : null,
+                r.getReporterEmployee() != null ? r.getReporterEmployee().getFullName() : null,
+                r.getIncidentDate(),
+                r.getIncidentType(),
+                r.getSeverity(),
+                r.getLocation(),
+                r.getDescription(),
+                r.isThirdPartyInvolved(),
+                r.getThirdPartyDetails(),
+                r.getPoliceReportNumber(),
+                r.getDamagePhotoUrls(),
+                r.getEstimatedRepairCost(),
+                r.getActualRepairCost(),
+                r.isInsuranceClaimed(),
+                r.getInsuranceClaimNumber(),
+                r.getStatus(),
+                r.getResolutionNotes(),
+                r.getResolvedAt(),
+                r.getCreatedAt()
+        );
+    }
+
 }

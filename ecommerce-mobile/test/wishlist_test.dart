@@ -136,5 +136,30 @@ void main() {
       ImageOptimizer.registerPreloadedUrl(heroUrl, preset: ImagePreset.hero);
       expect(ImageOptimizer.isPreloaded(heroUrl, preset: ImagePreset.hero), isTrue);
     });
+
+    test('P.26 Custom price drop alert settings threshold and toggle', () async {
+      final api = ApiClient();
+      final initial = await api.getWishlist();
+      final targetItem = initial.items.first;
+
+      // Update threshold to 15% and verify
+      final updated = await api.updateWishlistAlertSettings(
+        targetItem.id,
+        notifyOnPriceDrop: true,
+        thresholdPercent: 15.0,
+      );
+
+      expect(updated.notifyOnPriceDrop, isTrue);
+      expect(updated.alertDropThresholdPercent, 15.0);
+
+      // Disable alerts
+      final disabled = await api.updateWishlistAlertSettings(
+        targetItem.id,
+        notifyOnPriceDrop: false,
+      );
+
+      expect(disabled.notifyOnPriceDrop, isFalse);
+      expect(disabled.alertDropThresholdPercent, 15.0);
+    });
   });
 }
